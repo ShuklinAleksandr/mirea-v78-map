@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="740" viewBox="0 0 760 740" role="img" aria-labelledby="title desc">
+<title id="title">Понятая последовательность спуска к ИВЦ</title>
+<desc id="desc">Второй этаж, миниплощадка между этажами, первый этаж, ещё одна промежуточная миниплощадка, ИВЦ. Горизонтальная форма лестниц не установлена.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#ba4734"/></marker></defs>
+<rect width="760" height="740" rx="20" fill="#f4f7fb"/>
+<g font-family="Arial, sans-serif" fill="#172e48" text-anchor="middle">
+<text x="380" y="42" font-size="24" font-weight="700">Как я понял спуск по высоте</text>
+<text x="380" y="71" font-size="15">Уточнение пользователя · 25 октября 2026</text>
+<rect x="175" y="100" width="410" height="65" rx="12" fill="#dce8f7" stroke="#749ac7"/>
+<text x="380" y="141" font-size="24" font-weight="700">2 этаж · главный холл</text>
+<path d="M380 172 V207" stroke="#ba4734" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="225" y="220" width="310" height="58" rx="10" fill="#fae8c9" stroke="#c69c57" stroke-dasharray="5 4"/>
+<text x="380" y="246" font-size="19">Миниплощадка</text><text x="380" y="267" font-size="15">на промежуточной высоте</text>
+<path d="M380 287 V322" stroke="#ba4734" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="175" y="335" width="410" height="65" rx="12" fill="#dce8f7" stroke="#749ac7"/>
+<text x="380" y="376" font-size="24" font-weight="700">1 этаж</text>
+<path d="M380 409 V444" stroke="#ba4734" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="225" y="457" width="310" height="58" rx="10" fill="#fae8c9" stroke="#c69c57" stroke-dasharray="5 4"/>
+<text x="380" y="483" font-size="19">Миниплощадка</text><text x="380" y="504" font-size="15">на промежуточной высоте</text>
+<path d="M380 524 V559" stroke="#ba4734" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="175" y="572" width="410" height="65" rx="12" fill="#dceee7" stroke="#6ca28d"/>
+<text x="380" y="601" font-size="24" font-weight="700">Корпус ИВЦ</text><text x="380" y="625" font-size="15">номер этажа уточняется</text>
+<text x="380" y="675" font-size="16">Две боковые ветви идут с краёв к центру.</text>
+<text x="380" y="701" font-size="15" fill="#5a6776">Это схема уровней. Повороты и число площадок на плане ещё уточняем.</text>
+</g></svg>

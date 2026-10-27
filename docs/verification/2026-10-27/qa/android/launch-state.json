@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-10-27T16:43:58.184Z",
+  "method": "Read-only Runtime.evaluate through ADB-forwarded own debug WebView; no app state mutation",
+  "userLocation": null,
+  "tracking": {
+    "enabled": false,
+    "status": "off",
+    "reason": "",
+    "following": true
+  },
+  "surveyLocation": null,
+  "headingStatus": "off",
+  "camera": {
+    "position": [
+      64.80327630700678,
+      129.107427296555,
+      121.75840373430512
+    ],
+    "zoom": 1,
+    "target": [
+      14.549544958503265,
+      -7.2955577922403405,
+      -21.823685832847822
+    ]
+  },
+  "route": null,
+  "picker": {
+    "label": ""
+  },
+  "view": {
+    "floorId": "v-78-floor1",
+    "building": "Г",
+    "mode": "floor",
+    "projection": "3d"
+  }
+}

@@ -1,0 +1,1980 @@
+{
+  "version": 1,
+  "address": "Москва, проспект Вернадского, 78",
+  "sourceCount": 58,
+  "coordinateNote": "Фотографии планов имеют перспективные искажения. Номера и связи подтверждены подписью, метрические координаты и высоты из фотографий не подтверждены.",
+  "images": [
+    {
+      "id": "photo-3150",
+      "file": "/data/photos/IMG_3150.jpg",
+      "originalFile": "IMG_3150.HEIC",
+      "caption": "Корпус Г · 2 этаж · Полный этаж вокруг двора",
+      "building": "Г",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3151",
+      "preferredInGroup": false,
+      "notes": [
+        "Три лестницы ЛК1, ЛК3, ЛК2(ЦКД); санузлы справа от центральной лестницы. План содержит повторные подписи Г-207 и Г-207-1."
+      ],
+      "confirmedRoomLabels": [
+        "Г-201",
+        "Г-201-1",
+        "Г-201-2",
+        "Г-201-3",
+        "Г-202",
+        "Г-202-1",
+        "Г-203",
+        "Г-204",
+        "Г-205",
+        "Г-205-1",
+        "Г-206",
+        "Г-207",
+        "Г-207-1",
+        "Г-208",
+        "Г-208-1",
+        "Г-209",
+        "Г-210",
+        "Г-210-1",
+        "Г-211",
+        "Г-211-1",
+        "Г-212",
+        "Г-212-1",
+        "Г-213",
+        "Г-214",
+        "Г-215",
+        "Г-216",
+        "Г-217",
+        "Г-218",
+        "Г-219",
+        "Г-220",
+        "Г-221",
+        "Г-222",
+        "Г-223",
+        "Г-224",
+        "Г-225",
+        "Г-226",
+        "Г-226-1",
+        "Г-226-2",
+        "Г-227",
+        "Г-227-1",
+        "Г-227-2",
+        "Г-227-3",
+        "Г-228",
+        "Г-229",
+        "Г-230",
+        "Г-231"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3151",
+      "file": "/data/photos/IMG_3151.jpg",
+      "originalFile": "IMG_3151.HEIC",
+      "caption": "Корпус Г · 2 этаж · Полный этаж вокруг двора",
+      "building": "Г",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3151",
+      "preferredInGroup": true,
+      "notes": [
+        "Три лестницы ЛК1, ЛК3, ЛК2(ЦКД); санузлы справа от центральной лестницы. План содержит повторные подписи Г-207 и Г-207-1."
+      ],
+      "confirmedRoomLabels": [
+        "Г-201",
+        "Г-201-1",
+        "Г-201-2",
+        "Г-201-3",
+        "Г-202",
+        "Г-202-1",
+        "Г-203",
+        "Г-204",
+        "Г-205",
+        "Г-205-1",
+        "Г-206",
+        "Г-207",
+        "Г-207-1",
+        "Г-208",
+        "Г-208-1",
+        "Г-209",
+        "Г-210",
+        "Г-210-1",
+        "Г-211",
+        "Г-211-1",
+        "Г-212",
+        "Г-212-1",
+        "Г-213",
+        "Г-214",
+        "Г-215",
+        "Г-216",
+        "Г-217",
+        "Г-218",
+        "Г-219",
+        "Г-220",
+        "Г-221",
+        "Г-222",
+        "Г-223",
+        "Г-224",
+        "Г-225",
+        "Г-226",
+        "Г-226-1",
+        "Г-226-2",
+        "Г-227",
+        "Г-227-1",
+        "Г-227-2",
+        "Г-227-3",
+        "Г-228",
+        "Г-229",
+        "Г-230",
+        "Г-231"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3155",
+      "file": "/data/photos/IMG_3155.jpg",
+      "originalFile": "IMG_3155.HEIC",
+      "caption": "Корпус Г · 3 этаж · Полный этаж вокруг двора",
+      "building": "Г",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3156",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); буфет слева от нижнего центрального прохода. Небольшие комнаты нижнего внутреннего крыла частично неразборчивы."
+      ],
+      "confirmedRoomLabels": [
+        "Г-301-1",
+        "Г-301-2",
+        "Г-301-3",
+        "Г-301-4",
+        "Г-301-5",
+        "Г-301-6",
+        "Г-302",
+        "Г-302-1",
+        "Г-302-2",
+        "Г-303",
+        "Г-304",
+        "Г-304-1",
+        "Г-305",
+        "Г-305-1",
+        "Г-305-2",
+        "Г-306",
+        "Г-307",
+        "Г-307-1",
+        "Г-308",
+        "Г-309",
+        "Г-310",
+        "Г-311",
+        "Г-312",
+        "Г-313",
+        "Г-314",
+        "Г-315",
+        "Г-316",
+        "Г-317",
+        "Г-318",
+        "Г-319",
+        "Г-320",
+        "Г-321-1",
+        "Г-322-1",
+        "Г-322-2",
+        "Г-322-3",
+        "Г-322-4",
+        "Г-322-5",
+        "Г-322-6",
+        "Г-322-7",
+        "Г-322-8",
+        "Г-323",
+        "Г-324",
+        "Г-325",
+        "Г-326",
+        "Г-327"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3156",
+      "file": "/data/photos/IMG_3156.jpg",
+      "originalFile": "IMG_3156.HEIC",
+      "caption": "Корпус Г · 3 этаж · Полный этаж вокруг двора",
+      "building": "Г",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3156",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); буфет слева от нижнего центрального прохода. Небольшие комнаты нижнего внутреннего крыла частично неразборчивы."
+      ],
+      "confirmedRoomLabels": [
+        "Г-301-1",
+        "Г-301-2",
+        "Г-301-3",
+        "Г-301-4",
+        "Г-301-5",
+        "Г-301-6",
+        "Г-302",
+        "Г-302-1",
+        "Г-302-2",
+        "Г-303",
+        "Г-304",
+        "Г-304-1",
+        "Г-305",
+        "Г-305-1",
+        "Г-305-2",
+        "Г-306",
+        "Г-307",
+        "Г-307-1",
+        "Г-308",
+        "Г-309",
+        "Г-310",
+        "Г-311",
+        "Г-312",
+        "Г-313",
+        "Г-314",
+        "Г-315",
+        "Г-316",
+        "Г-317",
+        "Г-318",
+        "Г-319",
+        "Г-320",
+        "Г-321-1",
+        "Г-322-1",
+        "Г-322-2",
+        "Г-322-3",
+        "Г-322-4",
+        "Г-322-5",
+        "Г-322-6",
+        "Г-322-7",
+        "Г-322-8",
+        "Г-323",
+        "Г-324",
+        "Г-325",
+        "Г-326",
+        "Г-327"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3157",
+      "file": "/data/photos/IMG_3157.jpg",
+      "originalFile": "IMG_3157.HEIC",
+      "caption": "Корпус Г · 4 этаж · Полный этаж вокруг двора",
+      "building": "Г",
+      "floor": 4,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3157",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); санузлы справа от центральной лестницы."
+      ],
+      "confirmedRoomLabels": [
+        "Г-401-1",
+        "Г-401-2",
+        "Г-401-3",
+        "Г-402",
+        "Г-403",
+        "Г-404",
+        "Г-405",
+        "Г-406",
+        "Г-407",
+        "Г-407-1",
+        "Г-408",
+        "Г-409",
+        "Г-410",
+        "Г-411",
+        "Г-412",
+        "Г-413",
+        "Г-414",
+        "Г-415",
+        "Г-416",
+        "Г-417",
+        "Г-418",
+        "Г-419",
+        "Г-420",
+        "Г-420-1",
+        "Г-421",
+        "Г-422",
+        "Г-423",
+        "Г-423-1",
+        "Г-423-2",
+        "Г-424-1",
+        "Г-424-2",
+        "Г-424-3",
+        "Г-424-4",
+        "Г-425",
+        "Г-426",
+        "Г-427",
+        "Г-429",
+        "Г-430",
+        "Г-430-1"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3158",
+      "file": "/data/photos/IMG_3158.jpg",
+      "originalFile": "IMG_3158.HEIC",
+      "caption": "Корпус Г · 1 этаж · Первый этаж, правая часть не детализирована",
+      "building": "Г",
+      "floor": 1,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3158",
+      "preferredInGroup": true,
+      "notes": [
+        "Нельзя заполнять пустую правую часть комнатами с других этажей. ЛК1 справа и разрывы контура, ЛК3 слева, ЛК2(ЦКД) в центре дворовой стороны."
+      ],
+      "confirmedRoomLabels": [
+        "Г-101",
+        "Г-102",
+        "Г-102-1",
+        "Г-103",
+        "Г-104",
+        "Г-105",
+        "Г-106",
+        "Г-106-1",
+        "Г-106-2",
+        "Г-107",
+        "Г-108",
+        "Г-109-1",
+        "Г-109-2",
+        "Г-110-1",
+        "Г-110-2",
+        "Г-111-1",
+        "Г-111-2",
+        "Г-112-1",
+        "Г-112-2"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3159",
+      "file": "/data/photos/IMG_3159.jpg",
+      "originalFile": "IMG_3159.HEIC",
+      "caption": "Корпус А · 2 этаж · Тактильный план: участок А-215, А-216",
+      "building": "А",
+      "floor": 2,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3159",
+      "preferredInGroup": true,
+      "notes": [
+        "Переход в корпус Г; относительная планировка; мелкая легенда ненадёжна для автоматического распознавания."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3160",
+      "file": "/data/photos/IMG_3160.jpg",
+      "originalFile": "IMG_3160.HEIC",
+      "caption": "Корпус А · 2 этаж · Лекционные аудитории А-215, А-216",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3160",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК5 слева и ЛК4 справа. Ряды кресел обозначены внутри аудиторий."
+      ],
+      "confirmedRoomLabels": [
+        "А-215",
+        "А-216"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3161",
+      "file": "/data/photos/IMG_3161.jpg",
+      "originalFile": "IMG_3161.HEIC",
+      "caption": "Корпус А · 2 этаж · Лекционные аудитории А-217, А-218",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3161",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК4 слева, ЛК3 справа; санузлы справа."
+      ],
+      "confirmedRoomLabels": [
+        "А-217",
+        "А-218",
+        "А-235"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3162",
+      "file": "/data/photos/IMG_3162.jpg",
+      "originalFile": "IMG_3162.HEIC",
+      "caption": "Корпус А · 2 этаж · Тактильный план: А-217, А-218",
+      "building": "А",
+      "floor": 2,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3162",
+      "preferredInGroup": true,
+      "notes": [
+        "Подтверждает структуру соседнего пожарного плана."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3163",
+      "file": "/data/photos/IMG_3163.jpg",
+      "originalFile": "IMG_3163.HEIC",
+      "caption": "Корпус А · 2 этаж · Тактильный план: линейное крыло А-219—А-235",
+      "building": "А",
+      "floor": 2,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3163",
+      "preferredInGroup": true,
+      "notes": [
+        "Мелкая легенда требует отдельной проверки."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3164",
+      "file": "/data/photos/IMG_3164.jpg",
+      "originalFile": "IMG_3164.HEIC",
+      "caption": "Корпус А · 2 этаж · Линейное крыло А-219—А-235",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3164",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК3 слева, ЛК2 справа. Зигзагообразные перегородки между А-219-1/2, А-220/221, А-222/223; назначение перегородок не указано."
+      ],
+      "confirmedRoomLabels": [
+        "А-219-1",
+        "А-219-2",
+        "А-220",
+        "А-221",
+        "А-222",
+        "А-223",
+        "А-224",
+        "А-225",
+        "А-227",
+        "А-228",
+        "А-229",
+        "А-230.1",
+        "А-230.2",
+        "А-231",
+        "А-232",
+        "А-235"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3165",
+      "file": "/data/photos/IMG_3165.jpg",
+      "originalFile": "IMG_3165.HEIC",
+      "caption": "Корпус А · 2 этаж · Тактильный план: центральный холл, А-214",
+      "building": "А",
+      "floor": 2,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3165",
+      "preferredInGroup": true,
+      "notes": [
+        "Переход в корпус Г; подтверждает открытый холл с колоннами."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3166",
+      "file": "/data/photos/IMG_3166.jpg",
+      "originalFile": "IMG_3166.HEIC",
+      "caption": "Корпус А · 2 этаж · Центральный холл и А-214",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3166",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК5 справа; широкая лестница внизу слева, колонны, проходы. OCR ошибочно читает этаж 7; визуально 2."
+      ],
+      "confirmedRoomLabels": [
+        "А-214"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3167",
+      "file": "/data/photos/IMG_3167.jpg",
+      "originalFile": "IMG_3167.HEIC",
+      "caption": "Корпус А · 2 этаж · Центральный холл и А-213м, А-213б",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3167",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК7 слева; открытый холл и широкая лестница внизу справа."
+      ],
+      "confirmedRoomLabels": [
+        "А-213м",
+        "А-213б"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3168",
+      "file": "/data/photos/IMG_3168.jpg",
+      "originalFile": "IMG_3168.HEIC",
+      "caption": "Корпус А · 2 этаж · Тактильный план: холл, А-213",
+      "building": "А",
+      "floor": 2,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3168",
+      "preferredInGroup": true,
+      "notes": [
+        "Переход в корпус В."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3169",
+      "file": "/data/photos/IMG_3169.jpg",
+      "originalFile": "IMG_3169.HEIC",
+      "caption": "Корпус А · 2 этаж · Лекционные аудитории А-211, А-212",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3169",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК8 слева и ЛК7 справа; проход вдоль аудиторий."
+      ],
+      "confirmedRoomLabels": [
+        "А-211",
+        "А-212"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3170",
+      "file": "/data/photos/IMG_3170.jpg",
+      "originalFile": "IMG_3170.HEIC",
+      "caption": "Корпус А · 2 этаж · Тактильный план: А-211, А-212",
+      "building": "А",
+      "floor": 2,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3170",
+      "preferredInGroup": true,
+      "notes": [
+        "Подтверждает расположение лекционных аудиторий."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3171",
+      "file": "/data/photos/IMG_3171.jpg",
+      "originalFile": "IMG_3171.HEIC",
+      "caption": "Корпус А · 2 этаж · Лекционные аудитории А-209, А-210",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3171",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК9 слева, ЛК8 справа; ряды кресел."
+      ],
+      "confirmedRoomLabels": [
+        "А-209",
+        "А-210"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3172",
+      "file": "/data/photos/IMG_3172.jpg",
+      "originalFile": "IMG_3172.HEIC",
+      "caption": "Корпус А · 2 этаж · Линейное крыло А-203—А-208",
+      "building": "А",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3172",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК10 слева, ЛК9 справа; санузлы справа."
+      ],
+      "confirmedRoomLabels": [
+        "А-203",
+        "А-204",
+        "А-205",
+        "А-206",
+        "А-207",
+        "А-208"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3174",
+      "file": "/data/photos/IMG_3174.jpg",
+      "originalFile": "IMG_3174.HEIC",
+      "caption": "Общая тактильная схема кампуса",
+      "building": null,
+      "floor": null,
+      "kind": "campus-diagram",
+      "sourceGroup": "photo-3174",
+      "preferredInGroup": true,
+      "notes": [
+        "Корпус А — изогнутая главная связка; ответвления Г–В–Б–Д; отдельно Е, И (библиотека), конференц-зал и ректорат. Главный вход в середине А. Без масштаба и северной стрелки."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3176",
+      "file": "/data/photos/IMG_3176.jpg",
+      "originalFile": "IMG_3176.HEIC",
+      "caption": "Схема доступного прохода в ректорат",
+      "building": null,
+      "floor": null,
+      "kind": "campus-diagram",
+      "sourceGroup": "photo-3176",
+      "preferredInGroup": true,
+      "notes": [
+        "Главный вход со стороны ул. Коштоянца, столовая; В, Д; на вставке ректорат, 4 этаж и грузовой лифт. Схематичная, не измерительный план."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3208",
+      "file": "/data/photos/IMG_3208.jpg",
+      "originalFile": "IMG_3208.HEIC",
+      "caption": "Корпус В · 3 этаж · Тактильная схема полного этажа",
+      "building": "В",
+      "floor": 3,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3208",
+      "preferredInGroup": true,
+      "notes": [
+        "Подтверждает кольцевой план вокруг двора."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3209",
+      "file": "/data/photos/IMG_3209.jpg",
+      "originalFile": "IMG_3209.HEIC",
+      "caption": "Корпус В · 3 этаж · Полный этаж вокруг двора",
+      "building": "В",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3209",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1 справа, ЛК3 слева, ЛК2(ЦКД) внизу двора. Санузлы слева от ЛК2; буфет внизу справа. В-303 и В-313 повторяются на плане."
+      ],
+      "confirmedRoomLabels": [
+        "В-301",
+        "В-302",
+        "В-303",
+        "В-304",
+        "В-305",
+        "В-306",
+        "В-307",
+        "В-308",
+        "В-309",
+        "В-310",
+        "В-311",
+        "В-312",
+        "В-313",
+        "В-316",
+        "В-317",
+        "В-318",
+        "В-319",
+        "В-320",
+        "В-321",
+        "В-322",
+        "В-323",
+        "В-324",
+        "В-325",
+        "В-326",
+        "В-327",
+        "В-328",
+        "В-329",
+        "В-330",
+        "В-331",
+        "В-332"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3210",
+      "file": "/data/photos/IMG_3210.jpg",
+      "originalFile": "IMG_3210.HEIC",
+      "caption": "Корпус В · 4 этаж · Полный этаж вокруг двора",
+      "building": "В",
+      "floor": 4,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3210",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); комнаты нижнего внутреннего крыла частично без подписей."
+      ],
+      "confirmedRoomLabels": [
+        "В-401",
+        "В-401-1",
+        "В-401-2",
+        "В-402-1",
+        "В-402-2",
+        "В-402-3",
+        "В-403",
+        "В-404-1",
+        "В-404-2",
+        "В-405-1",
+        "В-405-2",
+        "В-406",
+        "В-407",
+        "В-408",
+        "В-409",
+        "В-410",
+        "В-411",
+        "В-412",
+        "В-413",
+        "В-414",
+        "В-415",
+        "В-416",
+        "В-417",
+        "В-418",
+        "В-419",
+        "В-420",
+        "В-420-1",
+        "В-421",
+        "В-422",
+        "В-423"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3211",
+      "file": "/data/photos/IMG_3211.jpg",
+      "originalFile": "IMG_3211.HEIC",
+      "caption": "Корпус В · 2 этаж · Полный этаж вокруг двора",
+      "building": "В",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3212",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); санузлы слева от ЛК2."
+      ],
+      "confirmedRoomLabels": [
+        "В-201",
+        "В-201-1",
+        "В-201-2",
+        "В-201-3",
+        "В-202",
+        "В-203",
+        "В-204",
+        "В-204-1",
+        "В-205",
+        "В-205-1",
+        "В-206",
+        "В-207",
+        "В-207-1",
+        "В-208",
+        "В-209",
+        "В-210",
+        "В-211",
+        "В-212",
+        "В-213",
+        "В-213-1",
+        "В-214",
+        "В-214-1",
+        "В-215",
+        "В-216",
+        "В-217",
+        "В-218",
+        "В-218-1",
+        "В-219",
+        "В-220",
+        "В-221",
+        "В-222",
+        "В-222-1",
+        "В-223"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3212",
+      "file": "/data/photos/IMG_3212.jpg",
+      "originalFile": "IMG_3212.HEIC",
+      "caption": "Корпус В · 2 этаж · Полный этаж вокруг двора",
+      "building": "В",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3212",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); санузлы слева от ЛК2."
+      ],
+      "confirmedRoomLabels": [
+        "В-201",
+        "В-201-1",
+        "В-201-2",
+        "В-201-3",
+        "В-202",
+        "В-203",
+        "В-204",
+        "В-204-1",
+        "В-205",
+        "В-205-1",
+        "В-206",
+        "В-207",
+        "В-207-1",
+        "В-208",
+        "В-209",
+        "В-210",
+        "В-211",
+        "В-212",
+        "В-213",
+        "В-213-1",
+        "В-214",
+        "В-214-1",
+        "В-215",
+        "В-216",
+        "В-217",
+        "В-218",
+        "В-218-1",
+        "В-219",
+        "В-220",
+        "В-221",
+        "В-222",
+        "В-222-1",
+        "В-223"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3213",
+      "file": "/data/photos/IMG_3213.jpg",
+      "originalFile": "IMG_3213.HEIC",
+      "caption": "Корпус В · 1 этаж · Первый этаж с разрывом левого крыла",
+      "building": "В",
+      "floor": 1,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3213",
+      "preferredInGroup": true,
+      "notes": [
+        "Не замыкать отсутствующий участок левого крыла первым этажом по аналогии с верхними. ЛК1, ЛК3, ЛК2."
+      ],
+      "confirmedRoomLabels": [
+        "В-101",
+        "В-102",
+        "В-103",
+        "В-104",
+        "В-104-1",
+        "В-104-2",
+        "В-105",
+        "В-105-1",
+        "В-105-2",
+        "В-106-1",
+        "В-106-2",
+        "В-107",
+        "В-108",
+        "В-109",
+        "В-110",
+        "В-111",
+        "В-111-1",
+        "В-111-2",
+        "В-112-1",
+        "В-112-2",
+        "В-112-3",
+        "В-112-4",
+        "В-112-5",
+        "В-113"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3214",
+      "file": "/data/photos/IMG_3214.jpg",
+      "originalFile": "IMG_3214.HEIC",
+      "caption": "Корпус Б · 4 этаж · Полный этаж вокруг двора",
+      "building": "Б",
+      "floor": 4,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3214",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); санузлы справа от ЛК2."
+      ],
+      "confirmedRoomLabels": [
+        "Б-402",
+        "Б-403",
+        "Б-404",
+        "Б-405",
+        "Б-406",
+        "Б-407",
+        "Б-408",
+        "Б-409",
+        "Б-410",
+        "Б-411",
+        "Б-412",
+        "Б-413-1",
+        "Б-413-2",
+        "Б-414",
+        "Б-415",
+        "Б-416",
+        "Б-417",
+        "Б-418",
+        "Б-419",
+        "Б-420",
+        "Б-421",
+        "Б-422",
+        "Б-423",
+        "Б-424",
+        "Б-425",
+        "Б-426"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3215",
+      "file": "/data/photos/IMG_3215.jpg",
+      "originalFile": "IMG_3215.HEIC",
+      "caption": "Корпус Б · 3 этаж · Тактильная схема полного этажа",
+      "building": "Б",
+      "floor": 3,
+      "kind": "tactile-plan",
+      "sourceGroup": "photo-3215",
+      "preferredInGroup": true,
+      "notes": [
+        "Подтверждает кольцевой план вокруг двора."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3216",
+      "file": "/data/photos/IMG_3216.jpg",
+      "originalFile": "IMG_3216.HEIC",
+      "caption": "Корпус Б · 3 этаж · Полный этаж вокруг двора",
+      "building": "Б",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3217",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); буфет справа от нижнего центрального прохода."
+      ],
+      "confirmedRoomLabels": [
+        "Б-301",
+        "Б-302",
+        "Б-303",
+        "Б-304",
+        "Б-305",
+        "Б-306",
+        "Б-307",
+        "Б-308",
+        "Б-309",
+        "Б-310",
+        "Б-313",
+        "Б-314",
+        "Б-315",
+        "Б-316",
+        "Б-317",
+        "Б-318",
+        "Б-319",
+        "Б-320",
+        "Б-321",
+        "Б-322",
+        "Б-323",
+        "Б-324",
+        "Б-325",
+        "Б-326",
+        "Б-327"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3217",
+      "file": "/data/photos/IMG_3217.jpg",
+      "originalFile": "IMG_3217.HEIC",
+      "caption": "Корпус Б · 3 этаж · Полный этаж вокруг двора",
+      "building": "Б",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3217",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД); буфет справа от нижнего центрального прохода."
+      ],
+      "confirmedRoomLabels": [
+        "Б-301",
+        "Б-302",
+        "Б-303",
+        "Б-304",
+        "Б-305",
+        "Б-306",
+        "Б-307",
+        "Б-308",
+        "Б-309",
+        "Б-310",
+        "Б-313",
+        "Б-314",
+        "Б-315",
+        "Б-316",
+        "Б-317",
+        "Б-318",
+        "Б-319",
+        "Б-320",
+        "Б-321",
+        "Б-322",
+        "Б-323",
+        "Б-324",
+        "Б-325",
+        "Б-326",
+        "Б-327"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3218",
+      "file": "/data/photos/IMG_3218.jpg",
+      "originalFile": "IMG_3218.HEIC",
+      "caption": "Корпус Б · 2 этаж · Полный этаж вокруг двора",
+      "building": "Б",
+      "floor": 2,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3218",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК1, ЛК3, ЛК2(ЦКД). Часть комнат без подписей; Б-219/220 не следует придумывать по последовательности номеров."
+      ],
+      "confirmedRoomLabels": [
+        "Б-201",
+        "Б-202",
+        "Б-203",
+        "Б-204",
+        "Б-205",
+        "Б-206",
+        "Б-207",
+        "Б-208",
+        "Б-209",
+        "Б-210",
+        "Б-211",
+        "Б-212",
+        "Б-213",
+        "Б-214",
+        "Б-215",
+        "Б-216",
+        "Б-217",
+        "Б-218",
+        "Б-221",
+        "Б-222",
+        "Б-223",
+        "Б-224"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3219",
+      "file": "/data/photos/IMG_3219.jpg",
+      "originalFile": "IMG_3219.HEIC",
+      "caption": "Корпус А · 1 этаж · Крыло А-107—А-138 и столовая",
+      "building": "А",
+      "floor": 1,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3219",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК9, ЛК8; подписаны медпункт между А-107 и А-111, столовая справа."
+      ],
+      "confirmedRoomLabels": [
+        "А-107.1",
+        "А-107",
+        "А-111",
+        "А-113",
+        "А-115",
+        "А-124",
+        "А-126",
+        "А-128",
+        "А-130",
+        "А-132",
+        "А-134",
+        "А-136",
+        "А-138"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3220",
+      "file": "/data/photos/IMG_3220.jpg",
+      "originalFile": "IMG_3220.HEIC",
+      "caption": "Корпус А · 1 этаж · Крыло А-129—А-172",
+      "building": "А",
+      "floor": 1,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3220",
+      "preferredInGroup": true,
+      "notes": [
+        "Лестницы, санузлы; непомеченные помещения не нумеруются по последовательности."
+      ],
+      "confirmedRoomLabels": [
+        "А-129",
+        "А-131",
+        "А-135",
+        "А-137",
+        "А-156",
+        "А-158",
+        "А-160",
+        "А-162",
+        "А-164",
+        "А-166",
+        "А-168",
+        "А-170",
+        "А-171",
+        "А-172"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3221",
+      "file": "/data/photos/IMG_3221.jpg",
+      "originalFile": "IMG_3221.HEIC",
+      "caption": "Корпус А · 1 этаж · Крыло А-117—А-154 и диспетчерская",
+      "building": "А",
+      "floor": 1,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3221",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК7 слева; ещё лестницы у А-146 и справа. Под правой выходной лестницей размерная линия 6.07; единица не указана."
+      ],
+      "confirmedRoomLabels": [
+        "А-117",
+        "А-119",
+        "А-121",
+        "А-123",
+        "А-125",
+        "А-127",
+        "А-142а",
+        "А-142б",
+        "А-142.1",
+        "А-144",
+        "А-146",
+        "А-148",
+        "А-150",
+        "А-152",
+        "А-154"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory.",
+      "dimensionEvidence": [
+        {
+          "value": 6.07,
+          "unit": null,
+          "location": "Размерная линия под правой выходной лестницей",
+          "interpretation": "Вероятно метры, но единица на фотографии не обозначена. Не применять как точный масштаб всего кампуса."
+        }
+      ]
+    },
+    {
+      "id": "photo-3222",
+      "file": "/data/photos/IMG_3222.jpg",
+      "originalFile": "IMG_3222.HEIC",
+      "caption": "Корпус А · 4 этаж · Линейное крыло А-401—А-412",
+      "building": "А",
+      "floor": 4,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3222",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК10 слева, ЛК9 справа; блики на дубле 3223."
+      ],
+      "confirmedRoomLabels": [
+        "А-401",
+        "А-403",
+        "А-405",
+        "А-407",
+        "А-409",
+        "А-402",
+        "А-404",
+        "А-406",
+        "А-408",
+        "А-410",
+        "А-412"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3223",
+      "file": "/data/photos/IMG_3223.jpg",
+      "originalFile": "IMG_3223.HEIC",
+      "caption": "Корпус А · 4 этаж · Линейное крыло А-401—А-412",
+      "building": "А",
+      "floor": 4,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3222",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК10 слева, ЛК9 справа; блики на дубле 3223."
+      ],
+      "confirmedRoomLabels": [
+        "А-401",
+        "А-403",
+        "А-405",
+        "А-407",
+        "А-409",
+        "А-402",
+        "А-404",
+        "А-406",
+        "А-408",
+        "А-410",
+        "А-412"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3224",
+      "file": "/data/photos/IMG_3224.jpg",
+      "originalFile": "IMG_3224.HEIC",
+      "caption": "Корпус А · 3 этаж · Линейное крыло А-300—А-312",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3224",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК10 слева, ЛК9 справа; блики на дубле 3225."
+      ],
+      "confirmedRoomLabels": [
+        "А-300",
+        "А-301",
+        "А-302",
+        "А-303",
+        "А-304",
+        "А-305",
+        "А-306",
+        "А-307",
+        "А-308",
+        "А-309",
+        "А-310",
+        "А-311",
+        "А-312"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3225",
+      "file": "/data/photos/IMG_3225.jpg",
+      "originalFile": "IMG_3225.HEIC",
+      "caption": "Корпус А · 3 этаж · Линейное крыло А-300—А-312",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3224",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК10 слева, ЛК9 справа; блики на дубле 3225."
+      ],
+      "confirmedRoomLabels": [
+        "А-300",
+        "А-301",
+        "А-302",
+        "А-303",
+        "А-304",
+        "А-305",
+        "А-306",
+        "А-307",
+        "А-308",
+        "А-309",
+        "А-310",
+        "А-311",
+        "А-312"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3226",
+      "file": "/data/photos/IMG_3226.jpg",
+      "originalFile": "IMG_3226.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-9, А-10, А-11 и А-313—А-315",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3226",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК8 между лекционными блоками; различать номера лекционных аудиторий А-9/10/11 и обычных помещений."
+      ],
+      "confirmedRoomLabels": [
+        "А-313",
+        "А-314",
+        "А-315",
+        "А-9",
+        "А-10",
+        "А-11"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3227",
+      "file": "/data/photos/IMG_3227.jpg",
+      "originalFile": "IMG_3227.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-9, А-10, А-11 и А-313—А-315",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3226",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК8 между лекционными блоками; различать номера лекционных аудиторий А-9/10/11 и обычных помещений."
+      ],
+      "confirmedRoomLabels": [
+        "А-313",
+        "А-314",
+        "А-315",
+        "А-9",
+        "А-10",
+        "А-11"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3228",
+      "file": "/data/photos/IMG_3228.jpg",
+      "originalFile": "IMG_3228.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-12, А-13 и А-316, А-317",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3228",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК7 между лекционными блоками."
+      ],
+      "confirmedRoomLabels": [
+        "А-316",
+        "А-317",
+        "А-12",
+        "А-13"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3229",
+      "file": "/data/photos/IMG_3229.jpg",
+      "originalFile": "IMG_3229.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-12, А-13 и А-316, А-317",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3228",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК7 между лекционными блоками."
+      ],
+      "confirmedRoomLabels": [
+        "А-316",
+        "А-317",
+        "А-12",
+        "А-13"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3230",
+      "file": "/data/photos/IMG_3230.jpg",
+      "originalFile": "IMG_3230.HEIC",
+      "caption": "Корпус А · 3 этаж · А-13, А-318, А-318б и открытый холл",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3230",
+      "preferredInGroup": true,
+      "notes": [
+        "Широкая лестница внизу справа; малая лестница вверху справа, номер не подписан."
+      ],
+      "confirmedRoomLabels": [
+        "А-318",
+        "А-318б",
+        "А-13"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3231",
+      "file": "/data/photos/IMG_3231.jpg",
+      "originalFile": "IMG_3231.HEIC",
+      "caption": "Корпус А · 3 этаж · А-13, А-318, А-318б и открытый холл",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3230",
+      "preferredInGroup": false,
+      "notes": [
+        "Широкая лестница внизу справа; малая лестница вверху справа, номер не подписан."
+      ],
+      "confirmedRoomLabels": [
+        "А-318",
+        "А-318б",
+        "А-13"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3232",
+      "file": "/data/photos/IMG_3232.jpg",
+      "originalFile": "IMG_3232.HEIC",
+      "caption": "Корпус А · 3 этаж · Открытый холл и лекционная аудитория А-14",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3232",
+      "preferredInGroup": true,
+      "notes": [
+        "На правой стороне аудитория А-14; в холле широкая и малые лестницы. Подписи в бликах не домысливаются."
+      ],
+      "confirmedRoomLabels": [
+        "А-14"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3233",
+      "file": "/data/photos/IMG_3233.jpg",
+      "originalFile": "IMG_3233.HEIC",
+      "caption": "Корпус А · 3 этаж · Открытый холл и лекционная аудитория А-14",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3232",
+      "preferredInGroup": false,
+      "notes": [
+        "На правой стороне аудитория А-14; в холле широкая и малые лестницы. Подписи в бликах не домысливаются."
+      ],
+      "confirmedRoomLabels": [
+        "А-14"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3234",
+      "file": "/data/photos/IMG_3234.jpg",
+      "originalFile": "IMG_3234.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-14, А-15 и А-320, А-321",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3234",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК5 между лекционными блоками."
+      ],
+      "confirmedRoomLabels": [
+        "А-320",
+        "А-321",
+        "А-14",
+        "А-15"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3235",
+      "file": "/data/photos/IMG_3235.jpg",
+      "originalFile": "IMG_3235.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-14, А-15 и А-320, А-321",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3234",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК5 между лекционными блоками."
+      ],
+      "confirmedRoomLabels": [
+        "А-320",
+        "А-321",
+        "А-14",
+        "А-15"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3236",
+      "file": "/data/photos/IMG_3236.jpg",
+      "originalFile": "IMG_3236.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-16, А-17, А-18 и А-322—А-324",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3236",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК4 в середине, малая лестница справа; ряды кресел не являются стенами."
+      ],
+      "confirmedRoomLabels": [
+        "А-322",
+        "А-323",
+        "А-324",
+        "А-16",
+        "А-17",
+        "А-18"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3237",
+      "file": "/data/photos/IMG_3237.jpg",
+      "originalFile": "IMG_3237.HEIC",
+      "caption": "Корпус А · 3 этаж · Лекционные аудитории А-16, А-17, А-18 и А-322—А-324",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3236",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК4 в середине, малая лестница справа; ряды кресел не являются стенами."
+      ],
+      "confirmedRoomLabels": [
+        "А-322",
+        "А-323",
+        "А-324",
+        "А-16",
+        "А-17",
+        "А-18"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3238",
+      "file": "/data/photos/IMG_3238.jpg",
+      "originalFile": "IMG_3238.HEIC",
+      "caption": "Корпус А · 4 этаж · Линейное крыло А-425—А-438",
+      "building": "А",
+      "floor": 4,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3239",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК3 слева, ЛК2 справа. На самом плане две соседние комнаты имеют подпись А-434; не исправлено по догадке."
+      ],
+      "confirmedRoomLabels": [
+        "А-425",
+        "А-427",
+        "А-429",
+        "А-426",
+        "А-428",
+        "А-430",
+        "А-433",
+        "А-434",
+        "А-438"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3239",
+      "file": "/data/photos/IMG_3239.jpg",
+      "originalFile": "IMG_3239.HEIC",
+      "caption": "Корпус А · 4 этаж · Линейное крыло А-425—А-438",
+      "building": "А",
+      "floor": 4,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3239",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК3 слева, ЛК2 справа. На самом плане две соседние комнаты имеют подпись А-434; не исправлено по догадке."
+      ],
+      "confirmedRoomLabels": [
+        "А-425",
+        "А-427",
+        "А-429",
+        "А-426",
+        "А-428",
+        "А-430",
+        "А-433",
+        "А-434",
+        "А-438"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3240",
+      "file": "/data/photos/IMG_3240.jpg",
+      "originalFile": "IMG_3240.HEIC",
+      "caption": "Корпус А · 3 этаж · Линейное крыло А-325—А-336",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3241",
+      "preferredInGroup": false,
+      "notes": [
+        "ЛК3 слева, ЛК2 справа."
+      ],
+      "confirmedRoomLabels": [
+        "А-325",
+        "А-326",
+        "А-327",
+        "А-328",
+        "А-329",
+        "А-330",
+        "А-331",
+        "А-332",
+        "А-333",
+        "А-334",
+        "А-335",
+        "А-336"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "photo-3241",
+      "file": "/data/photos/IMG_3241.jpg",
+      "originalFile": "IMG_3241.HEIC",
+      "caption": "Корпус А · 3 этаж · Линейное крыло А-325—А-336",
+      "building": "А",
+      "floor": 3,
+      "kind": "evacuation-plan",
+      "sourceGroup": "photo-3241",
+      "preferredInGroup": true,
+      "notes": [
+        "ЛК3 слева, ЛК2 справа."
+      ],
+      "confirmedRoomLabels": [
+        "А-325",
+        "А-326",
+        "А-327",
+        "А-328",
+        "А-329",
+        "А-330",
+        "А-331",
+        "А-332",
+        "А-333",
+        "А-334",
+        "А-335",
+        "А-336"
+      ],
+      "geometryStatus": "schematic-plan-not-survey",
+      "dimensions": {
+        "width": 2000,
+        "height": 1500
+      },
+      "ocrStatus": "OCR is supplementary; confirmedRoomLabels manually compared with images, not a complete room inventory."
+    },
+    {
+      "id": "reference-1",
+      "file": "/data/photos/Снимок экрана — 2026-10-19 в 16.44.12.jpg",
+      "originalFile": "Снимок экрана — 2026-10-19 в 16.44.12.png",
+      "caption": "2ГИС · объёмный вид кампуса · со стороны улицы Коштоянца",
+      "building": null,
+      "floor": null,
+      "kind": "map-screenshot",
+      "sourceGroup": "2gis-reference",
+      "preferredInGroup": true,
+      "notes": [
+        "Подтверждает общую композицию и перепады высот только визуально. Перспективный скриншот не является кадастровым контуром и не даёт точных высот."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "visual-reference",
+      "dimensions": {
+        "width": 2000,
+        "height": 1293
+      }
+    },
+    {
+      "id": "reference-2",
+      "file": "/data/photos/Снимок экрана — 2026-10-19 в 16.44.31.jpg",
+      "originalFile": "Снимок экрана — 2026-10-19 в 16.44.31.png",
+      "caption": "2ГИС · объёмный вид кампуса · обратный ракурс",
+      "building": null,
+      "floor": null,
+      "kind": "map-screenshot",
+      "sourceGroup": "2gis-reference",
+      "preferredInGroup": true,
+      "notes": [
+        "Подтверждает общую композицию и перепады высот только визуально. Перспективный скриншот не является кадастровым контуром и не даёт точных высот."
+      ],
+      "confirmedRoomLabels": [],
+      "geometryStatus": "visual-reference",
+      "dimensions": {
+        "width": 2000,
+        "height": 1293
+      }
+    }
+  ]
+}

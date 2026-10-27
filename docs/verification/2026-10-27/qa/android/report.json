@@ -1,0 +1,119 @@
+{
+  "recordedAt": "2026-10-27T17:24:02.734192+00:00",
+  "status": "focused_475_functional_passed_final476_install_launch_confirmed",
+  "intermediateBuild": {
+    "run": "2026-10-27T16-33-43-068Z",
+    "sha256": "6580eacd571fa054879468766a52760dc3af699d20119b2b52823146ff446760",
+    "bytes": 53915300,
+    "apkMtime": "2026-10-27T16:33:50.807000+00:00"
+  },
+  "finalBuild": {
+    "run": "2026-10-27T16-51-42-740Z",
+    "sha256": "1e6c485e000a2dc1732f0c96e151399cd0d1579f10fdfa81031c086ec2249dfa",
+    "bytes": 53915300
+  },
+  "device": {
+    "model": "sdk_gphone64_arm64",
+    "android": "16",
+    "api": 36,
+    "webView": "133.0.6943.137",
+    "avd": "mirea-v78-api36",
+    "physicalDevice": false,
+    "graphics": "software/headless"
+  },
+  "scope": "SDK-emulated public-campus GPS and actual UI on test AVD; read-only own debug WebView state, no JavaScript app state injection",
+  "passedOn475": [
+    "Install-r and cold launch with existing data preserved",
+    "Location button starts foreground acquisition without building/floor dialog",
+    "Two actual native GPS callbacks after one button press",
+    "Camera follows actual coordinate delta while preserving zoom and camera-target vector",
+    "Wi-Fi crosshair pan and explicit confirmation create two different exact coordinates in same Г-208; GPS current point is unchanged"
+  ],
+  "cameraFollow": {
+    "gpsDelta": [
+      5.0670229871877694,
+      -0.011544075033530277
+    ],
+    "cameraPositionDelta": [
+      5.0670229871877694,
+      0.0,
+      -0.011544075033526724
+    ],
+    "cameraTargetDelta": [
+      5.0670229871877694,
+      1.7763568394002505e-15,
+      -0.01154407503353383
+    ],
+    "zoomBefore": 1,
+    "zoomAfter": 1,
+    "passed": true
+  },
+  "wifiExactPoints": {
+    "A": {
+      "source": "manual",
+      "campusId": "v-78",
+      "floorId": "v-78-floor1",
+      "building": "Г",
+      "physicalLevel": 2,
+      "floorEvidence": "manual",
+      "point": [
+        17.458979489811163,
+        -28.217574809792765
+      ],
+      "placeId": "v-78--floor-1--6dm",
+      "label": "Г-208",
+      "timestamp": 1793120851130
+    },
+    "B": {
+      "source": "manual",
+      "campusId": "v-78",
+      "floorId": "v-78-floor1",
+      "building": "Г",
+      "physicalLevel": 2,
+      "floorEvidence": "manual",
+      "point": [
+        16.839612218068616,
+        -28.000796264682904
+      ],
+      "placeId": "v-78--floor-1--6dm",
+      "label": "Г-208",
+      "timestamp": 1793121211055
+    },
+    "samePlace": true,
+    "differentCoordinates": true,
+    "gpsUnchanged": true
+  },
+  "final476": [
+    "SHA256 checked; exact final APK installed-r successfully",
+    "Cold launch screenshot 10-final476-launch.png",
+    "Final map rendered and quick location button enters acquiring without building dialog; 11-final476-gps.png and final476-gps.json"
+  ],
+  "notConfirmed": [
+    "No final476 GPS fix was observed before parent requested immediate stop; full live GPS/follow was confirmed on475 with same source for these features",
+    "Physical compass direction: native watcher returned nonfatal HEADING_UNRELIABLE for vertical virtual pose, no arrow was fabricated",
+    "No university Wi-Fi scan; Wi-Fi stayed off and old survey records preserved",
+    "No route-from-current UI case in this focused pass",
+    "No real phone, field accuracy, battery or memory test"
+  ],
+  "knownLimitations": [
+    "Known software renderer duplicate/clipped fragments persist; screenshots do not prove physical-device graphics"
+  ],
+  "fixturesCleanup": [
+    "Virtual orientation restored to original -0.0829031:0:0; no other virtual sensors changed",
+    "Temporary ADB forwards removed by read-state helper",
+    "App force-stopped after parent requested finish; native sensors stop without deleting app data"
+  ],
+  "evidence": [
+    "gps-A-settled.json",
+    "gps-B.json",
+    "03-quick-gps-A.png",
+    "04-follow-gps-B.png",
+    "wifi-exact-A.json",
+    "wifi-exact-B.json",
+    "08-exact-picker.png",
+    "09-exact-picker-shift.png",
+    "10-final476-launch.png",
+    "11-final476-gps.png",
+    "final476-gps.json"
+  ]
+}

@@ -1,0 +1,82 @@
+СБОРКА КАРТЫ В78 НА ОДНОМ MAC
+
+ВАЖНО: пользователь отложил проверку лестниц. Геометрия некоторых
+лестниц сейчас неверна; сведения собраны в STAIRS_TODO_FOR_MAC.txt.
+Главная А2 → А3 принята пользователем. Нижние спуски А2 → А1 и
+А1 → цоколь должны идти с двух боков к центру, с малой площадкой.
+Это не препятствует тестовой компиляции. Не считайте успешную сборку
+подтверждением правильности лестниц или готовности к предрелизу.
+
+На одном Mac можно собирать Android и iOS. Подготовленная общая команда
+создаёт Android Debug APK и приложение для iOS Simulator.
+Simulator App не устанавливается на iPhone: для телефона нужна подпись.
+
+ЧТО УСТАНОВИТЬ
+
+1. Полный Xcode 26+ и его Command Line Tools. Mac должен поддерживать
+   соответствующую macOS: для Xcode 26.0 нужна macOS Sequoia 15.6+,
+   для более нового Xcode требования проверяются по таблице Apple.
+   Завершите первый запуск Xcode, установку компонентов и принятие лицензии.
+2. Node.js 22.12+ с npm; в проекте .nvmrc указывает Node 24.
+3. Android Studio 2025.2.1+ или готовое Android-окружение: JDK 21+,
+   Android SDK API 36, Build Tools 35.0.0 и platform-tools для этого Mac.
+   Android SDK и Java должны иметь правильные ANDROID_HOME/JAVA_HOME.
+4. Интернет для установки npm, Gradle/Maven и Swift-пакетов.
+5. Для запуска iOS нужен Simulator runtime из Xcode Settings → Components.
+   Для generic Simulator-компиляции runtime не является обязательным.
+
+КАК СОБРАТЬ
+
+Распакуйте исходники, откройте терминал в папке с package.json и выполните:
+
+    npm ci
+    chmod +x android/gradlew
+    npm run mobile:build:macos
+
+Не переносите node_modules, SDK или local.properties с другого компьютера.
+Общая команда проверит окружение, выполнит тесты, один mobile:sync,
+контроль файлов и обе компиляции. При ошибке следующие этапы остановятся.
+Для отдельной диагностики окружения: npm run mobile:doctor.
+
+РЕЗУЛЬТАТЫ
+
+Android для испытаний:
+    android/app/build/outputs/apk/debug/app-debug.apk
+
+iOS ТОЛЬКО для Simulator на Mac:
+    .native-build/ios/Build/Products/Debug-iphonesimulator/App.app
+
+Отчёт и журналы этапов:
+    .native-build/macos/<время-запуска>/status.json и *.log
+
+ДЛЯ НАСТОЯЩЕГО IPHONE
+
+Откройте ios/App/App.xcodeproj в Xcode. Владелец входит в свой Apple Account
+в Xcode, выбирает Team в Signing & Capabilities и подключённый iPhone.
+Нужны доверие устройства и Developer Mode там, где его требует iOS.
+Секреты и пароль Apple Account в чат отправлять не нужно.
+Личная установка через Personal Team имеет ограничения Apple.
+Для TestFlight нужны Apple Developer Program владельца, App Store Connect
+и отдельный подписанный архив для устройства. Общая команда ничего
+не публикует и не готовит автоматически TestFlight/IPA.
+
+ЧТО ЕЩЁ ПРОВЕРИТЬ
+
+На Android и iPhone: холодный запуск без интернета, поиск, 2D/3D,
+переключение этажей, маршруты и лестницы, клавиатуру, карточку места,
+сворачивание/возврат, плавность и память. Симулятор не заменяет телефоны.
+В вузе нужно подтвердить недостающие проходы. Подтверждённого плана
+цоколя и автоматической геолокации сейчас нет; граф связен не полностью.
+
+Подробности: docs/MOBILE.md.
+Готовый промт для продолжения работы: PROMPT_FOR_BUILD_PC.txt.
+
+Официальные требования:
+https://capacitorjs.com/docs/getting-started/environment-setup
+https://developer.apple.com/xcode/system-requirements
+https://developer.android.com/build/releases/agp-8-13-0-release-notes
+https://developer.apple.com/help/account/basics/about-your-developer-account
+https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview
+
+Сценарий сборки проверен тестами оркестрации в Windows. Новая компиляция
+на Mac ещё должна быть выполнена. Старые APK/App не подтверждают её успех.

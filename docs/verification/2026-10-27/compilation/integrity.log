@@ -1,0 +1,5 @@
+
+> mirea-spatial-atlas@1.0.0 mobile:check
+> node scripts/check-mobile-package.mjs
+
+Native V78 bundle integrity OK: 93 assets, 82 data files, 60207449 bytes, version 3ddef788fd4ccbb6.

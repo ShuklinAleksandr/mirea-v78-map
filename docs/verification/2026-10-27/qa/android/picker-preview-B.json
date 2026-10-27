@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-10-27T17:07:37.841Z",
+  "method": "Read-only Runtime.evaluate through ADB-forwarded own debug WebView; no app state mutation",
+  "userLocation": {
+    "source": "gps",
+    "campusId": "v-78",
+    "floorId": null,
+    "building": null,
+    "point": [
+      17.541001139841246,
+      -27.983227238278264
+    ],
+    "latitude": 55.67044166666667,
+    "longitude": 37.481136666666664,
+    "accuracyMeters": 5,
+    "accuracyRadiusMap": 4.767413176603583,
+    "timestamp": 1793120855666,
+    "expiresAt": 1793120915666,
+    "label": "Местоположение GPS",
+    "status": "inside",
+    "registrationStatus": "approximate",
+    "message": "GPS ±5 м. Этаж неизвестен, привязка карты приблизительная.",
+    "rawPoint": [
+      17.541001139841246,
+      -27.983227238278264
+    ],
+    "physicalLevel": null,
+    "floorEvidence": "unknown",
+    "correction": null,
+    "trackingStatus": "live"
+  },
+  "tracking": {
+    "enabled": true,
+    "status": "live",
+    "reason": "",
+    "following": false
+  },
+  "surveyLocation": {
+    "source": "manual",
+    "campusId": "v-78",
+    "floorId": "v-78-floor1",
+    "building": "Г",
+    "physicalLevel": 2,
+    "floorEvidence": "manual",
+    "point": [
+      17.458979489811163,
+      -28.217574809792765
+    ],
+    "placeId": "v-78--floor-1--6dm",
+    "label": "Г-208",
+    "timestamp": 1793120851130
+  },
+  "headingStatus": "unavailable",
+  "heading": null,
+  "camera": {
+    "position": [
+      52.507747757950746,
+      105.62100942391649,
+      73.89197500324852
+    ],
+    "zoom": 1,
+    "target": [
+      15.507385842540861,
+      5.191455653518238,
+      -31.823344755065452
+    ],
+    "followAnchor": [
+      17.541001139841246,
+      0.4,
+      -27.983227238278264
+    ],
+    "transition": null
+  },
+  "route": null,
+  "picker": {
+    "active": true,
+    "valid": "true",
+    "label": "Г-208 · корпус Г · 2 этаж"
+  },
+  "view": {
+    "floorId": "v-78-floor1",
+    "building": "Г",
+    "mode": "floor",
+    "projection": "3d"
+  }
+}

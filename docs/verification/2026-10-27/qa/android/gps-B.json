@@ -1,0 +1,71 @@
+{
+  "recordedAt": "2026-10-27T16:51:08.892Z",
+  "method": "Read-only Runtime.evaluate through ADB-forwarded own debug WebView; no app state mutation",
+  "userLocation": {
+    "source": "gps",
+    "campusId": "v-78",
+    "floorId": null,
+    "building": null,
+    "point": [
+      17.541001139841246,
+      -27.983227238278264
+    ],
+    "latitude": 55.67044166666667,
+    "longitude": 37.481136666666664,
+    "accuracyMeters": 5,
+    "accuracyRadiusMap": 4.767413176603583,
+    "timestamp": 1793119867689,
+    "expiresAt": 1793119927689,
+    "label": "Местоположение GPS",
+    "status": "inside",
+    "registrationStatus": "approximate",
+    "message": "GPS ±5 м. Этаж неизвестен, привязка карты приблизительная.",
+    "rawPoint": [
+      17.541001139841246,
+      -27.983227238278264
+    ],
+    "physicalLevel": null,
+    "floorEvidence": "unknown",
+    "correction": null,
+    "trackingStatus": "live"
+  },
+  "tracking": {
+    "enabled": true,
+    "status": "live",
+    "reason": "",
+    "following": true
+  },
+  "surveyLocation": null,
+  "headingStatus": "unavailable",
+  "heading": null,
+  "camera": {
+    "position": [
+      53.12206772803971,
+      105.62100942391648,
+      73.67696301371737
+    ],
+    "zoom": 1,
+    "target": [
+      16.12170581262983,
+      5.191455653518237,
+      -32.0383567445966
+    ],
+    "followAnchor": [
+      17.541001139841246,
+      0.4,
+      -27.983227238278264
+    ],
+    "transition": null
+  },
+  "route": null,
+  "picker": {
+    "active": false,
+    "label": ""
+  },
+  "view": {
+    "floorId": "v-78-floor1",
+    "building": "Г",
+    "mode": "floor",
+    "projection": "3d"
+  }
+}

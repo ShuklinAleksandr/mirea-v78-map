@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "campusId": "v-78",
+  "status": "photo-informed-approximate",
+  "windowPitch": 1.55,
+  "windowHeight": 1.38,
+  "windowGap": 0.12,
+  "parapetHeight": 0.28,
+  "photoSources": [
+    {
+      "title": "ВИКА / сообщество ИИТ · фотографии Вернадского, 78",
+      "url": "https://vika-it.rtuitlab.dev/infrastructure"
+    },
+    {
+      "title": "РТУ МИРЭА · главный вход",
+      "url": "https://ok.ru/rtumirea/topic/157218002895701"
+    }
+  ],
+  "notes": [
+    "Оконные ряды, материал фасада, плоские кровли, шеды и диагональные опоры зала наблюдаются на фото.",
+    "Число окон, размеры окон/парапетов/опор и размещение фонарей приблизительные, не архитектурные обмеры.",
+    "Неподтвержденные дворовые фасады упрощены; рисунок мозаики не воспроизводится."
+  ],
+  "roofFeatures": [
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cqo",
+      "center": [
+        -19.6905,
+        8.5714
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": 0.34529366543233786,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cqq",
+      "center": [
+        11.4256,
+        -3.3721
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": -2.816756024285806,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cqr",
+      "center": [
+        -62.3403,
+        22.2144
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": 0.2933642727771891,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cqs",
+      "center": [
+        159.6744,
+        21.0894
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": -0.3163694599556325,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cqt",
+      "center": [
+        86.0699,
+        -3.5096
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": 2.828363739827947,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cqu",
+      "center": [
+        -75.6627,
+        27.9194
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": 0.29703688411262924,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cr2",
+      "center": [
+        -32.7535,
+        14.7139
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": 0.30641334671702747,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--cre",
+      "center": [
+        117.4772,
+        7.7044
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": -0.32008333353392465,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--crg",
+      "center": [
+        173.1379,
+        26.7814
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": -0.31032818808362644,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    },
+    {
+      "type": "shed-skylight",
+      "sourceRoomId": "v-78--floor-3--crm",
+      "center": [
+        131.361,
+        11.8994
+      ],
+      "width": 7,
+      "depth": 5,
+      "rise": 1.8,
+      "rotation": -0.31370427808551554,
+      "status": "photo-informed-approximate",
+      "evidence": "https://vika-it.rtuitlab.dev/infrastructure",
+      "note": "Шедовые фонари видны на аэроснимке. Привязка по центрам лекционных помещений; точные размеры, число и расположение не обмерены."
+    }
+  ]
+}

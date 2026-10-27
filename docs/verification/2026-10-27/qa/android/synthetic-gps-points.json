@@ -1,0 +1,33 @@
+{
+  "testOnly": true,
+  "source": "Project approximate public-campus affine registration, not a real person/device location",
+  "points": [
+    {
+      "label": "A",
+      "mapPoint": [
+        12.393,
+        -28.0326
+      ],
+      "longitude": 37.481109013326645,
+      "latitude": 55.670487620694374
+    },
+    {
+      "label": "B",
+      "mapPoint": [
+        17.393,
+        -28.0326
+      ],
+      "longitude": 37.481136760694085,
+      "latitude": 55.6704431721357
+    },
+    {
+      "label": "C",
+      "mapPoint": [
+        22.393,
+        -28.0326
+      ],
+      "longitude": 37.481164508061525,
+      "latitude": 55.67039872357702
+    }
+  ]
+}

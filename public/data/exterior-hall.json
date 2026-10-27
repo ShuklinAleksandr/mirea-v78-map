@@ -1,0 +1,2302 @@
+{
+  "schemaVersion": 1,
+  "campusId": "v-78",
+  "id": "main-entrance-hall",
+  "label": "Главный вход и широкий вестибюль",
+  "status": "photo-informed-approximation",
+  "units": "meters",
+  "sourceFloorId": "v-78-floor2",
+  "sourcePolygonIds": [
+    "v-78-floor2-area-3",
+    "v-78-floor2-area-4",
+    "v-78-floor2-area-5",
+    "v-78-floor2-area-6",
+    "v-78-floor2-area-8",
+    "v-78-floor2-area-9",
+    "v-78-floor2-area-10",
+    "v-78-floor2-area-13",
+    "v-78-floor2-area-14",
+    "v-78-floor2-area-15",
+    "v-78--floor-2--9y7",
+    "v-78--floor-2--9yc",
+    "v-78--floor-2--9yb"
+  ],
+  "horizontalStatus": "union-of-native-source-polygons",
+  "heightStatus": "photo-informed-approximation",
+  "base": 0,
+  "height": 5,
+  "estimatedHeightRange": [
+    4,
+    7
+  ],
+  "lowPolygon": {
+    "points": [
+      [
+        28.425,
+        6.7994
+      ],
+      [
+        27.905,
+        6.8954
+      ],
+      [
+        27.661,
+        6.4064
+      ],
+      [
+        18.957,
+        9.0584
+      ],
+      [
+        20.281,
+        13.8364
+      ],
+      [
+        21.597,
+        18.0174
+      ],
+      [
+        24.706,
+        31.2064
+      ],
+      [
+        27.019,
+        41.2044
+      ],
+      [
+        29.075,
+        40.5804
+      ],
+      [
+        36.786,
+        39.0154
+      ],
+      [
+        40.085,
+        38.6734
+      ],
+      [
+        43.5,
+        38.5824
+      ],
+      [
+        55.565,
+        39.2074
+      ],
+      [
+        59.054,
+        39.7674
+      ],
+      [
+        61.54,
+        40.2034
+      ],
+      [
+        71.465,
+        43.0334
+      ],
+      [
+        83.248,
+        11.0044
+      ],
+      [
+        75.218,
+        7.9224
+      ],
+      [
+        74.959,
+        8.4894
+      ],
+      [
+        74.437,
+        8.2434
+      ],
+      [
+        77.127,
+        1.0004
+      ],
+      [
+        65.195,
+        -3.1856
+      ],
+      [
+        62.41,
+        -4.0836
+      ],
+      [
+        59.097,
+        -5.1516
+      ],
+      [
+        54.43,
+        -5.8626
+      ],
+      [
+        50.041,
+        -6.1296
+      ],
+      [
+        47.563,
+        -6.1426
+      ],
+      [
+        43.735,
+        -5.6876
+      ],
+      [
+        41.48,
+        -5.2226
+      ],
+      [
+        39.782,
+        -4.8726
+      ],
+      [
+        36.979,
+        -4.1706
+      ],
+      [
+        25.393,
+        -0.5946
+      ],
+      [
+        27.009,
+        1.5954
+      ]
+    ],
+    "holes": []
+  },
+  "volumePolygons": [
+    {
+      "points": [
+        [
+          27.905,
+          6.8954
+        ],
+        [
+          27.661,
+          6.4064
+        ],
+        [
+          18.957,
+          9.0584
+        ],
+        [
+          20.281,
+          13.8364
+        ],
+        [
+          21.597,
+          18.0174
+        ],
+        [
+          24.706,
+          31.2064
+        ],
+        [
+          27.019,
+          41.2044
+        ],
+        [
+          29.075,
+          40.5804
+        ],
+        [
+          36.786,
+          39.0154
+        ],
+        [
+          40.085,
+          38.6734
+        ],
+        [
+          43.5,
+          38.5824
+        ],
+        [
+          55.565,
+          39.2074
+        ],
+        [
+          59.054,
+          39.7674
+        ],
+        [
+          61.54,
+          40.2034
+        ],
+        [
+          71.465,
+          43.0334
+        ],
+        [
+          83.248,
+          11.0044
+        ],
+        [
+          75.218,
+          7.9224
+        ],
+        [
+          74.959,
+          8.4894
+        ],
+        [
+          74.437,
+          8.2434
+        ],
+        [
+          77.127,
+          1.0004
+        ],
+        [
+          75.0606,
+          0.2755
+        ],
+        [
+          74.631,
+          1.4704
+        ],
+        [
+          73.8835,
+          1.2566
+        ],
+        [
+          73.842,
+          1.3844
+        ],
+        [
+          68.136,
+          -0.3406
+        ],
+        [
+          62.605,
+          -2.1006
+        ],
+        [
+          63.2145,
+          -3.8242
+        ],
+        [
+          62.41,
+          -4.0836
+        ],
+        [
+          60.4494,
+          -4.7156
+        ],
+        [
+          59.862,
+          -2.9796
+        ],
+        [
+          57.776,
+          -3.5216
+        ],
+        [
+          51.766,
+          -4.5066
+        ],
+        [
+          46.099,
+          -4.5556
+        ],
+        [
+          39.955,
+          -3.8346
+        ],
+        [
+          37.702,
+          -3.2796
+        ],
+        [
+          34.804,
+          -2.3776
+        ],
+        [
+          28.854,
+          -0.6676
+        ],
+        [
+          26.021,
+          0.2564
+        ],
+        [
+          27.009,
+          1.5954
+        ],
+        [
+          28.425,
+          6.7994
+        ]
+      ],
+      "holes": []
+    }
+  ],
+  "roofPolygons": [
+    {
+      "points": [
+        [
+          28.425,
+          6.7994
+        ],
+        [
+          27.905,
+          6.8954
+        ],
+        [
+          27.661,
+          6.4064
+        ],
+        [
+          18.957,
+          9.0584
+        ],
+        [
+          20.281,
+          13.8364
+        ],
+        [
+          21.597,
+          18.0174
+        ],
+        [
+          24.706,
+          31.2064
+        ],
+        [
+          27.019,
+          41.2044
+        ],
+        [
+          29.075,
+          40.5804
+        ],
+        [
+          36.786,
+          39.0154
+        ],
+        [
+          40.085,
+          38.6734
+        ],
+        [
+          43.5,
+          38.5824
+        ],
+        [
+          55.565,
+          39.2074
+        ],
+        [
+          59.054,
+          39.7674
+        ],
+        [
+          61.54,
+          40.2034
+        ],
+        [
+          71.465,
+          43.0334
+        ],
+        [
+          83.248,
+          11.0044
+        ],
+        [
+          75.218,
+          7.9224
+        ],
+        [
+          74.959,
+          8.4894
+        ],
+        [
+          74.437,
+          8.2434
+        ],
+        [
+          77.127,
+          1.0004
+        ],
+        [
+          65.195,
+          -3.1856
+        ],
+        [
+          62.41,
+          -4.0836
+        ],
+        [
+          59.097,
+          -5.1516
+        ],
+        [
+          54.43,
+          -5.8626
+        ],
+        [
+          50.041,
+          -6.1296
+        ],
+        [
+          47.563,
+          -6.1426
+        ],
+        [
+          43.735,
+          -5.6876
+        ],
+        [
+          41.48,
+          -5.2226
+        ],
+        [
+          39.782,
+          -4.8726
+        ],
+        [
+          36.979,
+          -4.1706
+        ],
+        [
+          25.393,
+          -0.5946
+        ],
+        [
+          27.009,
+          1.5954
+        ]
+      ],
+      "holes": []
+    }
+  ],
+  "protectedUpperOverlapArea": 67.8905,
+  "replaceShellOverrideIds": [
+    "v-78-floor2-area-6",
+    "v-78--floor-2--9yb"
+  ],
+  "entranceFrontSegment": {
+    "a": [
+      43.5,
+      38.5824
+    ],
+    "b": [
+      55.565,
+      39.2074
+    ],
+    "sourceRoomId": "v-78--floor-2--9yb",
+    "horizontalStatus": "native-source-edge"
+  },
+  "frontage": [
+    [
+      27.019,
+      41.2044
+    ],
+    [
+      29.075,
+      40.5804
+    ],
+    [
+      36.786,
+      39.0154
+    ],
+    [
+      40.085,
+      38.6734
+    ],
+    [
+      43.5,
+      38.5824
+    ],
+    [
+      55.565,
+      39.2074
+    ],
+    [
+      59.054,
+      39.7674
+    ],
+    [
+      61.54,
+      40.2034
+    ],
+    [
+      71.465,
+      43.0334
+    ]
+  ],
+  "frontGlazingSegments": [
+    {
+      "a": [
+        27.019,
+        41.2044
+      ],
+      "b": [
+        29.075,
+        40.5804
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    },
+    {
+      "a": [
+        29.075,
+        40.5804
+      ],
+      "b": [
+        36.786,
+        39.0154
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    },
+    {
+      "a": [
+        36.786,
+        39.0154
+      ],
+      "b": [
+        40.085,
+        38.6734
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    },
+    {
+      "a": [
+        40.085,
+        38.6734
+      ],
+      "b": [
+        43.5,
+        38.5824
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    },
+    {
+      "a": [
+        43.5,
+        38.5824
+      ],
+      "b": [
+        55.565,
+        39.2074
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    },
+    {
+      "a": [
+        55.565,
+        39.2074
+      ],
+      "b": [
+        59.054,
+        39.7674
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    },
+    {
+      "a": [
+        59.054,
+        39.7674
+      ],
+      "b": [
+        61.54,
+        40.2034
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    },
+    {
+      "a": [
+        61.54,
+        40.2034
+      ],
+      "b": [
+        71.465,
+        43.0334
+      ],
+      "base": 0.25,
+      "top": 4.15,
+      "geometryStatus": "native-horizontal-photo-vertical"
+    }
+  ],
+  "topWallSegments": [
+    {
+      "a": [
+        77.127,
+        1.0004
+      ],
+      "b": [
+        65.195,
+        -3.1856
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        65.195,
+        -3.1856
+      ],
+      "b": [
+        62.41,
+        -4.0836
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.41,
+        -4.0836
+      ],
+      "b": [
+        59.097,
+        -5.1516
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        59.097,
+        -5.1516
+      ],
+      "b": [
+        54.43,
+        -5.8626
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        54.43,
+        -5.8626
+      ],
+      "b": [
+        50.041,
+        -6.1296
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        50.041,
+        -6.1296
+      ],
+      "b": [
+        47.563,
+        -6.1426
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        47.563,
+        -6.1426
+      ],
+      "b": [
+        43.735,
+        -5.6876
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        43.735,
+        -5.6876
+      ],
+      "b": [
+        41.48,
+        -5.2226
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        41.48,
+        -5.2226
+      ],
+      "b": [
+        39.782,
+        -4.8726
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        39.782,
+        -4.8726
+      ],
+      "b": [
+        36.979,
+        -4.1706
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        36.979,
+        -4.1706
+      ],
+      "b": [
+        25.393,
+        -0.5946
+      ],
+      "base": 5,
+      "top": 18,
+      "horizontalStatus": "native-hall-to-A-interface",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    }
+  ],
+  "visibleTopWallSegments": [
+    {
+      "a": [
+        25.0,
+        -0.0746
+      ],
+      "b": [
+        31.343,
+        -2.2106
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        0.319137,
+        0.947709
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        0.5894
+      ],
+      "b": [
+        26.021,
+        0.2564
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        0.310079,
+        0.950711
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        26.021,
+        0.2564
+      ],
+      "b": [
+        28.854,
+        -0.6676
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        0.31008,
+        0.95071
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        28.854,
+        -0.6676
+      ],
+      "b": [
+        34.804,
+        -2.3776
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        0.276214,
+        0.961096
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        34.804,
+        -2.3776
+      ],
+      "b": [
+        37.702,
+        -3.2796
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        0.297187,
+        0.954819
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        37.702,
+        -3.2796
+      ],
+      "b": [
+        39.955,
+        -3.8346
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        0.239188,
+        0.970973
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        39.955,
+        -3.8346
+      ],
+      "b": [
+        46.099,
+        -4.5556
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        0.11655,
+        0.993185
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        46.099,
+        -4.5556
+      ],
+      "b": [
+        51.766,
+        -4.5066
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.008646,
+        0.999963
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        51.766,
+        -4.5066
+      ],
+      "b": [
+        57.776,
+        -3.5216
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.161736,
+        0.986834
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        57.776,
+        -3.5216
+      ],
+      "b": [
+        59.862,
+        -2.9796
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.251477,
+        0.967863
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        60.4494,
+        -4.7156
+      ],
+      "b": [
+        62.41,
+        -4.0836
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.306804,
+        0.951773
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.5187,
+        -4.4117
+      ],
+      "b": [
+        63.3435,
+        -4.189
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.26067,
+        0.965428
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.605,
+        -2.1006
+      ],
+      "b": [
+        68.136,
+        -0.3406
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.303225,
+        0.952919
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        68.136,
+        -0.3406
+      ],
+      "b": [
+        73.842,
+        1.3844
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.289379,
+        0.957215
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        73.8835,
+        1.2566
+      ],
+      "b": [
+        74.631,
+        1.4704
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.274993,
+        0.961446
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        75.0606,
+        0.2755
+      ],
+      "b": [
+        77.0,
+        0.9558
+      ],
+      "base": 5,
+      "top": 7.2,
+      "outwardNormal": [
+        -0.331026,
+        0.943622
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        -0.0746
+      ],
+      "b": [
+        31.343,
+        -2.2106
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        0.319137,
+        0.947709
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        0.5894
+      ],
+      "b": [
+        26.021,
+        0.2564
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        0.310079,
+        0.950711
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        26.021,
+        0.2564
+      ],
+      "b": [
+        28.854,
+        -0.6676
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        0.31008,
+        0.95071
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        28.854,
+        -0.6676
+      ],
+      "b": [
+        34.804,
+        -2.3776
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        0.276214,
+        0.961096
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        34.804,
+        -2.3776
+      ],
+      "b": [
+        37.702,
+        -3.2796
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        0.297187,
+        0.954819
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        37.702,
+        -3.2796
+      ],
+      "b": [
+        39.955,
+        -3.8346
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        0.239188,
+        0.970973
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        39.955,
+        -3.8346
+      ],
+      "b": [
+        46.099,
+        -4.5556
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        0.11655,
+        0.993185
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        46.099,
+        -4.5556
+      ],
+      "b": [
+        51.766,
+        -4.5066
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.008646,
+        0.999963
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        51.766,
+        -4.5066
+      ],
+      "b": [
+        57.776,
+        -3.5216
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.161736,
+        0.986834
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        57.776,
+        -3.5216
+      ],
+      "b": [
+        59.862,
+        -2.9796
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.251477,
+        0.967863
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        60.4494,
+        -4.7156
+      ],
+      "b": [
+        62.41,
+        -4.0836
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.306804,
+        0.951773
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.5187,
+        -4.4117
+      ],
+      "b": [
+        63.3435,
+        -4.189
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.26067,
+        0.965428
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.605,
+        -2.1006
+      ],
+      "b": [
+        68.136,
+        -0.3406
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.303225,
+        0.952919
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        68.136,
+        -0.3406
+      ],
+      "b": [
+        73.842,
+        1.3844
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.289379,
+        0.957215
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        73.8835,
+        1.2566
+      ],
+      "b": [
+        74.631,
+        1.4704
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.274993,
+        0.961446
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        75.0606,
+        0.2755
+      ],
+      "b": [
+        77.0,
+        0.9558
+      ],
+      "base": 7.2,
+      "top": 8,
+      "outwardNormal": [
+        -0.331026,
+        0.943622
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        -0.0746
+      ],
+      "b": [
+        31.343,
+        -2.2106
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        0.319137,
+        0.947709
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        0.5894
+      ],
+      "b": [
+        26.021,
+        0.2564
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        0.310079,
+        0.950711
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        26.021,
+        0.2564
+      ],
+      "b": [
+        28.854,
+        -0.6676
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        0.31008,
+        0.95071
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        28.854,
+        -0.6676
+      ],
+      "b": [
+        34.804,
+        -2.3776
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        0.276214,
+        0.961096
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        34.804,
+        -2.3776
+      ],
+      "b": [
+        37.702,
+        -3.2796
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        0.297187,
+        0.954819
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        37.702,
+        -3.2796
+      ],
+      "b": [
+        39.955,
+        -3.8346
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        0.239188,
+        0.970973
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        39.955,
+        -3.8346
+      ],
+      "b": [
+        46.099,
+        -4.5556
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        0.11655,
+        0.993185
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        46.099,
+        -4.5556
+      ],
+      "b": [
+        51.766,
+        -4.5066
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.008646,
+        0.999963
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        51.766,
+        -4.5066
+      ],
+      "b": [
+        57.776,
+        -3.5216
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.161736,
+        0.986834
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        57.776,
+        -3.5216
+      ],
+      "b": [
+        59.862,
+        -2.9796
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.251477,
+        0.967863
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        60.4494,
+        -4.7156
+      ],
+      "b": [
+        62.41,
+        -4.0836
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.306804,
+        0.951773
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.5187,
+        -4.4117
+      ],
+      "b": [
+        63.3435,
+        -4.189
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.26067,
+        0.965428
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.605,
+        -2.1006
+      ],
+      "b": [
+        68.136,
+        -0.3406
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.303225,
+        0.952919
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        68.136,
+        -0.3406
+      ],
+      "b": [
+        73.842,
+        1.3844
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.289379,
+        0.957215
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        73.8835,
+        1.2566
+      ],
+      "b": [
+        74.631,
+        1.4704
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.274993,
+        0.961446
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        75.0606,
+        0.2755
+      ],
+      "b": [
+        77.0,
+        0.9558
+      ],
+      "base": 8,
+      "top": 10.8,
+      "outwardNormal": [
+        -0.331026,
+        0.943622
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        -0.0746
+      ],
+      "b": [
+        31.343,
+        -2.2106
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        0.319137,
+        0.947709
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        0.5894
+      ],
+      "b": [
+        26.021,
+        0.2564
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        0.310079,
+        0.950711
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        26.021,
+        0.2564
+      ],
+      "b": [
+        28.854,
+        -0.6676
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        0.31008,
+        0.95071
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        28.854,
+        -0.6676
+      ],
+      "b": [
+        34.804,
+        -2.3776
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        0.276214,
+        0.961096
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        34.804,
+        -2.3776
+      ],
+      "b": [
+        37.702,
+        -3.2796
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        0.297187,
+        0.954819
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        37.702,
+        -3.2796
+      ],
+      "b": [
+        39.955,
+        -3.8346
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        0.239188,
+        0.970973
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        39.955,
+        -3.8346
+      ],
+      "b": [
+        46.099,
+        -4.5556
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        0.11655,
+        0.993185
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        46.099,
+        -4.5556
+      ],
+      "b": [
+        51.766,
+        -4.5066
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.008646,
+        0.999963
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        51.766,
+        -4.5066
+      ],
+      "b": [
+        57.776,
+        -3.5216
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.161736,
+        0.986834
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        57.776,
+        -3.5216
+      ],
+      "b": [
+        59.862,
+        -2.9796
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.251477,
+        0.967863
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        60.4494,
+        -4.7156
+      ],
+      "b": [
+        62.41,
+        -4.0836
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.306804,
+        0.951773
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.5187,
+        -4.4117
+      ],
+      "b": [
+        63.3435,
+        -4.189
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.26067,
+        0.965428
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        62.605,
+        -2.1006
+      ],
+      "b": [
+        68.136,
+        -0.3406
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.303225,
+        0.952919
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        68.136,
+        -0.3406
+      ],
+      "b": [
+        73.842,
+        1.3844
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.289379,
+        0.957215
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        73.8835,
+        1.2566
+      ],
+      "b": [
+        74.631,
+        1.4704
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.274993,
+        0.961446
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        75.0606,
+        0.2755
+      ],
+      "b": [
+        77.0,
+        0.9558
+      ],
+      "base": 10.8,
+      "top": 14.4,
+      "outwardNormal": [
+        -0.331026,
+        0.943622
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        25.0,
+        -0.0746
+      ],
+      "b": [
+        31.343,
+        -2.2106
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        0.319137,
+        0.947709
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        31.343,
+        -2.2106
+      ],
+      "b": [
+        34.395,
+        -3.2846
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        0.331947,
+        0.943298
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        33.768,
+        -5.2366
+      ],
+      "b": [
+        37.273,
+        -6.0506
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        0.226219,
+        0.974076
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        37.589,
+        -4.9056
+      ],
+      "b": [
+        42.685,
+        -5.8996
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        0.191447,
+        0.981503
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        42.637,
+        -7.2166
+      ],
+      "b": [
+        52.471,
+        -6.9576
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.026328,
+        0.999653
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        52.417,
+        -6.0786
+      ],
+      "b": [
+        58.521,
+        -5.0826
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.161042,
+        0.986948
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        58.521,
+        -5.0826
+      ],
+      "b": [
+        60.5053,
+        -4.8807
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.101226,
+        0.994863
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        60.4494,
+        -4.7156
+      ],
+      "b": [
+        62.41,
+        -4.0836
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.306804,
+        0.951773
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        64.246,
+        -1.9806
+      ],
+      "b": [
+        68.925,
+        -0.2296
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.350487,
+        0.936568
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        68.925,
+        -0.2296
+      ],
+      "b": [
+        69.075,
+        -0.5566
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        0.908933,
+        0.416942
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        69.075,
+        -0.5566
+      ],
+      "b": [
+        69.328,
+        -0.4836
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.277228,
+        0.960804
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        69.325,
+        -0.4756
+      ],
+      "b": [
+        69.583,
+        -0.3356
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.476941,
+        0.878935
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        69.491,
+        0.0004
+      ],
+      "b": [
+        73.8835,
+        1.2566
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.274964,
+        0.961455
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    },
+    {
+      "a": [
+        73.8835,
+        1.2566
+      ],
+      "b": [
+        74.631,
+        1.4704
+      ],
+      "base": 14.4,
+      "top": 18,
+      "outwardNormal": [
+        -0.274993,
+        0.961446
+      ],
+      "horizontalStatus": "visible-display-facade-band-boundary",
+      "heightStatus": "approximate-adjacent-A-envelope"
+    }
+  ],
+  "topWall": {
+    "style": "pale-solid-mosaic-facade",
+    "noRegularWindowRows": true,
+    "note": "Фото подтверждает высокий преимущественно глухой фасад за низким вестибюлем. Линия взята из границы вестибюля с А; верх18м согласован с условной оболочкой А, не обмер. Мозаичный рисунок и отдельные окна не оцифрованы."
+  },
+  "canopy": {
+    "points": [
+      [
+        71.465,
+        43.0334
+      ],
+      [
+        61.54,
+        40.2034
+      ],
+      [
+        59.054,
+        39.7674
+      ],
+      [
+        55.565,
+        39.2074
+      ],
+      [
+        43.5,
+        38.5824
+      ],
+      [
+        40.085,
+        38.6734
+      ],
+      [
+        36.786,
+        39.0154
+      ],
+      [
+        29.075,
+        40.5804
+      ],
+      [
+        27.019,
+        41.2044
+      ],
+      [
+        27.382,
+        42.4005
+      ],
+      [
+        29.3815,
+        41.7937
+      ],
+      [
+        36.9752,
+        40.2525
+      ],
+      [
+        40.1662,
+        39.9217
+      ],
+      [
+        43.4843,
+        39.8333
+      ],
+      [
+        55.4332,
+        40.4523
+      ],
+      [
+        58.847,
+        41.0002
+      ],
+      [
+        61.2599,
+        41.4234
+      ],
+      [
+        71.1222,
+        44.2355
+      ]
+    ],
+    "holes": [],
+    "base": 4.45,
+    "height": 0.4,
+    "overhang": 1.25,
+    "geometryStatus": "photo-approximation-offset-from-native-frontage",
+    "note": "Проекция козырька отсутствует в исходном плане; полоса выведена наружу от точного фронта на условные1.25м. Нижняя отметка и толщина оценочные."
+  },
+  "roof": {
+    "type": "flat",
+    "height": 5,
+    "parapetHeight": 0.25,
+    "note": "Единая плоская крыша над всей входной группой; внутренний островок столовой не является отверстием кровли."
+  },
+  "evidence": [
+    "source/maps/original/pulse/campus_v-78.json",
+    "analysis/exterior-references/campus-1.webp",
+    "analysis/exterior-references/v78.webp"
+  ],
+  "limitations": [
+    "Наружный контур получен из объединения внутренних полигонов; толщина наружных стен не обмерена.",
+    "Верхние планы А немного пересекаются с планом вестибюля; volumePolygons исключают их, сохраняя высокий фасад.",
+    "Отметка земли, высоты остекления, козырька и парапета оценочные. Число дверей и стоек не задано.",
+    "lowPolygon/roofPolygons содержат общий силуэт; для нового объёма использовать volumePolygons. Существующие оболочки с replaceShellOverrideIds следует заменить, а не продублировать."
+  ]
+}

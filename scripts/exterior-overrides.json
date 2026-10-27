@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "note": "Этажность переходов А–Г/В/Д уточнена пользователем: второй этаж. Метрические высоты — отдельные визуальные допущения, не обмер. Горизонтальные контуры копируются из помещений источника и не меняют интерьерные данные.",
+  "elevatedConnections": [
+    {
+      "id": "a-g-source-bridge", "campusId": "v-78", "floorId": "v-78-floor2",
+      "sourcePolygonId": "v-78-floor2-area-27", "label": "Переход А — Г · 2 этаж",
+      "clearanceConfirmed": true, "base": 3.6, "top": 7.2, "displayStorey": 2,
+      "heightStatus": "user-confirmed-storey-approximate-metres",
+      "clearanceStatus": "user-described-elevated-connection",
+      "placementEvidence": {"type": "user-correction", "date": "2026-10-20", "statement": "соединение корпуса А с корпусами Г В Д находится на уровне 2 этажа"},
+      "evidence": ["public/data/photos/IMG_3174.jpg"],
+      "note": "Пользователь уточнил наружную отметку: второй этаж, выше первого уровня над землёй. При визуальном шаге3.6м пролёт занимает3.6–7.2м. Контур исходного плана и примыкающие помещения сохраняются; локальная нумерация комнат Г3 не переименовывается."
+    },
+    {
+      "id": "a-v-source-bridge", "campusId": "v-78", "floorId": "v-78-floor2",
+      "sourcePolygonId": "v-78-floor2-area-79", "label": "Переход А — В · 2 этаж",
+      "clearanceConfirmed": true, "base": 3.6, "top": 7.2, "displayStorey": 2,
+      "heightStatus": "user-confirmed-storey-approximate-metres",
+      "clearanceStatus": "user-described-elevated-connection",
+      "placementEvidence": {"type": "user-correction", "date": "2026-10-20", "statement": "соединение корпуса А с корпусами Г В Д находится на уровне 2 этажа"},
+      "evidence": ["public/data/photos/IMG_3174.jpg"],
+      "note": "Внешняя отметка второго этажа задана прямой поправкой пользователя; точные метры условны. Геометрия других исходных этажей почти полностью перекрывает контур, поэтому понижается и открывается только уникальная часть, без удаления помещений. Одна дверь исходного графа не доказывает полную проходимость связи."
+    },
+    {
+      "id": "a-b-photo-bridge", "campusId": "v-78", "floorId": "v-78-floor2",
+      "sourcePolygonId": "v-78-floor2-area-63", "label": "Переход А2 — Б3",
+      "clearanceConfirmed": true, "base": 7.2, "top": 10.8,
+      "heightStatus": "visual-assumption", "clearanceStatus": "photo-visible-not-measured",
+      "evidence": ["public/data/photos/IMG_3174.jpg", "analysis/exterior-references/v78.webp"],
+      "note": "Поднятый переход частично виден на аэрофото между А и вторым от правого края кольцевым корпусом Б. Вырезается только часть исходного контура, не занятая планами других уровней; высота просвета не измерена."
+    },
+    {
+      "id": "a-d-photo-bridge", "campusId": "v-78", "floorId": "v-78-floor2",
+      "sourcePolygonId": "v-78-floor2-area-35", "label": "Переход А — Д · 2 этаж",
+      "clearanceConfirmed": true, "base": 3.6, "top": 7.2, "displayStorey": 2,
+      "heightStatus": "user-confirmed-storey-approximate-metres",
+      "clearanceStatus": "user-described-elevated-connection",
+      "placementEvidence": {"type": "user-correction", "date": "2026-10-20", "statement": "соединение корпуса А с корпусами Г В Д находится на уровне 2 этажа"},
+      "evidence": ["public/data/photos/IMG_3174.jpg", "analysis/exterior-references/v78.webp"],
+      "note": "На аэрофото виден открытый низ, а пользователь уточнил отметку второго этажа. Прежняя интерпретация7.2–10.8м заменена3.6–7.2м при условном шаге3.6м. Другие исходные этажи и локальные номера Д3 не меняются; габариты опор и точная отметка земли неизвестны."
+    }
+  ],
+  "overrides": [
+    {
+      "campusId": "v-78",
+      "floorId": "v-78-floor1",
+      "roomId": "v-78--floor-1--6kk",
+      "label": "Спортивный зал",
+      "height": 8,
+      "estimatedHeightRange": [
+        6,
+        10
+      ],
+      "heightStatus": "photo-informed-approximation",
+      "roof": {
+        "type": "flat",
+        "height": 0
+      },
+      "evidence": [
+        "source/maps/original/pulse/campus_v-78.json",
+        "analysis/exterior-references/v78.webp",
+        "public/data/photos/Снимок экрана — 2026-10-19 в 16.44.12.jpg",
+        "public/data/photos/Снимок экрана — 2026-10-19 в 16.44.31.jpg"
+      ],
+      "note": "Большой спортивный зал — низкий объём возле стадиона; это не высотный ректорат. Оценочная высота оболочки не создаёт новые этажи."
+    },
+    {
+      "campusId": "v-78",
+      "floorId": "v-78-floor2",
+      "roomId": "v-78--floor-2--9yb",
+      "label": "Главный вход",
+      "height": 5,
+      "estimatedHeightRange": [
+        4,
+        7
+      ],
+      "heightStatus": "photo-informed-approximation",
+      "roof": {
+        "type": "flat",
+        "height": 0
+      },
+      "evidence": [
+        "source/maps/original/pulse/campus_v-78.json",
+        "analysis/exterior-references/campus-1.webp",
+        "analysis/exterior-references/v78.webp"
+      ],
+      "note": "Входной тамбур показан низким объёмом; уровень источника 2 не является высотой этого объёма над улицей."
+    },
+    {
+      "campusId": "v-78",
+      "floorId": "v-78-floor1",
+      "roomId": "v-78--floor-1--6kc",
+      "label": "Конференц-зал «Черепаха»",
+      "height": 5,
+      "estimatedHeightRange": [
+        4,
+        7
+      ],
+      "heightStatus": "photo-informed-approximation",
+      "roof": {
+        "type": "shallow-cone",
+        "height": 4,
+        "heightStatus": "visual-assumption",
+        "note": "Фото подтверждает пологую округлую кровлю; 4 м подъёма — параметр визуализации."
+      },
+      "evidence": [
+        "source/maps/original/pulse/campus_v-78.json",
+        "analysis/exterior-references/campus-2.webp",
+        "analysis/exterior-references/v78.webp"
+      ],
+      "note": "Низкий круглый корпус включает зал, окружающую галерею, заднюю часть и служебные ниши — 20 исходных полигонов. Отдельная фото-модель exterior-special.json заменяет неровный внутренний контур гладким круглым фасадом; радиус, кровля и высоты приближённые. Исходный интерьер сохраняется.",
+      "sourceRoomIds": [
+        "v-78-floor1-area-506",
+        "v-78-floor1-area-511",
+        "v-78-floor1-area-514",
+        "v-78-floor1-area-515",
+        "v-78-floor1-area-518",
+        "v-78-floor1-area-520",
+        "v-78-floor1-area-521",
+        "v-78-floor1-area-523",
+        "v-78-floor1-area-524",
+        "v-78-floor1-area-526",
+        "v-78-floor1-area-527",
+        "v-78-floor1-area-528",
+        "v-78-floor1-area-530",
+        "v-78-floor1-area-533",
+        "v-78-floor1-area-534",
+        "v-78-floor1-area-535",
+        "v-78-floor1-area-538",
+        "v-78-floor1-area-541",
+        "v-78-floor1-area-542",
+        "v-78--floor-1--6kc"
+      ],
+      "featureId": "conference-hall"
+    },
+    {
+      "campusId": "v-78",
+      "floorId": "v-78-floor2",
+      "roomId": "v-78-floor2-area-6",
+      "label": "Широкий входной вестибюль",
+      "height": 5,
+      "estimatedHeightRange": [
+        4,
+        7
+      ],
+      "heightStatus": "photo-informed-approximation",
+      "roof": {
+        "type": "flat",
+        "height": 0
+      },
+      "evidence": [
+        "source/maps/original/pulse/campus_v-78.json",
+        "analysis/exterior-references/campus-1.webp",
+        "analysis/exterior-references/v78.webp"
+      ],
+      "note": "Низкая наружная оболочка объединяет центральный вестибюль с гардеробной, островком столовой и соседними служебными ячейками. Это устраняет ложные башни и отверстие в кровле от внутренних границ помещений. Входной тамбур 9yb учитывается отдельной совместимой поправкой. Пересечения с контурами верхних уровней А сохраняются высокими. Интерьерные полигоны и их подписи не меняются; высота и отметка земли условны.",
+      "sourceRoomIds": [
+        "v-78-floor2-area-3",
+        "v-78-floor2-area-4",
+        "v-78-floor2-area-5",
+        "v-78-floor2-area-6",
+        "v-78-floor2-area-8",
+        "v-78-floor2-area-9",
+        "v-78-floor2-area-10",
+        "v-78-floor2-area-13",
+        "v-78-floor2-area-14",
+        "v-78-floor2-area-15",
+        "v-78--floor-2--9y7",
+        "v-78--floor-2--9yc"
+      ],
+      "protectHigherSourceFloors": true,
+      "featureId": "main-entrance-hall"
+    }
+  ]
+}

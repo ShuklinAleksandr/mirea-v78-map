@@ -1,0 +1,35 @@
+{
+  "A": {
+    "source": "manual",
+    "campusId": "v-78",
+    "floorId": "v-78-floor1",
+    "building": "Г",
+    "physicalLevel": 2,
+    "floorEvidence": "manual",
+    "point": [
+      17.458979489811163,
+      -28.217574809792765
+    ],
+    "placeId": "v-78--floor-1--6dm",
+    "label": "Г-208",
+    "timestamp": 1793120851130
+  },
+  "B": {
+    "source": "manual",
+    "campusId": "v-78",
+    "floorId": "v-78-floor1",
+    "building": "Г",
+    "physicalLevel": 2,
+    "floorEvidence": "manual",
+    "point": [
+      16.839612218068616,
+      -28.000796264682904
+    ],
+    "placeId": "v-78--floor-1--6dm",
+    "label": "Г-208",
+    "timestamp": 1793121211055
+  },
+  "samePlace": true,
+  "differentCoordinates": true,
+  "gpsUnchanged": true
+}

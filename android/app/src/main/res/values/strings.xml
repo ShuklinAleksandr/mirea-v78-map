@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">МИРЭА Карта</string>
+    <string name="title_activity_main">МИРЭА Карта</string>
+    <string name="package_name">ru.mirea.spatialatlas</string>
+    <string name="custom_url_scheme">ru.mirea.spatialatlas</string>
+</resources>

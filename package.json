@@ -1,0 +1,50 @@
+{
+  "name": "mirea-spatial-atlas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs dev",
+    "build": "vite build",
+    "preview": "node scripts/serve.mjs preview",
+    "stop": "node scripts/serve.mjs stop",
+    "test": "node --test tests/*.test.mjs",
+    "data:build": "python3 scripts/build-all.py",
+    "data:check": "python3 scripts/check-data.py",
+    "format": "prettier --write src tests docs README.md package.json vite.config.js index.html scripts/serve.mjs",
+    "format:check": "prettier --check src tests package.json vite.config.js index.html scripts/serve.mjs",
+    "check": "npm run format:check && npm test && npm run build",
+    "mobile:sync": "npm run build && node scripts/mobile-package.mjs && cap sync",
+    "mobile:ios": "npm run mobile:sync && cap open ios",
+    "mobile:android": "npm run mobile:sync && cap open android",
+    "mobile:doctor": "node scripts/mobile-doctor.mjs",
+    "mobile:build:ios": "npm run mobile:sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath .native-build/ios CODE_SIGNING_ALLOWED=NO build",
+    "mobile:build:android": "npm run mobile:sync && node scripts/build-android.mjs",
+    "mobile:build:macos": "node scripts/build-mobile-macos.mjs",
+    "mobile:check": "node scripts/check-mobile-package.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/geolocation": "8.2.4",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/keyboard": "8.0.6",
+    "@capacitor/share": "8.0.3",
+    "polygon-clipping": "0.15.7",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "prettier": "3.6.2",
+    "vite": "7.3.7"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "11.1.1"
+    }
+  }
+}

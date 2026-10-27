@@ -1,0 +1,102 @@
+{
+  "date": "2026-10-20",
+  "floors": [
+    {
+      "mode": "floor",
+      "campus": "v-78",
+      "floor": "v-78-floor2",
+      "projection": "3d",
+      "renderedFrames": 153,
+      "drawCalls": 11,
+      "triangles": 66326,
+      "geometries": 11,
+      "labels": 63,
+      "openCorridorPartitions": 2,
+      "roundedRouteCorners": 0
+    },
+    {
+      "mode": "floor",
+      "campus": "v-78",
+      "floor": "v-78-floor3",
+      "projection": "3d",
+      "renderedFrames": 161,
+      "drawCalls": 11,
+      "triangles": 47027,
+      "geometries": 11,
+      "labels": 66,
+      "openCorridorPartitions": 7,
+      "roundedRouteCorners": 0
+    },
+    {
+      "mode": "floor",
+      "campus": "v-78",
+      "floor": "v-78-floor4",
+      "projection": "3d",
+      "renderedFrames": 171,
+      "drawCalls": 11,
+      "triangles": 9869,
+      "geometries": 11,
+      "labels": 53,
+      "openCorridorPartitions": 2,
+      "roundedRouteCorners": 0
+    },
+    {
+      "mode": "floor",
+      "campus": "v-78",
+      "floor": "v-78-floor1",
+      "projection": "3d",
+      "renderedFrames": 180,
+      "drawCalls": 11,
+      "triangles": 100737,
+      "geometries": 11,
+      "labels": 136,
+      "openCorridorPartitions": 4,
+      "roundedRouteCorners": 0
+    }
+  ],
+  "route3d": {
+    "mode": "floor",
+    "campus": "v-78",
+    "floor": "v-78-floor2",
+    "projection": "3d",
+    "renderedFrames": 197,
+    "drawCalls": 28,
+    "triangles": 77438,
+    "geometries": 37,
+    "labels": 284,
+    "openCorridorPartitions": 2,
+    "roundedRouteCorners": 24
+  },
+  "routeStackMobile": {
+    "mode": "route-overview",
+    "campus": "v-78",
+    "floor": "v-78-floor2",
+    "projection": "3d",
+    "renderedFrames": 383,
+    "drawCalls": 55,
+    "triangles": 134878,
+    "geometries": 44,
+    "labels": 29,
+    "openCorridorPartitions": 0,
+    "roundedRouteCorners": 0
+  },
+  "basementMobile": {
+    "card": "Лестница\nСпуск в цоколь · план уточняется · корпус А\n\nВернадского 78 · корпус А\n\nВ избранное\nПоделиться\nЭтаж корпуса\n1\nСпуск подтверждён командой · форма приблизительная\n\nСпуск в цоколь подтверждён. План цоколя и маршрут по нему уточняются.\n\nU возле А-154 · корпус А →\nПриблизить",
+    "stats": {
+      "mode": "floor",
+      "campus": "v-78",
+      "floor": "v-78-floor1",
+      "projection": "3d",
+      "renderedFrames": 160,
+      "drawCalls": 12,
+      "triangles": 100817,
+      "geometries": 12,
+      "labels": 136,
+      "openCorridorPartitions": 4,
+      "roundedRouteCorners": 0
+    }
+  },
+  "upwardCardMobile": "Лестница\nU возле А-154 · корпус А\n\nВернадского 78 · корпус А\n\nЯ здесь\nМаршрут сюда\nВ избранное\nПоделиться\nЭтаж корпуса\n1\nМестоположение по плану\n\nВыберите этаж, чтобы посмотреть продолжение пути.\n\n↕ Перейти: 2 этаж →\nЦоколь корпуса А →\nПриблизить",
+  "consoleErrors": [],
+  "pairedStairCard": "Лестница\nСпуск к А-154 на 1 этаж · корпус А\n\nВернадского 78 · корпус А\n\nЯ здесь\nМаршрут сюда\nВ избранное\nПоделиться\nЭтаж корпуса\n2\nМестоположение по плану\n\nВыберите этаж, чтобы посмотреть продолжение пути.\n\n↕ Перейти: 1 этаж →\nПриблизить"
+}

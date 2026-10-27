@@ -1,0 +1,163 @@
+[
+  {
+    "campus": "v-78",
+    "floor": "Этаж 0",
+    "file": "svg/v-78/floor_0.svg",
+    "labels": 204,
+    "sha256": "f43160ba80131cc51e36efe3f730750fd8a5a5ce3fc3a7f403f54e4be29b0644"
+  },
+  {
+    "campus": "v-78",
+    "floor": "Этаж 1",
+    "file": "svg/v-78/floor_1.svg",
+    "labels": 407,
+    "sha256": "373e5d17e8ae84b64221de02034a2ea938765075ca9583f12f2d1ac405b349a3"
+  },
+  {
+    "campus": "v-78",
+    "floor": "Этаж 2",
+    "file": "svg/v-78/floor_2.svg",
+    "labels": 256,
+    "sha256": "32dca15a3f36ff3dadc65f1a514c8de320b620015ffdea15280aa465474ab68d"
+  },
+  {
+    "campus": "v-78",
+    "floor": "Этаж 3",
+    "file": "svg/v-78/floor_3.svg",
+    "labels": 230,
+    "sha256": "9c5b8524be28eb0734b5fb55ff53e766baf1e72a9e94f553dffb2c4c35adc19c"
+  },
+  {
+    "campus": "v-78",
+    "floor": "Этаж 4",
+    "file": "svg/v-78/floor_4.svg",
+    "labels": 51,
+    "sha256": "4bf27c57e8600d3f04ed21e74aaae8a66699c0c5c181e61c9bc6d18e5d5fa830"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 0",
+    "file": "svg/v-86/floor_0.svg",
+    "labels": 30,
+    "sha256": "1c516ee402876c5481ba867a97089a08c8953ebffd90d438a6dab0ccdf77fde6"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 1",
+    "file": "svg/v-86/floor_1.svg",
+    "labels": 255,
+    "sha256": "6d41a8eb0805252145310a4ec6046191e121beed1e8281c2c674840de3c170ae"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 2",
+    "file": "svg/v-86/floor_2.svg",
+    "labels": 132,
+    "sha256": "f47eb8ab15d6a3a4a6d645c4f2db3b5246ec8b101a412f61915926304edb0a25"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 3",
+    "file": "svg/v-86/floor_3.svg",
+    "labels": 63,
+    "sha256": "9fd86fa0a128fa72a340886730221f43ae8759aa41c59ec0e2ffd8c51357bef2"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 4",
+    "file": "svg/v-86/floor_4.svg",
+    "labels": 46,
+    "sha256": "311230543f57df4892a01b64c2e4225ff3d47d5b59125909c80738ee45876383"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 5",
+    "file": "svg/v-86/floor_5.svg",
+    "labels": 34,
+    "sha256": "dc9390980211aec2817823d31e1e5763467fa12dc99e147ca969d635b4220c7b"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 6",
+    "file": "svg/v-86/floor_6.svg",
+    "labels": 25,
+    "sha256": "f554c914e785a086f991b3e3f17ebe1bc3f9598212c37bcc84e5c045fc3e6a5e"
+  },
+  {
+    "campus": "v-86",
+    "floor": "Этаж 7",
+    "file": "svg/v-86/floor_7.svg",
+    "labels": 2,
+    "sha256": "beb22524b89196f48996d6ac099143eca45a990d4c1e9cfd79e140b4db068485"
+  },
+  {
+    "campus": "s-20",
+    "floor": "Этаж 1",
+    "file": "svg/s-20/floor_1.svg",
+    "labels": 105,
+    "sha256": "645d12b343fbe14942428f97b8b1a2c0bdb66a43356040548eb7789ddfb09669"
+  },
+  {
+    "campus": "s-20",
+    "floor": "Этаж 2",
+    "file": "svg/s-20/floor_2.svg",
+    "labels": 134,
+    "sha256": "a212be849fde01c7d16cc35d5ec0bbf7da394d99ef06ac369794e81a75daa545"
+  },
+  {
+    "campus": "s-20",
+    "floor": "Этаж 3",
+    "file": "svg/s-20/floor_3.svg",
+    "labels": 124,
+    "sha256": "1bb8fbf5fe1c3b628089918dd1f917afba3da2f4f080854b33e5c4fabffa3505"
+  },
+  {
+    "campus": "s-20",
+    "floor": "Этаж 4",
+    "file": "svg/s-20/floor_4.svg",
+    "labels": 73,
+    "sha256": "e8df46cd9f5ce0b79f24e7f76ebf899b3077ba175a87f5046a547e82d6f6361e"
+  },
+  {
+    "campus": "mp-1",
+    "floor": "Цоколь",
+    "file": "svg/mp-1/floor_-1.svg",
+    "labels": 77,
+    "sha256": "08e5200d5000cffeec5e5d726391d92b46a41ce79f8cdbfd571e864188d8d722"
+  },
+  {
+    "campus": "mp-1",
+    "floor": "1 этаж",
+    "file": "svg/mp-1/floor_1.svg",
+    "labels": 102,
+    "sha256": "a7275f715ef37af66d175c942693fe692cb71ae9a58d2e6ecf0771e7b2b56b68"
+  },
+  {
+    "campus": "mp-1",
+    "floor": "2 этаж",
+    "file": "svg/mp-1/floor_2.svg",
+    "labels": 84,
+    "sha256": "1d6aa5181b590b05dca9839753999bf197326f1285a615c5734682521831c891"
+  },
+  {
+    "campus": "mp-1",
+    "floor": "3 этаж",
+    "file": "svg/mp-1/floor_3.svg",
+    "labels": 86,
+    "sha256": "dc2eb5bcbd3d6c352ace28a65c53538e62fb8d1532f5160b12904dd96cf3cd89"
+  },
+  {
+    "campus": "mp-1",
+    "floor": "4 этаж",
+    "file": "svg/mp-1/floor_4.svg",
+    "labels": 87,
+    "sha256": "9b4e8d9a2e9e8f0a4745a17e4394091d81ae36dff91b614b3844072297be9cb7"
+  },
+  {
+    "campus": "mp-1",
+    "floor": "5 этаж",
+    "file": "svg/mp-1/floor_5.svg",
+    "labels": 52,
+    "sha256": "cce3318ca9e8b87e24bc12849a0ea0a7d5258d49c49277a7c35feb375a40a111"
+  }
+]

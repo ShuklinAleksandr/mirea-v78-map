@@ -1,0 +1,22 @@
+{
+  "v-78-floor2": {
+    "expectedEmbeddedSvgSha256": "e8e8a7a002e4370f6213b041fadc92d7244dfc3acf9eee12d6f49c78d3adb828",
+    "outdoorAreas": {
+      "v-78--floor-2--9y1": {
+        "confidence": "source-label",
+        "reason": "Источник явно называет область «Тротуар вдоль ул. Коштоянца»; она не является помещением.",
+        "evidence": ["original/pulse/campus_v-78.json rooms[id=v-78--floor-2--9y1]", "IMG_3174.HEIC"]
+      },
+      "v-78-floor2-area-0": {
+        "confidence": "photo-corroborated",
+        "reason": "Узкая открытая пешеходная область соединяет именованный тротуар с библиотекой и огибает её снаружи. На обзорной схеме IMG_3174 этот контур не является корпусом.",
+        "evidence": ["floor2 SVG: first unlabelled polygon", "IMG_3174.HEIC"]
+      },
+      "v-78-floor2-area-2": {
+        "confidence": "photo-corroborated",
+        "reason": "Открытый подход от именованного тротуара к главному входу. На обзорной схеме IMG_3174 отсутствует закрытый корпус вдоль этого подхода.",
+        "evidence": ["floor2 SVG: unlabelled polygon between sidewalk and main entrance", "IMG_3174.HEIC"]
+      }
+    }
+  }
+}

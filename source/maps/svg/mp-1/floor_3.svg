@@ -1,0 +1,618 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 1884.06" width="2000" height="1884.06" fill="none"><g transform="scale(0.36231884058)"><g class="3">
+    <g class="Main">
+      <rect width="90" height="35" x="2936" y="2196" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="96" height="35" x="2490" y="2197" fill="#262A34" class="BigAreaPath" rx="12" />
+      <g class="BigAreaPath">
+        <rect width="61" height="138" x="2525" y="2080" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="52" height="135" x="2936" y="2080" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <rect width="163" height="121" x="3851" y="1464" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="3935" y="1443" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="3999" y="1498" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="115" x="3851" y="1369" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="163" height="121" x="1576" y="1465" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="1553" y="1492" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="1620" y="1445" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="2582" y="1420" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="2641" y="1419" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="2846" y="1416" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="35" x="2905" y="1418" fill="#262A34" class="BigAreaPath" rx="12" />
+      <rect width="35" height="101" x="1704" y="1387" fill="#262A34" class="BigAreaPath" rx="12" />
+      <g class="Paths">
+        <path fill="#262A34" d="M1058 1181h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1014 1238v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1077 1238v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1018 1348v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M945 1473v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1097 1511h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1097 1411h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1342 1287h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1473 1287h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1648 1287h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1797 1287h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1797 1193h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2001 1304h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1831 1244v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1947 1459v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2181 1458v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2299 1458v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2536 1478v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2701 1478v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2825 1478v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2992 1478v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3128 1418h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3313 1418h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3437 1418h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3555 1228h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3793 1123v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3970 1257h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M4130 1396h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M4208 1254h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M4365 1257h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M4311 1396h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M4512 1396h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M4512 1254h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M4568 1329v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3790 1365v-72h8v72z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3240 1468v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2666 1320h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1931 1578v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1931 1678v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2457 2121v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2605 2121v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2916 2121v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3175 2149h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3323 2149h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3424 2146h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3590 2268v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3569 2010v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3569 1908v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3569 1806v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3547 1749h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3567 1542h-41v-41h41z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M3590 2131v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1946 2125v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2001 2160h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1998 1724h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M2013 2089h-44v-50h44z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1940 2392h-44v-50h44z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1906 2433h-44v-30h44z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1465 1414h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1374 1411h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1374 1464h-16v-8h16z" class="Rectangle 101" />
+      </g>
+      <g class="Paths">
+        <path fill="#262A34" d="M1309 1442v-16h8v16z" class="Rectangle 101" />
+      </g>
+      <g class="Room" data-object="mp-1-floor3--room--23436b37943fdb41" data-name="А-342б">
+        <rect width="160" height="218" x="785" y="1411" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--2198e76b985dbe2f" data-name="А-341б">
+        <rect width="76" height="218" x="1233" y="1411" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--f218eb52e85bf45b" data-name="А-341а">
+        <rect width="98" height="165" x="1317" y="1464" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--cb6d91221ee08d3d" data-name="Туалет">
+        <rect width="68" height="218" x="1423" y="1411" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--39a7cd1db6da552f" data-name="А-341">
+        <rect width="98" height="45" x="1317" y="1411" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--2368b7741039b5d4" data-name="А-342а">
+        <rect width="272" height="118" x="953" y="1511" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--f5b7c1e1b50739b6" data-name="А-342">
+        <rect width="272" height="92" x="953" y="1411" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--8170492c952cf7d8" data-name="А-344б">
+        <rect width="292" height="126" x="785" y="1047" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--6bae0e7ca6501430" data-name="А-344в">
+        <rect width="188" height="232" x="1085" y="1047" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--64f9dfa5291f195f" data-name="А-345">
+        <rect width="106" height="232" x="1281" y="1047" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--b3706a6cccbede1f" data-name="А-346">
+        <rect width="139" height="232" x="1395" y="1047" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--70a72c969fbdb64e" data-name="А-347">
+        <rect width="196" height="232" x="1542" y="1047" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--dd32f954d8eb25ad" data-name="А-323а">
+        <rect width="294" height="107" x="1746" y="1078" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--24437b46c058a848" data-name="А-323">
+        <rect width="85" height="86" x="1746" y="1193" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--2ebcf6fbd5eb3ae2" data-name="А-323б">
+        <rect width="97" height="103" x="1839" y="1193" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--7126bae14f2b0b6c" data-name="А-322">
+        <rect width="97" height="103" x="1944" y="1193" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--c901c6fc8b6f8679" data-name="А-321">
+        <rect width="115" height="103" x="2066" y="1398" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--2e2fe3a16f87c7bc" data-name="А-325">
+        <rect width="157" height="90" x="1777" y="1525" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--4ad11740bfbde1e4" data-name="А-326">
+        <rect width="157" height="93" x="1777" y="1623" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--51586d28d197311c" data-name="А-327">
+        <rect width="264" height="322" x="1777" y="1724" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--d79fca887fa8f890" data-name="А-328">
+        <rect width="169" height="280" x="1777" y="2066" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--58145dc2cf6b2bfe" data-name="А-328в">
+        <rect width="105" height="73" x="1777" y="2381" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--50af804665291be2" data-name="А-328б">
+        <rect width="155" height="73" x="1890" y="2381" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--082de3ccb410f092" data-name="А-360">
+        <rect width="391" height="254" x="2066" y="2080" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--860f00b1c61c8f61" data-name="А-301">
+        <rect width="306" height="281" x="2613" y="2080" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--4391a66609bc7ce5" data-name="А-350">
+        <rect width="196" height="200" x="3069" y="2146" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--9c6de49eddade599" data-name="А-351">
+        <rect width="84" height="200" x="3273" y="2146" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--f4b75c7f81fe7beb" data-name="А-352">
+        <rect width="102" height="200" x="3365" y="2146" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--4d28452861192867" data-name="А-353">
+        <rect width="195" height="173" x="3598" y="2173" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--f1b717cb78d32f50" data-name="А-353а">
+        <rect width="195" height="84" x="3598" y="2081" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--cb2c46ef1d2a8841" data-name="А-354">
+        <rect width="216" height="94" x="3577" y="1955" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--c69898f3f3097ab0" data-name="А-355">
+        <rect width="216" height="94" x="3577" y="1853" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--95bdad63a4af05ce" data-name="А-356">
+        <rect width="216" height="94" x="3577" y="1751" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--60eaffb08849b250" data-name="А-357">
+        <rect width="288" height="208" x="3505" y="1535" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--5515a3622581a939" data-name="А-320">
+        <rect width="229" height="273" x="2307" y="1228" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--05f1aca734f7cd34" data-name="А-300б">
+        <rect width="114" height="119" x="2572" y="1193" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--c1fda88db530b863" data-name="А-300">
+        <rect width="119" height="308" x="2709" y="1193" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--5b92d090eeb4e064" data-name="А-310">
+        <rect width="240" height="182" x="3000" y="1228" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--4476f0899a08e9b1" data-name="А-311">
+        <rect width="113" height="182" x="3248" y="1228" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--e44612edb99ce863" data-name="А-312">
+        <rect width="119" height="182" x="3369" y="1228" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--49c3e3e618a32db6" data-name="Ка-311">
+        <rect width="240" height="83" x="3000" y="1418" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--b6abbfae15616056" data-name="Ка-312">
+        <rect width="240" height="83" x="3248" y="1418" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--b0b4a5819c31cbfe" data-name="А-331">
+        <rect width="297" height="273" x="3496" y="1228" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--01f4b888fc3c30c7" data-name="А-332а">
+        <rect width="297" height="164" x="3496" y="1056" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--bfc027e2329e10a0" data-name="А-332">
+        <rect width="321" height="219" x="3801" y="1030" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--da75d1c7c6d8534f" data-name="А-333">
+        <rect width="139" height="219" x="4130" y="1030" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--53bc47fc20ef2c48" data-name="А-334">
+        <rect width="159" height="219" x="4277" y="1030" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--fe8390aa296f61b2" data-name="А-335">
+        <rect width="338" height="219" x="4444" y="1030" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--03fba20260705d1f" data-name="А-336">
+        <rect width="209" height="128" x="4573" y="1257" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--8e94ff44affa4e34" data-name="А-337">
+        <rect width="358" height="256" x="4424" y="1393" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--dc384c0919cfa648" data-name="А-338">
+        <rect width="76" height="246" x="4265" y="1393" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--98faa8f560978d4d" data-name="А-339">
+        <rect width="87" height="246" x="4078" y="1393" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--7dec45e2a1091df9" data-name="А-328а">
+        <rect width="78" height="188" x="1954" y="2158" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--39e0600975d981f8" data-name="А-324">
+        <rect width="173" height="95" x="1777" y="1403" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--c65b4a164fce65f0" data-name="А-344а">
+        <rect width="229" height="98" x="785" y="1181" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--b873ddf8037edf28" data-name="А-343">
+        <rect width="233" height="106" x="785" y="1287" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--42d7249f610d2c85" data-name="А-344">
+        <rect width="55" height="98" x="1022" y="1181" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--58452b553e6c6b51" data-name="Лестница">
+        <rect width="128" height="51" x="1574" y="1409" fill="#fff" rx="12" />
+        <g class="stairsup">
+          <path fill="#000" d="M1660.45 1417.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-8.99c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.13.02-.22.05-.28.06-.35.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--3d97d8dd6fd6bbbc" data-name="Лестница">
+        <rect width="51" height="113" x="1520" y="1453" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#a)">
+          <path fill="#000" d="M1567.95 1492.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H1523c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="BigAreaPath">
+        <rect width="754" height="122" x="1023" y="1284" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="272" height="97" x="1714" y="1301" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="122" height="114" x="1714" y="1284" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="86" height="415" x="1955" y="1301" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="102" height="215" x="1939" y="1501" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="110" height="73" x="1951" y="2080" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="146" height="135" x="2462" y="2080" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="140" height="137" x="2924" y="2080" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="641" height="61" x="2924" y="2080" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="67" height="392" x="3505" y="1748" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="88" height="292" x="3505" y="2054" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="770" height="134" x="3798" y="1254" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="275" height="45" x="3798" y="1358" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="162" height="63" x="2833" y="1438" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="163" height="63" x="2541" y="1438" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="BigAreaPath">
+        <rect width="116" height="83" x="2186" y="1418" fill="#262A34" class="BigAreaPath" rx="12" />
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--e45a42ebe40686c5" data-name="Лестница">
+        <rect width="51" height="113" x="4019" y="1453" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#b)">
+          <path fill="#000" d="M4066.95 1492.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H4022c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--462a95d269d4d9ce" data-name="Лестница">
+        <rect width="128" height="51" x="3889" y="1408" fill="#fff" rx="12" />
+        <g class="stairsup">
+          <path fill="#000" d="M3975.45 1416.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-8.99c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.13.02-.22.05-.28.06-.35.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--9082be038c552346" data-name="Лестница">
+        <rect width="51" height="113" x="2479" y="2220" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#c)">
+          <path fill="#000" d="M2526.95 2259.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2482c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--8efc98509dad4645" data-name="Лестница">
+        <rect width="51" height="113" x="2574" y="1320" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#d)">
+          <path fill="#000" d="M2621.95 1359.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2577c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--c338b9f41d359949" data-name="Лестница">
+        <rect width="51" height="113" x="2838" y="1319" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#e)">
+          <path fill="#000" d="M2885.95 1358.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2841c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--0dbf7304d355f9e1" data-name="Лестница">
+        <rect width="51" height="113" x="2932" y="2222" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#f)">
+          <path fill="#000" d="M2979.95 2261.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2935c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--64c5cb4e466e57ad" data-name="Лестница">
+        <rect width="51" height="113" x="2538" y="2220" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#g)">
+          <path fill="#000" d="M2585.95 2259.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2541c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--04dbfc002b34fb27" data-name="Лестница">
+        <rect width="51" height="113" x="2633" y="1320" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#h)">
+          <path fill="#000" d="M2680.95 1359.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2636c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--a31e43b17b09d153" data-name="Лестница">
+        <rect width="51" height="113" x="2897" y="1319" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#i)">
+          <path fill="#000" d="M2944.95 1358.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2900c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--af37b31c176c2f8c" data-name="Лестница">
+        <rect width="51" height="113" x="2991" y="2222" fill="#fff" rx="12" />
+        <g class="stairsup" clip-path="url(#j)">
+          <path fill="#000" d="M3038.95 2261.5h-7.49v7.5c0 .13-.01.22-.04.28-.07.35-.23.63-.5.87a1.4 1.4 0 0 1-.96.35h-7.49v7.5c0 .13-.01.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22h-7.49v7.5c0 .13-.02.22-.05.28a1.45 1.45 0 0 1-1.45 1.22H2994c-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05c0-.41.15-.76.44-1.05.3-.3.65-.45 1.06-.45h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.28-.23.6-.35.94-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.51-.87.29-.23.6-.35.94-.35h7.49v-7.5c0-.09.02-.19.05-.28.06-.34.23-.63.52-.87.28-.23.59-.35.93-.35h7.49v-7.5c0-.12.02-.22.05-.28.06-.34.23-.63.49-.87.27-.23.59-.35.96-.35h8.99c.41 0 .76.15 1.06.45.29.29.44.64.44 1.05 0 .41-.15.76-.44 1.05-.3.3-.65.45-1.06.45Z" class="Vector" />
+        </g>
+      </g>
+    </g>
+    <g class="B">
+      <path fill="#262A34" d="M1713.97 3826.89v24.32h-12.73v-24.32z" class="Rectangle 162" />
+      <path fill="#262A34" d="M1713.97 3668.77v24.32h-12.73v-24.32z" class="Rectangle 163" />
+      <path fill="#262A34" d="M1713.97 3463.53v24.32h-12.73v-24.32z" class="Rectangle 164" />
+      <path fill="#262A34" d="M1713.97 3306.94v24.32h-12.73v-24.32z" class="Rectangle 165" />
+      <path fill="#262A34" d="M1713.97 3141.23v24.32h-12.73v-24.32z" class="Rectangle 166" />
+      <path fill="#262A34" d="M1713.97 2972.47v24.32h-12.73v-24.32z" class="Rectangle 167" />
+      <path fill="#262A34" d="M1713.97 2858.45v24.32h-12.73v-24.32z" class="Rectangle 168" />
+      <path fill="#262A34" d="M1636 2858.45v24.32h-12.73v-24.32z" class="Rectangle 169" />
+      <path fill="#262A34" d="M1820.6 3078.9v24.32h-12.73v-24.32z" class="Rectangle 170" />
+      <path fill="#262A34" d="M1820.6 3195.96v24.32h-12.73v-24.32z" class="Rectangle 171" />
+      <path fill="#262A34" d="M1822.19 3451.37v24.32h-12.73v-24.32z" class="Rectangle 172" />
+      <path fill="#262A34" d="M1860.38 3905.94h-25.46v-12.16h25.46z" class="Rectangle 173" />
+      <path fill="#262A34" d="M1766.49 3905.94h-25.46v-12.16h25.46z" class="Rectangle 174" />
+      <path fill="#262A34" d="M1682.15 2931.43h-25.46v-12.16h25.46z" class="Rectangle 175" />
+      <path fill="#262A34" d="M1755.35 2815.88h-25.46v-12.16h25.46z" class="Rectangle 176" />
+      <path fill="#262A34" d="M1849.24 2817.4h-25.46v-12.16h25.46z" class="Rectangle 177" />
+      <g class="Room" data-object="mp-1-floor3--room--83f945b9d5554168" data-name="Б-305">
+        <rect width="319" height="217" x="1488" y="3897" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--e6dcee2764091c9f" data-name="Б-307">
+        <rect width="213" height="192" x="1488" y="3591" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--396dc2d38af23bc2" data-name="Б-308">
+        <rect width="213" height="206" x="1488" y="3377" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--17aafb5d5d9b43bf" data-name="Б-310">
+        <rect width="211" height="217" x="1490" y="3046" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--bfa4346a3ae149e4" data-name="Б-304">
+        <rect width="251" height="217" x="1815" y="3897" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--464a8c4f947ec71d" data-name="Лестница">
+        <rect width="77.54" height="179.82" x="1887.43" y="2925.35" fill="#fff" rx="12" transform="rotate(-90 1887.43 2925.35)" />
+        <g class="stairsup" clip-path="url(#k)">
+          <path fill="#000" d="M1960.35 2864.12v7.5h7.5a.7.7 0 0 1 .28.04c.34.07.63.23.86.49.24.27.36.59.36.96v7.5h7.5a.7.7 0 0 1 .28.04c.34.07.63.23.87.5.23.26.35.58.35.96v7.49h7.5c.12 0 .22.01.28.05.34.06.63.22.87.49.23.26.35.58.35.96v7.49h7.5c.12 0 .22.02.28.05.34.06.63.22.87.49.23.26.35.58.35.96v8.99c0 .41-.15.76-.45 1.05-.3.3-.65.45-1.05.45-.41 0-.76-.15-1.06-.45a1.44 1.44 0 0 1-.44-1.05v-7.49h-7.5a.63.63 0 0 1-.28-.05 1.37 1.37 0 0 1-.87-.52 1.38 1.38 0 0 1-.35-.93v-7.49h-7.5a.63.63 0 0 1-.28-.05 1.41 1.41 0 0 1-.87-.52 1.38 1.38 0 0 1-.35-.93v-7.5h-7.5a.86.86 0 0 1-.28-.04 1.41 1.41 0 0 1-.87-.52 1.38 1.38 0 0 1-.35-.93v-7.5h-7.5a.66.66 0 0 1-.28-.04 1.48 1.48 0 0 1-.87-.5 1.35 1.35 0 0 1-.35-.96v-8.99c0-.4.14-.75.44-1.05.3-.3.65-.45 1.06-.45.4 0 .75.15 1.05.45.3.3.45.65.45 1.05Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Ladder" data-object="mp-1-floor3--stairs--d78b5111fcfa23b5" data-name="Лестница">
+        <rect width="77.54" height="179.82" x="1885.84" y="3863.37" fill="#fff" rx="12" transform="rotate(-90 1885.84 3863.37)" />
+        <g class="stairsup" clip-path="url(#l)">
+          <path fill="#000" d="M1958.76 3802.15v7.49h7.5a.7.7 0 0 1 .28.05 1.47 1.47 0 0 1 1.22 1.45v7.49h7.5a.7.7 0 0 1 .28.05 1.47 1.47 0 0 1 1.22 1.45v7.5h7.5c.12 0 .21.01.28.04.34.07.63.23.86.49.24.27.36.59.36.96v7.5h7.5c.12 0 .21.01.28.04.34.07.63.23.86.5.24.26.36.58.36.96v8.99c0 .4-.15.75-.45 1.05-.3.3-.65.45-1.05.45-.41 0-.76-.15-1.06-.45-.3-.3-.44-.65-.44-1.05v-7.5h-7.5a.75.75 0 0 1-.29-.04 1.47 1.47 0 0 1-.86-.52 1.38 1.38 0 0 1-.35-.93v-7.5h-7.5a.75.75 0 0 1-.29-.04 1.47 1.47 0 0 1-.86-.52 1.4 1.4 0 0 1-.35-.94v-7.49h-7.5a.74.74 0 0 1-.29-.05 1.4 1.4 0 0 1-.86-.51 1.4 1.4 0 0 1-.35-.94v-7.49h-7.5a.72.72 0 0 1-.29-.05 1.42 1.42 0 0 1-.86-.49 1.35 1.35 0 0 1-.35-.96v-8.99c0-.41.14-.76.44-1.05.3-.3.65-.45 1.06-.45.4 0 .75.15 1.05.45.3.29.45.64.45 1.05Z" class="Vector" />
+        </g>
+      </g>
+      <g class="Room" data-object="mp-1-floor3--room--14562bd1d212bff8" data-name="Б-306">
+        <rect width="98.82" height="213.24" x="1701.24" y="3790.4" fill="#8E96FF" rx="12" transform="rotate(90 1701.24 3790.4)" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--f751501f9c42542f" data-name="Б-302а">
+        <rect width="127.71" height="225.97" x="2046.57" y="3144.27" fill="#8E96FF" rx="12" transform="rotate(90 2046.57 3144.27)" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--b5dbb7ac91581801" data-name="Б-301">
+        <rect width="82.1" height="225.97" x="2046.57" y="3050.01" fill="#8E96FF" rx="12" transform="rotate(90 2046.57 3050.01)" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--2c985eac51c7c64b" data-name="Б-309">
+        <rect width="98.82" height="213.24" x="1701.24" y="3270.46" fill="#8E96FF" rx="12" transform="rotate(90 1701.24 3270.46)" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--a7eacfee807c36ff" data-name="Б-311а">
+        <rect width="106" height="213" x="1701" y="2932" fill="#8E96FF" rx="12" transform="rotate(90 1701 2932)" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--c03a1939d91ec1fb" data-name="Б-311б">
+        <rect width="135" height="109" x="1488" y="2815" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--52b22ddefa00cdc5" data-name="Б-311">
+        <rect width="101.86" height="65.25" x="1636" y="2922.3" fill="#8E96FF" rx="12" transform="rotate(-90 1636 2922.3)" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--bc50dab6b747e6fd" data-name="Б-312">
+        <rect width="301" height="207" x="1488" y="2600" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--4882ff2ed3300b5f" data-name="Б-313">
+        <rect width="270" height="207" x="1797" y="2600" fill="#8E96FF" rx="12" />
+        </g>
+      <g class="Room" data-object="mp-1-floor3--room--5b47a98c2db595b9" data-name="Б-302">
+        <rect width="226" height="319" x="1821" y="3280" fill="#8E96FF" rx="12" />
+        </g>
+      <rect width="1079.42" height="103.44" x="1709.2" y="3893.78" fill="#262A34" class="BigAreaPath" rx="12" transform="rotate(-90 1709.2 3893.78)" />
+      <rect width="139.87" height="111.4" x="1766.49" y="3893.78" fill="#262A34" class="BigAreaPath" rx="12" transform="rotate(-90 1766.49 3893.78)" />
+      <rect width="142.91" height="111.4" x="1768.08" y="2957.27" fill="#262A34" class="BigAreaPath" rx="12" transform="rotate(-90 1768.08 2957.27)" />
+    </g>
+  </g>
+  <defs>
+    <clipPath id="a" class="a">
+      <path fill="#fff" d="M1521.5 1485.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="b" class="b">
+      <path fill="#fff" d="M4020.5 1485.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="c" class="c">
+      <path fill="#fff" d="M2480.5 2252.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="d" class="d">
+      <path fill="#fff" d="M2575.5 1352.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="e" class="e">
+      <path fill="#fff" d="M2839.5 1351.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="f" class="f">
+      <path fill="#fff" d="M2933.5 2254.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="g" class="g">
+      <path fill="#fff" d="M2539.5 2252.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="h" class="h">
+      <path fill="#fff" d="M2634.5 1352.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="i" class="i">
+      <path fill="#fff" d="M2898.5 1351.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="j" class="j">
+      <path fill="#fff" d="M2992.5 2254.5h48v48h-48z" />
+    </clipPath>
+    <clipPath id="k" class="k">
+      <path fill="#fff" d="M1953.35 2910.59v-48h48v48z" />
+    </clipPath>
+    <clipPath id="l" class="l">
+      <path fill="#fff" d="M1951.75 3848.61v-48h48v48z" />
+    </clipPath>
+  </defs>
+</g><g id="room-labels" font-family="Arial,DejaVu Sans,sans-serif" text-anchor="middle" dominant-baseline="central" fill="#1c2c44" stroke="#f9fbfe" stroke-width="1.2" paint-order="stroke" stroke-linejoin="round" pointer-events="none"><text x="313.405797" y="550.724638" font-size="10"><title>А-342б</title>А-342б</text><text x="460.507246" y="550.724638" font-size="10"><title>А-341б</title>А-341б</text><text x="494.927536" y="560.326087" font-size="10"><title>А-341а</title>А-341а</text><text x="527.898551" y="550.724638" font-size="10"><title>Туалет</title>Туалет</text><text x="494.927536" y="519.384058" font-size="10"><title>А-341</title>А-341</text><text x="394.565217" y="568.84058" font-size="10"><title>А-342а</title>А-342а</text><text x="394.565217" y="527.898551" font-size="10"><title>А-342</title>А-342</text><text x="337.318841" y="402.173913" font-size="10"><title>А-344б</title>А-344б</text><text x="427.173913" y="421.376812" font-size="10"><title>А-344в</title>А-344в</text><text x="483.333333" y="421.376812" font-size="10"><title>А-345</title>А-345</text><text x="530.615942" y="421.376812" font-size="10"><title>А-346</title>А-346</text><text x="594.202899" y="421.376812" font-size="10"><title>А-347</title>А-347</text><text x="685.869565" y="409.963768" font-size="10"><title>А-323а</title>А-323а</text><text x="648.007246" y="447.826087" font-size="10"><title>А-323</title>А-323</text><text x="683.876812" y="450.905797" font-size="10"><title>А-323б</title>А-323б</text><text x="721.92029" y="450.905797" font-size="10"><title>А-322</title>А-322</text><text x="769.384058" y="525.181159" font-size="10"><title>А-321</title>А-321</text><text x="672.282609" y="568.84058" font-size="10"><title>А-325</title>А-325</text><text x="672.282609" y="604.891304" font-size="10"><title>А-326</title>А-326</text><text x="691.666667" y="682.971014" font-size="10"><title>А-327</title>А-327</text><text x="674.456522" y="799.275362" font-size="10"><title>А-328</title>А-328</text><text x="662.862319" y="875.905797" font-size="10"><title>А-328в</title>А-328в</text><text x="712.862319" y="875.905797" font-size="10"><title>А-328б</title>А-328б</text><text x="819.384058" y="799.637681" font-size="10"><title>А-360</title>А-360</text><text x="1002.173913" y="804.528986" font-size="10"><title>А-301</title>А-301</text><text x="1147.463768" y="813.768116" font-size="10"><title>А-350</title>А-350</text><text x="1201.086957" y="813.768116" font-size="10"><title>А-351</title>А-351</text><text x="1237.681159" y="813.768116" font-size="10"><title>А-352</title>А-352</text><text x="1338.949275" y="818.65942" font-size="10"><title>А-353</title>А-353</text><text x="1338.949275" y="769.202899" font-size="10"><title>А-353а</title>А-353а</text><text x="1335.144928" y="725.362319" font-size="10"><title>А-354</title>А-354</text><text x="1335.144928" y="688.405797" font-size="10"><title>А-355</title>А-355</text><text x="1335.144928" y="651.449275" font-size="10"><title>А-356</title>А-356</text><text x="1322.101449" y="593.84058" font-size="10"><title>А-357</title>А-357</text><text x="877.355072" y="494.384058" font-size="10"><title>А-320</title>А-320</text><text x="952.536232" y="453.804348" font-size="10"><title>А-300б</title>А-300б</text><text x="1003.07971" y="488.043478" font-size="10"><title>А-300</title>А-300</text><text x="1130.434783" y="477.898551" font-size="10"><title>А-310</title>А-310</text><text x="1197.282609" y="477.898551" font-size="10"><title>А-311</title>А-311</text><text x="1242.210145" y="477.898551" font-size="10"><title>А-312</title>А-312</text><text x="1130.434783" y="528.804348" font-size="10"><title>Ка-311</title>Ка-311</text><text x="1220.289855" y="528.804348" font-size="10"><title>Ка-312</title>Ка-312</text><text x="1320.471014" y="494.384058" font-size="10"><title>А-331</title>А-331</text><text x="1320.471014" y="412.318841" font-size="10"><title>А-332а</title>А-332а</text><text x="1435.326087" y="412.862319" font-size="10"><title>А-332</title>А-332</text><text x="1521.557971" y="412.862319" font-size="10"><title>А-333</title>А-333</text><text x="1578.442029" y="412.862319" font-size="10"><title>А-334</title>А-334</text><text x="1671.376812" y="412.862319" font-size="10"><title>А-335</title>А-335</text><text x="1694.746377" y="478.623188" font-size="10"><title>А-336</title>А-336</text><text x="1667.753623" y="551.086957" font-size="10"><title>А-337</title>А-337</text><text x="1559.057971" y="549.275362" font-size="10"><title>А-338</title>А-338</text><text x="1493.297101" y="549.275362" font-size="10"><title>А-339</title>А-339</text><text x="722.101449" y="815.942029" font-size="10"><title>А-328а</title>А-328а</text><text x="675.181159" y="525.543478" font-size="10"><title>А-324</title>А-324</text><text x="325.905797" y="445.652174" font-size="10"><title>А-344а</title>А-344а</text><text x="326.630435" y="485.507246" font-size="10"><title>А-343</title>А-343</text><text x="380.253623" y="445.652174" font-size="10"><title>А-344</title>А-344</text><text x="596.92029" y="1451.268116" font-size="10"><title>Б-305</title>Б-305</text><text x="577.717391" y="1335.869565" font-size="10"><title>Б-307</title>Б-307</text><text x="577.717391" y="1260.869565" font-size="10"><title>Б-308</title>Б-308</text><text x="578.07971" y="1142.934783" font-size="10"><title>Б-310</title>Б-310</text><text x="703.07971" y="1451.268116" font-size="10"><title>Б-304</title>Б-304</text><text x="577.76087" y="1391.235507" font-size="10"><title>Б-306</title>Б-306</text><text x="700.574275" y="1162.36413" font-size="10"><title>Б-302а</title>Б-302а</text><text x="700.574275" y="1119.949275" font-size="10"><title>Б-301</title>Б-301</text><text x="577.76087" y="1202.851449" font-size="10"><title>Б-309</title>Б-309</text><text x="577.717391" y="1081.521739" font-size="10"><title>Б-311а</title>Б-311а</text><text x="563.586957" y="1039.673913" font-size="10"><title>Б-311б</title>Б-311б</text><text x="604.574275" y="1040.351449" font-size="10"><title>Б-311</title>Б-311</text><text x="593.65942" y="979.528986" font-size="10"><title>Б-312</title>Б-312</text><text x="700" y="979.528986" font-size="10"><title>Б-313</title>Б-313</text><text x="700.724638" y="1246.195652" font-size="10"><title>Б-302</title>Б-302</text><text x="593.478261" y="519.746377" font-size="10"><title>Лестница</title>↕</text><text x="559.963768" y="546.92029" font-size="10"><title>Лестница</title>↕</text><text x="1465.398551" y="546.92029" font-size="10"><title>Лестница</title>↕</text><text x="1432.246377" y="519.384058" font-size="10"><title>Лестница</title>↕</text><text x="907.427536" y="824.818841" font-size="10"><title>Лестница</title>↕</text><text x="941.847826" y="498.731884" font-size="10"><title>Лестница</title>↕</text><text x="1037.5" y="498.369565" font-size="10"><title>Лестница</title>↕</text><text x="1071.557971" y="825.543478" font-size="10"><title>Лестница</title>↕</text><text x="928.804348" y="824.818841" font-size="10"><title>Лестница</title>↕</text><text x="963.224638" y="498.731884" font-size="10"><title>Лестница</title>↕</text><text x="1058.876812" y="498.369565" font-size="10"><title>Лестница</title>↕</text><text x="1092.934783" y="825.543478" font-size="10"><title>Лестница</title>↕</text><text x="716.427536" y="1045.862319" font-size="10"><title>Лестница</title>↕</text><text x="715.851449" y="1385.724638" font-size="10"><title>Лестница</title>↕</text></g></svg>

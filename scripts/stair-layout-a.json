@@ -1,0 +1,421 @@
+{
+  "layouts": [
+    {
+      "level": 1,
+      "label": "ЛК-7",
+      "area": "v-78-floor1-area-125",
+      "photo": 3221,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "between dispatcher and A117"
+    },
+    {
+      "level": 1,
+      "label": "U у А-146",
+      "area": "v-78--floor-1--68n",
+      "photo": 3221,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "source label A146, between A144 and A148"
+    },
+    {
+      "level": 2,
+      "label": "ЛК-10",
+      "area": "v-78-floor2-area-47",
+      "photo": 3172,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "terminal cell beside A203; area26 is the vestibule"
+    },
+    {
+      "level": 2,
+      "label": "ЛК-9",
+      "area": "v-78-floor2-area-25",
+      "photo": 3172,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "between WC beside A208"
+    },
+    {
+      "level": 2,
+      "label": "ЛК-5",
+      "area": "v-78-floor2-area-49",
+      "photo": 3160,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "between WC and A5"
+    },
+    {
+      "level": 2,
+      "label": "ЛК-4",
+      "area": "v-78-floor2-area-16",
+      "photo": 3160,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "beside A216"
+    },
+    {
+      "level": 2,
+      "label": "ЛК-7",
+      "area": "v-78-floor2-area-79",
+      "photo": 3167,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "next to WC and A213m"
+    },
+    {
+      "level": 3,
+      "label": "ЛК-7",
+      "area": "v-78-floor3-area-70",
+      "photo": 3228,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "between A316 and A317"
+    },
+    {
+      "level": 3,
+      "label": "ЛК-4",
+      "area": "v-78-floor3-area-31",
+      "photo": 3236,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "between A322 and A323"
+    },
+    {
+      "level": 3,
+      "label": "Малая U у А-324",
+      "area": "v-78-floor3-area-35",
+      "photo": 3236,
+      "shape": "side-left-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "across the corridor edge beside A324; no source graph marker"
+    },
+    {
+      "level": 4,
+      "label": "ЛК-10",
+      "area": "v-78-floor4-area-28",
+      "photo": 3222,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "terminal cell beside A401"
+    },
+    {
+      "level": 4,
+      "label": "ЛК-9",
+      "area": "v-78-floor4-area-7",
+      "photo": 3222,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "between WC near A412"
+    },
+    {
+      "level": 4,
+      "label": "ЛК-3",
+      "area": "v-78-floor4-area-38",
+      "photo": 3239,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "near WC and A425/426"
+    },
+    {
+      "level": 4,
+      "label": "ЛК-2",
+      "area": "v-78-floor4-area-26",
+      "photo": 3239,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "terminal cell beside A429"
+    },
+    {
+      "level": 2,
+      "label": "ЛК-2",
+      "area": "v-78-floor2-area-34",
+      "photo": 3164,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 2,
+      "label": "ЛК-3",
+      "area": "v-78-floor2-area-82",
+      "photo": 3164,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 2,
+      "label": "ЛК-8",
+      "area": "v-78-floor2-area-61",
+      "photo": 3169,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 3,
+      "label": "ЛК-2",
+      "area": "v-78-floor3-area-72",
+      "photo": 3241,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 3,
+      "label": "ЛК-3",
+      "area": "v-78-floor3-area-9",
+      "photo": 3241,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 3,
+      "label": "ЛК-5",
+      "area": "v-78-floor3-area-14",
+      "photo": 3234,
+      "shape": "compact-U",
+      "axisHint": [-0.94, 0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 3,
+      "label": "ЛК-8",
+      "area": "v-78-floor3-area-22",
+      "photo": 3226,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 3,
+      "label": "ЛК-9",
+      "area": "v-78-floor3-area-55",
+      "photo": 3224,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    },
+    {
+      "level": 3,
+      "label": "ЛК-10",
+      "area": "v-78-floor3-area-7",
+      "photo": 3224,
+      "shape": "compact-U",
+      "axisHint": [-0.94, -0.34],
+      "landmarkNote": "Matched using adjacent labelled rooms and the corresponding fire plan stair number."
+    }
+  ],
+  "wideStairGroups": [
+    {
+      "floorId": "v-78-floor2",
+      "physicalFloor": 2,
+      "building": "А",
+      "label": "Широкая последовательная лестница главного холла",
+      "photoId": "photo-3167",
+      "photoUrl": "/data/photos/IMG_3167.jpg",
+      "kind": "straight-multiflight",
+      "flightCount": 4,
+      "intermediateLandingCount": 3,
+      "containerAreaId": "v-78-floor2-area-24",
+      "fitAreaId": null,
+      "groupGraphMarkerIds": [
+        "v-78:edge:20725",
+        "v-78:edge:20744",
+        "v-78:edge:20745"
+      ],
+      "nativeMarkerPositions": [
+        [49.73, -17.6446],
+        [60.678, -18.6676],
+        [39.761, -19.0506]
+      ],
+      "placement": {
+        "center": [50, -18],
+        "axis": [1, 0],
+        "length": 24,
+        "width": 4.4,
+        "status": "approximate-photo-region-inside-native-hall",
+        "points": [
+          [38.0, -20.2],
+          [62.0, -20.2],
+          [62.0, -15.8],
+          [38.0, -15.8]
+        ]
+      },
+      "treadCount": null,
+      "verticalRise": null,
+      "note": "Две противоположные ветви главной лестницы прочитаны совместно на планах обеих половин холла. Каждая ветвь сохраняет число видимых маршей своего плана; прежняя модель ошибочно сводила обе ветви к одному подъёму через весь холл. Исходные связи 20745 и 20744 идут от боковых точек А2 к центральным точкам А3. Размеры рамки, доли маршей и высоты приблизительны; нижняя U-лестница с ребром 20725 остаётся отдельным участком.",
+      "pairedPhotoIds": ["photo-3166", "photo-3167"],
+      "pairedPhotoUrls": [
+        "/data/photos/IMG_3166.jpg",
+        "/data/photos/IMG_3167.jpg"
+      ],
+      "layoutMode": "opposed-branches",
+      "levelRole": "lower-departure",
+      "branchSourceIds": {
+        "left": "v-78:edge:20745",
+        "right": "v-78:edge:20744"
+      }
+    },
+    {
+      "floorId": "v-78-floor3",
+      "physicalFloor": 3,
+      "building": "А",
+      "label": "Широкая последовательная лестница главного холла",
+      "photoId": "photo-3230",
+      "photoUrl": "/data/photos/IMG_3230.jpg",
+      "kind": "straight-multiflight",
+      "flightCount": 3,
+      "intermediateLandingCount": 2,
+      "containerAreaId": "v-78-floor3-area-5",
+      "fitAreaId": null,
+      "groupGraphMarkerIds": ["v-78:edge:20744", "v-78:edge:20745"],
+      "nativeMarkerPositions": [
+        [49.006, -20.2856],
+        [46.322, -20.3286]
+      ],
+      "placement": {
+        "center": [48.2, -18],
+        "axis": [1, 0],
+        "length": 22,
+        "width": 4,
+        "status": "approximate-photo-region-inside-native-hall",
+        "points": [
+          [37.2, -20.0],
+          [59.2, -20.0],
+          [59.2, -16.0],
+          [37.2, -16.0]
+        ]
+      },
+      "treadCount": null,
+      "verticalRise": null,
+      "note": "Две противоположные ветви главной лестницы прочитаны совместно на планах обеих половин холла. Каждая ветвь сохраняет число видимых маршей своего плана; прежняя модель ошибочно сводила обе ветви к одному подъёму через весь холл. Исходные связи 20745 и 20744 идут от боковых точек А2 к центральным точкам А3. Размеры рамки, доли маршей и высоты приблизительны; нижняя U-лестница с ребром 20725 остаётся отдельным участком.",
+      "pairedPhotoIds": ["photo-3232", "photo-3230"],
+      "pairedPhotoUrls": [
+        "/data/photos/IMG_3232.jpg",
+        "/data/photos/IMG_3230.jpg"
+      ],
+      "layoutMode": "opposed-branches",
+      "levelRole": "upper-arrival",
+      "branchSourceIds": {
+        "left": "v-78:edge:20745",
+        "right": "v-78:edge:20744"
+      }
+    }
+  ],
+  "unisolatedFootprints": [
+    {
+      "floorId": "v-78-floor1",
+      "photoId": "photo-3221",
+      "label": "Горизонтальная U возле А-154",
+      "containerAreaId": "v-78-floor1-area-181",
+      "fitAreaId": null,
+      "status": "hall-location-identified-no-isolated-footprint",
+      "nearRoomId": "v-78--floor-1--675",
+      "nativeGraphMarkerIds": ["v-78:edge:20725", "v-78:edge:20726"],
+      "photoDimension": 6.07,
+      "dimensionUnit": "not-written-in-photo",
+      "note": "Do not fit the entire 517.7m² foyer as a U staircase. The photograph confirms a separate U next to A154, but native polygons do not isolate it; the 6.07 annotation is not a verified metric calibration.",
+      "resolvedLayoutId": "v-78-floor1-photo-stair-A154"
+    },
+    {
+      "floorId": "v-78-floor3",
+      "photoId": "photo-3230",
+      "label": "Малая прямая лестница напротив длинной",
+      "containerAreaId": "v-78-floor3-area-5",
+      "fitAreaId": null,
+      "status": "photo-and-graph-location-no-isolated-footprint",
+      "nativeGraphMarkerIds": ["v-78:edge:20756"],
+      "center": [47.689, -10.9776],
+      "note": "Original4032px crop confirms a single straight flight, not a U; the green center line is an evacuation arrow.",
+      "resolvedLayoutId": "v-78-floor3-photo-stair-small-straight"
+    }
+  ],
+  "hallRegionLayouts": [
+    {
+      "id": "v-78-floor1-photo-stair-A154",
+      "pairedLayoutId": "v-78-floor2-photo-stair-A154-arrival",
+      "floorId": "v-78-floor1",
+      "physicalFloor": 1,
+      "label": "U возле А-154",
+      "containerAreaId": "v-78-floor1-area-181",
+      "sourceMarkerIds": ["v-78:edge:20725", "v-78:edge:20726"],
+      "photoId": "photo-3221",
+      "photoUrl": "/data/photos/IMG_3221.jpg",
+      "center": [48, -18],
+      "shape": "side-right-U",
+      "frame": {
+        "origin": [45, -19.9],
+        "axisU": [1, 0],
+        "axisV": [0, 1],
+        "size": [6, 3.8],
+        "status": "approximate-photo-region-inside-native-hall"
+      },
+      "note": "Два параллельных марша с широкой площадкой слева на фото3221, рядом с А154. Направление фото по горизонтали противоположно X карты. Полигон181 — весь холл, поэтому выделена отдельная приблизительная область, а не растянута лестница на весь холл. Число6.07 на фото не использовано как подтвержденная метрическая калибровка."
+    },
+    {
+      "id": "v-78-floor2-photo-stair-A154-arrival",
+      "pairedLayoutId": "v-78-floor1-photo-stair-A154",
+      "floorId": "v-78-floor2",
+      "physicalFloor": 2,
+      "label": "Спуск к А-154 на 1 этаж",
+      "containerAreaId": "v-78-floor2-area-24",
+      "sourceMarkerIds": ["v-78:edge:20725"],
+      "photoId": "photo-3167",
+      "photoUrl": "/data/photos/IMG_3167.jpg",
+      "shapeSourcePhotoIds": ["photo-3221"],
+      "shapeSourcePhotos": ["/data/photos/IMG_3221.jpg"],
+      "center": [48, -18],
+      "shape": "side-right-U",
+      "levelRole": "upper-arrival",
+      "frame": {
+        "origin": [45, -19.9],
+        "axisU": [1, 0],
+        "axisV": [0, 1],
+        "size": [6, 3.8],
+        "status": "approximate-photo-region-inside-native-hall"
+      },
+      "note": "Верхнее представление той же U-лестницы возле А154 на фото3221: исходное ребро20725 соединяет А1 [49.985,-18.5816] с А2 [49.73,-17.6446]. Обе исходные точки лежат в соответствующих холлах. Рамка и форма полностью совпадают с нижним представлением; на А2 лестница показана ниже плиты этажа через визуальный вырез. Это отдельный спуск А2→А1 под главной лестницей А2→А3, а не копия двух широких ветвей. Новые связи маршрутов не добавлены; высота и размеры остаются приблизительными."
+    },
+    {
+      "id": "v-78-floor3-photo-stair-small-straight",
+      "floorId": "v-78-floor3",
+      "physicalFloor": 3,
+      "label": "Малая прямая лестница холла",
+      "containerAreaId": "v-78-floor3-area-5",
+      "sourceMarkerIds": ["v-78:edge:20756"],
+      "photoId": "photo-3230",
+      "photoUrl": "/data/photos/IMG_3230.jpg",
+      "center": [47.689, -10.9776],
+      "shape": "straight-singleflight",
+      "frame": {
+        "origin": [48.489, -12.3776],
+        "axisU": [-1, 0],
+        "axisV": [0, 1],
+        "size": [1.6, 2.8],
+        "status": "approximate-photo-region-inside-native-hall"
+      },
+      "note": "Оригинал4032px и кроп analysis/IMG_3230-stair-detail.jpg показывают один прямой марш с площадкой сверху справа на фото, отдельно от трёхмаршевой лестницы вдоль фасада. Центральная зелёная линия — стрелка эвакуации, не разделение на два марша. Точное число ступеней не читается из-за символов."
+    }
+  ],
+  "userConfirmedDescents": [
+    {
+      "id": "v-78-floor1-user-stair-basement",
+      "anchorLayoutId": "v-78-floor1-photo-stair-A154",
+      "label": "Спуск в цоколь · план уточняется",
+      "destinationLabel": "Цоколь корпуса А",
+      "destinationStatus": "plan-unavailable",
+      "routingStatus": "display-only-no-source-transition",
+      "note": "Спуск в цоколь подтверждён. План цоколя и маршрут по нему уточняются.",
+      "evidence": {
+        "type": "user-confirmed-existence",
+        "date": "2026-10-20",
+        "statement": "Под главной лестницей корпуса А есть спуски со второго на первый этаж и с первого в цоколь.",
+        "scope": "existence-and-location-under-main-hall-stair-only",
+        "limitations": "План цоколя, размеры, форма нижних маршей и доступность для прохода не подтверждены. Для визуализации условно повторена U-форма известной лестницы над спуском."
+      }
+    }
+  ]
+}

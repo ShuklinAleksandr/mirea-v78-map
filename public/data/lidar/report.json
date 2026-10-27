@@ -1,0 +1,435 @@
+{
+  "sources": {
+    "objArchive": "часть корпуса Г.zip",
+    "glbArchive": "часть корпуса г с текстурами.zip",
+    "obj": "15.10.2026.obj",
+    "glb": "15.10.2026.glb"
+  },
+  "chosenRuntimeAsset": "public/data/lidar/scan.glb",
+  "reason": "Self-contained textures, native Three.js GLTFLoader support, explicit Story groups; same scan geometry as OBJ.",
+  "identity": {
+    "sameGeometry": true,
+    "faceIndicesIdentical": true,
+    "vertexOrderMaxCoordinateError": 5.000000005139782e-07,
+    "uvMaxErrorAfterVerticalFlip": 4.999999999588667e-07,
+    "objVertices": 140965,
+    "glbVertices": 140965,
+    "objTriangles": 224880,
+    "glbTriangles": 224880,
+    "objToGlbMaxNearestDistance": 8.598133014550312e-07,
+    "glbToObjMaxNearestDistance": 8.598133014550312e-07,
+    "allEmbeddedTexturesIdentical": true,
+    "objGroupLabels": [
+      "o Object_1",
+      "usemtl Material_1",
+      "o Object_2",
+      "usemtl Material_2",
+      "o Object_3",
+      "usemtl Material_3",
+      "o Object_4",
+      "usemtl Material_4",
+      "o Object_5",
+      "usemtl Material_5",
+      "o Object_6",
+      "usemtl Material_6",
+      "o Object_7",
+      "usemtl Material_7",
+      "o Object_8",
+      "usemtl Material_8",
+      "o Object_9",
+      "usemtl Material_1",
+      "o Object_10",
+      "usemtl Material_2",
+      "o Object_11",
+      "usemtl Material_3",
+      "o Object_12",
+      "usemtl Material_4",
+      "o Object_13",
+      "usemtl Material_5",
+      "o Object_14",
+      "usemtl Material_6",
+      "o Object_15",
+      "usemtl Material_7",
+      "o Object_16",
+      "usemtl Material_8",
+      "o Object_17",
+      "usemtl Material_1",
+      "o Object_18",
+      "usemtl Material_2",
+      "o Object_19",
+      "usemtl Material_3",
+      "o Object_20",
+      "usemtl Material_4",
+      "o Object_21",
+      "usemtl Material_5",
+      "o Object_22",
+      "usemtl Material_6",
+      "o Object_23",
+      "usemtl Material_7",
+      "o Object_24",
+      "usemtl Material_8"
+    ]
+  },
+  "geometry": {
+    "boundsMin": [
+      -16.070613861083984,
+      -8.90732479095459,
+      -9.774654388427734
+    ],
+    "boundsMax": [
+      18.527563095092773,
+      -0.4082660675048828,
+      9.08298397064209
+    ],
+    "size": [
+      34.598175048828125,
+      8.499058723449707,
+      18.85763931274414
+    ],
+    "coordinateSystem": "glTF right handed, Y up, X/Z horizontal",
+    "units": "glTF specification uses metres. No independently measured reference or declared scanner accuracy supplied; metric dimensions are scan-space estimates, not surveyed dimensions.",
+    "geoReference": null,
+    "axisNorth": null,
+    "building": "Г, according to archive names only",
+    "floorNumberMapping": null
+  },
+  "stories": [
+    {
+      "name": "Story 0",
+      "meshIndices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "boundsMin": [
+        -16.070613861083984,
+        -8.90732479095459,
+        -4.465009689331055
+      ],
+      "boundsMax": [
+        18.515724182128906,
+        -5.11231803894043,
+        9.08298397064209
+      ],
+      "size": [
+        34.58633804321289,
+        3.79500675201416,
+        13.547993659973145
+      ],
+      "vertices": 60992,
+      "triangles": 100685,
+      "yHistogramPeaks": [
+        {
+          "y": -8.728116035461426,
+          "vertices": 2983
+        },
+        {
+          "y": -6.029444694519043,
+          "vertices": 2696
+        },
+        {
+          "y": -8.707033157348633,
+          "vertices": 2674
+        },
+        {
+          "y": -6.008360862731934,
+          "vertices": 2133
+        },
+        {
+          "y": -5.249360084533691,
+          "vertices": 1592
+        },
+        {
+          "y": -6.219195365905762,
+          "vertices": 1576
+        },
+        {
+          "y": -8.749198913574219,
+          "vertices": 1412
+        },
+        {
+          "y": -5.270442962646484,
+          "vertices": 1389
+        }
+      ]
+    },
+    {
+      "name": "Story 1",
+      "meshIndices": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "boundsMin": [
+        -13.809922218322754,
+        -6.322139739990234,
+        -5.262913703918457
+      ],
+      "boundsMax": [
+        16.582256317138672,
+        -4.035357475280762,
+        9.06467056274414
+      ],
+      "size": [
+        30.39217758178711,
+        2.2867822647094727,
+        14.327584266662598
+      ],
+      "vertices": 14858,
+      "triangles": 20563,
+      "yHistogramPeaks": [
+        {
+          "y": -4.130640029907227,
+          "vertices": 1701
+        },
+        {
+          "y": -6.214152812957764,
+          "vertices": 1083
+        },
+        {
+          "y": -6.074404716491699,
+          "vertices": 512
+        },
+        {
+          "y": -6.010883331298828,
+          "vertices": 488
+        },
+        {
+          "y": -6.061700820922852,
+          "vertices": 332
+        },
+        {
+          "y": -6.087109565734863,
+          "vertices": 319
+        },
+        {
+          "y": -4.346613883972168,
+          "vertices": 296
+        },
+        {
+          "y": -6.150630950927734,
+          "vertices": 294
+        }
+      ]
+    },
+    {
+      "name": "Story 2",
+      "meshIndices": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "boundsMin": [
+        -10.164305686950684,
+        -4.235357284545898,
+        -9.774654388427734
+      ],
+      "boundsMax": [
+        18.527563095092773,
+        -0.4082660675048828,
+        5.464169502258301
+      ],
+      "size": [
+        28.69186782836914,
+        3.8270912170410156,
+        15.238823890686035
+      ],
+      "vertices": 65115,
+      "triangles": 103632,
+      "yHistogramPeaks": [
+        {
+          "y": -4.012110710144043,
+          "vertices": 3059
+        },
+        {
+          "y": -3.9908487796783447,
+          "vertices": 2788
+        },
+        {
+          "y": -1.6308090686798096,
+          "vertices": 2051
+        },
+        {
+          "y": -4.139679908752441,
+          "vertices": 1948
+        },
+        {
+          "y": -1.60954749584198,
+          "vertices": 1554
+        },
+        {
+          "y": -3.9270639419555664,
+          "vertices": 1301
+        },
+        {
+          "y": -2.481273889541626,
+          "vertices": 1124
+        },
+        {
+          "y": -4.033371925354004,
+          "vertices": 1023
+        }
+      ]
+    }
+  ],
+  "materials": {
+    "count": 8,
+    "normalAttributes": false,
+    "baseColorTextures": true,
+    "images": [
+      {
+        "name": "11e36534f627c719be1fbc5ec92a1017",
+        "size": [
+          4096,
+          4096
+        ],
+        "bytes": 2061351,
+        "identicalToObjJpeg": true
+      },
+      {
+        "name": "ce2bfe9e15671547cf083c8effd06c81",
+        "size": [
+          4096,
+          4096
+        ],
+        "bytes": 2139982,
+        "identicalToObjJpeg": true
+      },
+      {
+        "name": "ecf623ce26b984d918de8d8049c19667",
+        "size": [
+          4096,
+          4096
+        ],
+        "bytes": 2291876,
+        "identicalToObjJpeg": true
+      },
+      {
+        "name": "72f6411892cfde06b29e0b7684f4078c",
+        "size": [
+          4096,
+          4096
+        ],
+        "bytes": 2086039,
+        "identicalToObjJpeg": true
+      },
+      {
+        "name": "a0e288c32aaccf19179c746445258cd1",
+        "size": [
+          4096,
+          4096
+        ],
+        "bytes": 2020711,
+        "identicalToObjJpeg": true
+      },
+      {
+        "name": "8e85080537cf11e741784d5be6ae7f05",
+        "size": [
+          4096,
+          4096
+        ],
+        "bytes": 1912410,
+        "identicalToObjJpeg": true
+      },
+      {
+        "name": "d63989ae12224bd8c4c5ffedcb11fa1c",
+        "size": [
+          4096,
+          4096
+        ],
+        "bytes": 1673926,
+        "identicalToObjJpeg": true
+      },
+      {
+        "name": "0d9f575e3fe15839454a545c66f6ca45",
+        "size": [
+          2464,
+          416
+        ],
+        "bytes": 60399,
+        "identicalToObjJpeg": true
+      }
+    ],
+    "note": "GLB omits metallicFactor, so standard glTF default is metallic=1. For photographic scan presentation use MeshBasicMaterial with original map or explicitly metalness=0; preserve original asset."
+  },
+  "limitations": [
+    "Partial, open scan, not an exterior building envelope.",
+    "Story 0/1/2 are exporter groups; these are not verified official floor numbers.",
+    "No absolute placement, north, confirmed floor/room registration, plan control points or scale bar in the scan.",
+    "Floor/ceiling holes and reconstruction artifacts are present."
+  ],
+  "runtime": {
+    "bytes": 18433204,
+    "lazyLoadRecommended": true,
+    "originalPreserved": true,
+    "recommendedTransform": "No axis rotation required for Three.js; compute Box3 and translate by -center.x, -min.y, -center.z in a separate viewer group. Do not place it in campus coordinates without registration.",
+    "storyFiltering": "Traverse groups named Story 0, Story 1, Story 2; show one or all by user choice.",
+    "previewBytes": 5156652,
+    "previewAsset": "public/data/lidar/scan-preview.glb",
+    "previewChanges": "Textures <=1024 pixels, JPEG quality 82; geometry, UVs, nodes unchanged."
+  },
+  "registration": {
+    "status": "unresolved",
+    "appliedToCampus": false,
+    "planSources": [
+      "IMG_3151.jpg — Г2",
+      "IMG_3155.jpg — Г3",
+      "IMG_3157.jpg — Г4",
+      "IMG_3158.jpg — Г1"
+    ],
+    "landmarks": [
+      "Два перпендикулярных участка коридора",
+      "Прямоугольная двухмаршевая лестничная клетка с просветом",
+      "Двери, включая предполагаемые таблички Г-423 и Г-424.1 в Story 2"
+    ],
+    "candidateFloor": {
+      "stories": [
+        "Story 0",
+        "Story 2"
+      ],
+      "floors": [
+        3,
+        4
+      ],
+      "certainty": "tentative",
+      "reason": "Ручное независимое чтение верхних табличек похоже на Г-423 / Г-424.1, нижних — Г-325 / Г-326. OCR ничего не распознал, а топология дает противоречия. Не использовать эти чтения для официальных номеров этажей."
+    },
+    "candidateStairs": [
+      {
+        "id": "ЛК2(ЦКД)",
+        "certainty": "tentative",
+        "reason": "Большой прямоугольный просвет, поворот коридора и нижние предполагаемые Г325/Г326 + WC напоминают нижнюю часть плана Г3. Однако порядок дверей и положение лестницы не дают устойчивой регистрации."
+      },
+      {
+        "id": "ЛК3",
+        "certainty": "weak",
+        "reason": "Верхние предполагаемые Г423/Г424.1 по плану Г4 расположены в верхнем левом секторе. Противоречит другим геометрическим ориентирам, поэтому не выбран."
+      }
+    ],
+    "scale": "Подтвержденного отношения пикселей плана к метрам нет: фото имеют перспективу, планы не содержат масштаба; расхождение кандидатов не позволяет использовать размеры скана для калибровки всего корпуса.",
+    "orientation": "Оси коридоров скана ортогональны X/Z и могут быть сопоставлены ортогональным осям плана, но поворот/зеркальность и общая привязка не установлены. Север на материалах не обозначен.",
+    "decision": "Скан отображается отдельным слоем без автоматического наложения. Кандидаты хранятся как гипотезы, а не подтвержденная геометрия.",
+    "evidenceImages": [
+      "analysis/lidar-projections.png",
+      "analysis/lidar-texture-left.png",
+      "analysis/lidar-texture-right.png",
+      "analysis/lidar-lower-labels.jpg"
+    ],
+    "conflict": "Гипотеза номеров этажей 3–4 выглядит возможной, но чтение табличек на малых текстурах и расположение лестничной клетки расходятся. Разметку комнат по этим предположениям не создавали."
+  }
+}

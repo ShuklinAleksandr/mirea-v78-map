@@ -1,0 +1,129 @@
+{
+  "runId": "2026-10-27T16-51-42-740Z",
+  "preflight": [
+    {
+      "id": "node",
+      "ok": true,
+      "detail": "Node 24.18.0; требуется 22.12+.",
+      "required": true
+    },
+    {
+      "id": "npm",
+      "ok": true,
+      "detail": "11.16.0",
+      "required": true
+    },
+    {
+      "id": "xcode",
+      "ok": true,
+      "detail": "Xcode 26.0.1\nBuild version 17A400",
+      "required": true
+    },
+    {
+      "id": "simulator-sdk",
+      "ok": true,
+      "detail": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk",
+      "required": true
+    },
+    {
+      "id": "simulator-runtime",
+      "ok": true,
+      "detail": "Доступен iOS Simulator runtime для запуска приложения.",
+      "required": false
+    },
+    {
+      "id": "java",
+      "ok": true,
+      "detail": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+      "required": true
+    },
+    {
+      "id": "gradlew",
+      "ok": true,
+      "detail": "Для android/gradlew нужны права запуска. После переноса архива выполните chmod +x android/gradlew.",
+      "required": true
+    },
+    {
+      "id": "android-sdk",
+      "ok": true,
+      "detail": "SDK: /Users/aleksandrshuklin/Documents/ChatGPT/3d-map MIREA/mirea-map-v78/.native-tools/android; API 36, Build Tools 35.0.0.",
+      "required": true
+    }
+  ],
+  "status": "passed",
+  "steps": [
+    {
+      "id": "tests",
+      "label": "Автоматические проверки",
+      "command": "npm",
+      "args": [
+        "test"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "sync",
+      "label": "Общий комплект и синхронизация",
+      "command": "npm",
+      "args": [
+        "run",
+        "mobile:sync"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "integrity",
+      "label": "Контроль обоих нативных комплектов",
+      "command": "npm",
+      "args": [
+        "run",
+        "mobile:check"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "android",
+      "label": "Android Debug APK",
+      "command": "/usr/local/bin/node",
+      "args": [
+        "scripts/build-android.mjs"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "ios",
+      "label": "iOS Simulator Debug",
+      "command": "xcodebuild",
+      "args": [
+        "-project",
+        "ios/App/App.xcodeproj",
+        "-scheme",
+        "App",
+        "-configuration",
+        "Debug",
+        "-sdk",
+        "iphonesimulator",
+        "-destination",
+        "generic/platform=iOS Simulator",
+        "-derivedDataPath",
+        ".native-build/ios",
+        "CODE_SIGNING_ALLOWED=NO",
+        "build"
+      ],
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "platform": "android",
+      "kind": "debug-apk",
+      "path": "/Users/aleksandrshuklin/Documents/ChatGPT/3d-map MIREA/mirea-map-v78/android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 53915300
+    },
+    {
+      "platform": "ios",
+      "kind": "simulator-app",
+      "path": "/Users/aleksandrshuklin/Documents/ChatGPT/3d-map MIREA/mirea-map-v78/.native-build/ios/Build/Products/Debug-iphonesimulator/App.app"
+    }
+  ]
+}

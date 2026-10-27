@@ -1,0 +1,21 @@
+{
+  "appId": "ru.mirea.spatialatlas",
+  "appName": "МИРЭА Карта",
+  "webDir": "dist",
+  "backgroundColor": "#f3f5f3",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "native"
+    },
+    "SystemBars": {
+      "insetsHandling": "css"
+    }
+  }
+}

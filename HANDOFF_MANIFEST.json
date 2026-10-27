@@ -1,0 +1,2663 @@
+{
+  "format": 1,
+  "project": "mirea-v78-map",
+  "date": "2026-10-27",
+  "purpose": "GitHub repository source; browser, Android and iOS development",
+  "files": [
+    {
+      "path": ".editorconfig",
+      "bytes": 139,
+      "sha256": "0236baaa876eef2fbe3d4a9b01aac87d148b925fac3f58e1bc0cc9819ed88dab"
+    },
+    {
+      "path": ".gitattributes",
+      "bytes": 354,
+      "sha256": "e12e65c9485efb794b40edf4eae873d73355dd662a91f3c14c09ed87e94a9517"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "bytes": 677,
+      "sha256": "795c98692f276ea6ff5677258f30b2657d4b3b3c2d03e13b6959a515ed3be0cb"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+      "bytes": 567,
+      "sha256": "feae63e8524987b0360684cf4a07fd5ab93eccd2f8b1f6e5d9af1de22722918c"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/map_correction.md",
+      "bytes": 1010,
+      "sha256": "5a573b5cdd831f2f882371957ffb41dcb466ac9214f680406e4655005f0d58ab"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "bytes": 946,
+      "sha256": "ff8b3b4bdd15c044d00384449e67f207499f54ce38873eede5da12e0b06e6d26"
+    },
+    {
+      "path": ".github/workflows/check.yml",
+      "bytes": 602,
+      "sha256": "5f8f90dd06cd4384eb44c955de4d2cccf41681b6ee99ce57a2b99d22f23ac2c6"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 681,
+      "sha256": "e272834586d28a51a1433c58dbd200a7ba81f5d660a7d80d72f8e8329ef16b20"
+    },
+    {
+      "path": ".nvmrc",
+      "bytes": 3,
+      "sha256": "68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53"
+    },
+    {
+      "path": ".prettierignore",
+      "bytes": 64,
+      "sha256": "86f77e2ebee2640d6531f7766da19af023787803590f9c61ed514416e67ffc1d"
+    },
+    {
+      "path": "BUILD_ON_MAC.txt",
+      "bytes": 5470,
+      "sha256": "a06244650a8e93019e5fa89412151e8f25704fd4d8e7bd0d5c4873decd7467a7"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "bytes": 5891,
+      "sha256": "e3b316d52e49556d77b3262246577ecd457c7181f8b7836384a71cdaa4b042ce"
+    },
+    {
+      "path": "PROMPT_FOR_BUILD_PC.txt",
+      "bytes": 12912,
+      "sha256": "07b5e32626b69b8fdb66e23da59c29aa78ed77aee713971e279e4182bfa16b82"
+    },
+    {
+      "path": "README.md",
+      "bytes": 11706,
+      "sha256": "372d14d3f2e8e47f5a521c6823b0b57f67c8882d437c0f3a97dca232945d3f15"
+    },
+    {
+      "path": "STAIRS_TODO_FOR_MAC.txt",
+      "bytes": 12450,
+      "sha256": "b264c5854840f5f520732b8adebbd2f4938b0e68a06f9aed27eb0498ae9eac31"
+    },
+    {
+      "path": "XCODE_IPHONE.md",
+      "bytes": 22322,
+      "sha256": "d5a7f3b52ea11d6db651488cf9fa2d2bd41b7b43cbc1accb6b912066ee06a04c"
+    },
+    {
+      "path": "android/.gitignore",
+      "bytes": 1824,
+      "sha256": "065e4a92a240fe11a0ea230491ad9dabef143f5fd5a3e6884ad6f0395666a971"
+    },
+    {
+      "path": "android/app/.gitignore",
+      "bytes": 26,
+      "sha256": "99c54e51ee601a60fbde8016b2cbf717483bc2e92773be86c9247d02a7fa6ea4"
+    },
+    {
+      "path": "android/app/build.gradle",
+      "bytes": 2140,
+      "sha256": "a1338c661f45cdf7ddbb186522d40e7c3eb4693c711360e34429910208c56422"
+    },
+    {
+      "path": "android/app/capacitor.build.gradle",
+      "bytes": 564,
+      "sha256": "3ce7d44cf5b25df559011d48f4d887544bee5036ac9e9f2775cfcd0b0587d9a2"
+    },
+    {
+      "path": "android/app/proguard-rules.pro",
+      "bytes": 751,
+      "sha256": "1cf8c57e8f79c250b0af9c1a5a4edad71a5c348a79ab70243b6bae086c150ad2"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+      "bytes": 774,
+      "sha256": "ff50b4c110a7434312f9af54171f9e8523b015836f707c9b387b76d4c38a97f8"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "bytes": 2254,
+      "sha256": "88027458b42a38c3af777aadb82edc5545edbc0e52a4a4b277b26c6c6598ec86"
+    },
+    {
+      "path": "android/app/src/main/java/ru/mirea/spatialatlas/HeadingPlugin.java",
+      "bytes": 6448,
+      "sha256": "05086e5a2665197bcdfd4f3642ac0db26e72c1addb239918142f577e30d3746e"
+    },
+    {
+      "path": "android/app/src/main/java/ru/mirea/spatialatlas/MainActivity.java",
+      "bytes": 433,
+      "sha256": "b53b1a880c34a58818444a3a5e8451e7f0ede2eb73a28a5361b387c9489843f8"
+    },
+    {
+      "path": "android/app/src/main/java/ru/mirea/spatialatlas/WifiSurveyPlugin.java",
+      "bytes": 15570,
+      "sha256": "886494e2095393b687ee743dbcf57fa8f6149bffa70ffa2ca13bac1c67a6c1ab"
+    },
+    {
+      "path": "android/app/src/main/java/ru/mirea/spatialatlas/WifiSurveyPolicy.java",
+      "bytes": 1621,
+      "sha256": "a94586090e415b737f3fa5c714764f928c3d1d551740ccddfd6f7969c7eb4e51"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-land-hdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-land-mdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-land-xhdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-land-xxhdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-land-xxxhdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-port-hdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-port-mdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-port-xhdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-port-xxhdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-port-xxxhdpi/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml",
+      "bytes": 1880,
+      "sha256": "a8514094f754b099d3e55ce1d6e0b2de79db418b2eeacb0fc2a6bb0bfadef221"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_launcher_background.xml",
+      "bytes": 5606,
+      "sha256": "718ba51adf166bb55c3e9936bb8199a0148457f7f0191aaa2f37a94f3159d6ec"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/splash.png",
+      "bytes": 3593,
+      "sha256": "e34ec14693721c4c5a9860a6e4a5e56f866afded29e80d733207258137b003a1"
+    },
+    {
+      "path": "android/app/src/main/res/layout/activity_main.xml",
+      "bytes": 535,
+      "sha256": "5d770feb791313b947020cbfc57e5c733c556dac5e9e49261a1190e527073253"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 265,
+      "sha256": "9c3a7e0a6515c6e1a7ae834a9ae430311ebc3241f7b2e5e7f0460aa690709a7c"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+      "bytes": 265,
+      "sha256": "9c3a7e0a6515c6e1a7ae834a9ae430311ebc3241f7b2e5e7f0460aa690709a7c"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 230,
+      "sha256": "948293eda0c80072123bec9c0c5a55b6eff4cbc4c5827b78a3d9f1e6b5c64366"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+      "bytes": 2331,
+      "sha256": "9ab66f1f8fcbb77ef42631376d654f16fb8cb19b8cef3a03632ecba4aaa55608"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+      "bytes": 230,
+      "sha256": "948293eda0c80072123bec9c0c5a55b6eff4cbc4c5827b78a3d9f1e6b5c64366"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 190,
+      "sha256": "74ce430858a799210a3300593ec950973208a5db68f9e38d926e5f34d3f4c973"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+      "bytes": 1482,
+      "sha256": "27d7a437240948ce05fea42e9320d73a58e95df2f415f3a30c1ae10645c05d97"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+      "bytes": 190,
+      "sha256": "74ce430858a799210a3300593ec950973208a5db68f9e38d926e5f34d3f4c973"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 283,
+      "sha256": "1a568000f9d607fbe6f4c484fdd06c76d0a3ae075aee9969a4a3e0dfabab78e1"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+      "bytes": 3296,
+      "sha256": "553338bfecb8ff11265e1c10568e83d6b771789153800c45db88cee95e79ffb6"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+      "bytes": 283,
+      "sha256": "1a568000f9d607fbe6f4c484fdd06c76d0a3ae075aee9969a4a3e0dfabab78e1"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 433,
+      "sha256": "83db1e59c8382f6e5ecdde8a800ec113e98ab2569eeec55f81b2da04f3a18046"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+      "bytes": 5403,
+      "sha256": "e2df1ad93abdfbebba7cce48481a57e74ace66b8416ac97b8467a98e3223f633"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "bytes": 433,
+      "sha256": "83db1e59c8382f6e5ecdde8a800ec113e98ab2569eeec55f81b2da04f3a18046"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 645,
+      "sha256": "c24dbbc1bb349f6d0aefab2ebf0c62470385b24df345d377274299203347757b"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+      "bytes": 8111,
+      "sha256": "207c834ec606947fbf7fe6bfb4f362bd8cc23f2416b2ce0ebcaef4b9df7d3ea6"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "bytes": 645,
+      "sha256": "c24dbbc1bb349f6d0aefab2ebf0c62470385b24df345d377274299203347757b"
+    },
+    {
+      "path": "android/app/src/main/res/values/ic_launcher_background.xml",
+      "bytes": 120,
+      "sha256": "c23c824b192e85bedd8369a0a409939fad059ffcf3b35e5560a8484f494b94b5"
+    },
+    {
+      "path": "android/app/src/main/res/values/strings.xml",
+      "bytes": 324,
+      "sha256": "52ab8414a44650cf9e7afa9276a7151deb7ed8e351951aceb75946b93c2413a9"
+    },
+    {
+      "path": "android/app/src/main/res/values/styles.xml",
+      "bytes": 902,
+      "sha256": "6ea4828dc6845cd15358ecac2d2d8c16dc40e611e2ce198ae609fbb0d8f1a26b"
+    },
+    {
+      "path": "android/app/src/main/res/xml/config.xml",
+      "bytes": 185,
+      "sha256": "e9dcda493e663c5c4db9e3cb3bd968477a6e90aa8840bcbba40d72ed54b767ce"
+    },
+    {
+      "path": "android/app/src/main/res/xml/file_paths.xml",
+      "bytes": 213,
+      "sha256": "a46ed43ef65c90cb6778f4581decf3556e3f0055aad8f36d69dae16f9a0e99aa"
+    },
+    {
+      "path": "android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+      "bytes": 402,
+      "sha256": "d4045ae8fac1f0807e6b24eb34e68409a9a235df9d1a3f896fb8c9a49424363d"
+    },
+    {
+      "path": "android/app/src/test/java/ru/mirea/spatialatlas/WifiSurveyPolicyTest.java",
+      "bytes": 1933,
+      "sha256": "980619e1840056c8cc973ac1ab78df545633aead0b036d264a164a528bc253a0"
+    },
+    {
+      "path": "android/build.gradle",
+      "bytes": 637,
+      "sha256": "46ade7db7afeb8049ccea59fce83095dca736ceb8c9acd79cc944e988c3357d9"
+    },
+    {
+      "path": "android/capacitor.settings.gradle",
+      "bytes": 716,
+      "sha256": "7051cf5f159d708c96c8483fffc339d6953803fbcaf4d1c133142cda890726e1"
+    },
+    {
+      "path": "android/gradle.properties",
+      "bytes": 987,
+      "sha256": "3bab15c5b8bc4c2f4b6cf525497d15ad4abca53a460e6dd2eb0f0135817d31e6"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.jar",
+      "bytes": 43764,
+      "sha256": "7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.properties",
+      "bytes": 253,
+      "sha256": "9a479a85aa879bb55284fc16d0de5b81a745c3854f4e2d88c42e7debaf007435"
+    },
+    {
+      "path": "android/gradlew",
+      "bytes": 8733,
+      "sha256": "b187b4c52e749f5760afdd6fadc31b2a98ad35fb249bf0dff03b72650f320409"
+    },
+    {
+      "path": "android/gradlew.bat",
+      "bytes": 2937,
+      "sha256": "1d297e00bd21de3ace22b4d7f2de1f9dfa858883d66bbf7c1ccbecccec8f4f3b"
+    },
+    {
+      "path": "android/settings.gradle",
+      "bytes": 208,
+      "sha256": "6ce098d15ebd69b44c4ecd786bca1bdc366340d2459b2af4d7bb0ab317aa9669"
+    },
+    {
+      "path": "android/variables.gradle",
+      "bytes": 498,
+      "sha256": "83d502c9ed8fcf1dd4791482067abeedbebae49fafe9cd14a8a1f5891deb0d88"
+    },
+    {
+      "path": "capacitor.config.json",
+      "bytes": 378,
+      "sha256": "14fda7220a85071066be93e0d132777efdba60ad50b3e041a9277b5539f63cee"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "bytes": 17888,
+      "sha256": "737d92ab81fae9ff9445b1f04fc1c03e0fb40b9cc0e5edc04909aecb63b07163"
+    },
+    {
+      "path": "docs/CONTINUOUS_LOCATION_2026-10-27.md",
+      "bytes": 19893,
+      "sha256": "b5e68d01a0a4f26f77d0a0d90fef8eca7422d1f33854c01518c87ca2dcaf964d"
+    },
+    {
+      "path": "docs/DATA_FORMAT.md",
+      "bytes": 14475,
+      "sha256": "67e4e209aee2ec3170849f4a8870c0b0f6fdb2160a312b6006689ea618e354a4"
+    },
+    {
+      "path": "docs/DATA_SOURCES.md",
+      "bytes": 1746,
+      "sha256": "fab32b0701c62d7ce1dac83d394f0f6274a38df7b195d4ad05c80eb7e31b9fc6"
+    },
+    {
+      "path": "docs/EXTERIOR_REFERENCES.md",
+      "bytes": 17891,
+      "sha256": "2f2f324143df19ebd33ae8a9df8405776150ba011396efe11af052d390b3887a"
+    },
+    {
+      "path": "docs/GITHUB_UPLOAD.md",
+      "bytes": 4795,
+      "sha256": "8fe9f90ae00e0667e92317567ab297e952d49a605da3f8abbde67072be726a9a"
+    },
+    {
+      "path": "docs/INDOOR_POSITIONING_2026-10-26.md",
+      "bytes": 13460,
+      "sha256": "928401db1f74ce8cbc6f65ad307122945a43a8cca83808423a5873ab676400fa"
+    },
+    {
+      "path": "docs/LOCATION_WIFI_2026-10-26.md",
+      "bytes": 15437,
+      "sha256": "28a992d21d40b971df7f0f1b0e6319fef02c34c7ea85214508667dd4a9796b60"
+    },
+    {
+      "path": "docs/MAC_BUILD_2026-10-20.md",
+      "bytes": 27489,
+      "sha256": "f548d861ad69cc19eaec3e79be5e693c4a68f665cfa55d79c987a8d2f190a49c"
+    },
+    {
+      "path": "docs/MAP_FEEDBACK_2026-10-25.md",
+      "bytes": 17630,
+      "sha256": "ef2f80c2396ef9a0e01309ee12214d3ef5ea6754131283852b2b60745ba23004"
+    },
+    {
+      "path": "docs/MAP_LOCATION_UX_2026-10-27.md",
+      "bytes": 13062,
+      "sha256": "48905959becbf3f5bd279fa13d4b7a755adf646a83eb1f7109c1ee7d9389f031"
+    },
+    {
+      "path": "docs/MOBILE.md",
+      "bytes": 28847,
+      "sha256": "972aefa78beba954104a4eef266dea4de054165c49897b92f68ac5f127199b28"
+    },
+    {
+      "path": "docs/NAVIGATION_STAIRS_2026-10-25.md",
+      "bytes": 18347,
+      "sha256": "f6758613133d50caef688a0c509552cdd2fb891bf52297782802c9e39077def3"
+    },
+    {
+      "path": "docs/PLACE_LOCATION_GAPS_2026-10-20.md",
+      "bytes": 9586,
+      "sha256": "c4157554e06ade4c84ce16ff4d0f7d0262a5e48fdf0aa94f9b9f4c094ced1303"
+    },
+    {
+      "path": "docs/POSITIONING_METHODS_2026-10-27.md",
+      "bytes": 14253,
+      "sha256": "c74e7dec66b7f32bd832952a84e05a0f253ab28d3305efee7b4e900bc49029b6"
+    },
+    {
+      "path": "docs/PRERELEASE_AUDIT_2026-10-20.md",
+      "bytes": 61254,
+      "sha256": "9e9e3919b06973f6aa4d5b1690e976809bb6e8e487e3f95573b2d122272d4b0d"
+    },
+    {
+      "path": "docs/README.md",
+      "bytes": 3486,
+      "sha256": "c0f11d1ed0e9f26ebb3d7643f06e354991f21201fbfe1195fac5e0009a68f293"
+    },
+    {
+      "path": "docs/README_HISTORY.md",
+      "bytes": 26924,
+      "sha256": "40cf1ccfffb688f161953dfec85bac1c87015d5a48206f6d5ccc593495f423f0"
+    },
+    {
+      "path": "docs/ROUTING.md",
+      "bytes": 18016,
+      "sha256": "54907589bbee09f31c5fd1edd5eb44624a5d8c9592e250e4f9cd8067139df844"
+    },
+    {
+      "path": "docs/SOURCES.md",
+      "bytes": 23933,
+      "sha256": "b301265839c8d3daf09ceea8c3e324a3adca1771435bac856178831242dbae8a"
+    },
+    {
+      "path": "docs/SOURCE_REVIEW_2026-10-20.md",
+      "bytes": 19074,
+      "sha256": "207c6b6fe62b7077b745b99471368e12360bd11157cb571c8be263c7e3610f97"
+    },
+    {
+      "path": "docs/STAIRS.md",
+      "bytes": 20214,
+      "sha256": "0ab10e50206203cfd006006f7ac2013a09c6285078cb05a27f288c5275e4ac6b"
+    },
+    {
+      "path": "docs/STAIR_FINAL_2026-10-25.md",
+      "bytes": 12445,
+      "sha256": "a61d1913dcd78023686849631e5fb82d58fddd682ad184aad0b926c573a378d9"
+    },
+    {
+      "path": "docs/STAIR_ORIENTATION_2026-10-25.md",
+      "bytes": 6691,
+      "sha256": "2c228550216485522b07af549917d3a6d06c918fbb440e68d31baa7b6308f9e4"
+    },
+    {
+      "path": "docs/TESTING.md",
+      "bytes": 10397,
+      "sha256": "898e11d8f0e57ea4b1e3a7fea4f793a1096976e16aadfde75eb708dc6a45c6b5"
+    },
+    {
+      "path": "docs/UI_UPDATE_2026-10-20.md",
+      "bytes": 24752,
+      "sha256": "134f3729d1b38ece0f720b936660ebe4d0d0dbbeb1b573c54373d6f5159e10d3"
+    },
+    {
+      "path": "docs/UPSTREAM_HANDOFF_MANIFEST.json",
+      "bytes": 75852,
+      "sha256": "782521524199006d6ef199c0c7c2fa6def2060e9cabba3633072c79c9246b712"
+    },
+    {
+      "path": "docs/WIFI_SURVEY.md",
+      "bytes": 9006,
+      "sha256": "fc1e78929fb8b9f127a6a99ed52a792f08ada39fcb5a0487559283ffe049d8ab"
+    },
+    {
+      "path": "docs/XCODE_HANDOFF_2026-10-20.md",
+      "bytes": 6385,
+      "sha256": "d9e2c0a793847fc394a15b7c1db389ff07f674693816d997792dd2ca4ac1327d"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/understood-levels.png",
+      "bytes": 39288,
+      "sha256": "b46633ad1fad0cf209e2794823c0a1f7ec7d90c1ba2755558d2953fec7abdffd"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/user-01-clipping.png",
+      "bytes": 783248,
+      "sha256": "bc47c4f40423c6973940c31f15dec5e4106c3144888d0b387453b38cdf270f51"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/user-02-hall.png",
+      "bytes": 215861,
+      "sha256": "4e2aa0f6cb615a88ddecb5666dcdc9b69e4609b2c8cb6c27bb5e9ad68d2a492b"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/user-03-main-stairs.png",
+      "bytes": 226981,
+      "sha256": "bd960f4359b7503cad93fa279fdfcbdb45798fcb02de4cf2209ad60fb37f1a08"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/user-04-buffet-gap.png",
+      "bytes": 71907,
+      "sha256": "598795793bb6baece81686b57eed5e9c48bba8eb8727601fe352ae49484a7bb1"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/user-05-stair-partition.png",
+      "bytes": 94038,
+      "sha256": "597ea2840c024b17d95e1a108c014605a1670dcdeaa43d04c3353bbec0d32cfe"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/user-stair-sketch.json",
+      "bytes": 147315,
+      "sha256": "648ddf66bac45d44f29b9f638f0b6e07a6dab5dc6fc0fc7940e13ff49fefd8ce"
+    },
+    {
+      "path": "docs/evidence/2026-10-25/user-stair-sketch.png",
+      "bytes": 406050,
+      "sha256": "44aeb81dce7c478d552611ff4f5404fe59359cb0d4c3fdaf383478f3ddc7e4fb"
+    },
+    {
+      "path": "docs/reference/answering-map-questions.txt",
+      "bytes": 630,
+      "sha256": "a468b061e99728b623d24d60da3f39d928f361c6cfad14103de32ea78f5081a5"
+    },
+    {
+      "path": "docs/reference/levels.svg",
+      "bytes": 2802,
+      "sha256": "b7436ea01983db959b528484baada852b56b537144c53864eca386f3281a106e"
+    },
+    {
+      "path": "docs/verification-2026-10-20/basement-mobile.jpg",
+      "bytes": 36413,
+      "sha256": "a990e94480272d4e78c36050ed067c7eba30992033d0d2ebe60decd96920f785"
+    },
+    {
+      "path": "docs/verification-2026-10-20/browser-qa.json",
+      "bytes": 3698,
+      "sha256": "983ab91c9beeed459d90fcde4eaa106640f625a3dc6dd458bd95d481693ae317"
+    },
+    {
+      "path": "docs/verification-2026-10-20/check.log",
+      "bytes": 18682,
+      "sha256": "8377ec840f5e3049d9dfac7833bd14923f7bfc03bd499751fd81a004937a50a8"
+    },
+    {
+      "path": "docs/verification-2026-10-20/route-rounded.jpg",
+      "bytes": 95373,
+      "sha256": "95d1a574fafd29d3e3f8267ee883ccde0666c529fd8e9b55c5a0593a7ad06bb1"
+    },
+    {
+      "path": "docs/verification-2026-10-20/stair-2-to-1.jpg",
+      "bytes": 78729,
+      "sha256": "38894e3d95ade6f3350653f997404c3d086ffe76cdcd42c9d23f16ee791f9f88"
+    },
+    {
+      "path": "docs/verification/2026-10-27/README.md",
+      "bytes": 1863,
+      "sha256": "873b40ed6049684406d960e604f73ec29388356e12a408e78423ea0cd16b0676"
+    },
+    {
+      "path": "docs/verification/2026-10-27/REPORT.md",
+      "bytes": 12760,
+      "sha256": "b0a00ed56a16ee19ff1739e2f93fea85a54505b690a4824023b6f72a8ed28d70"
+    },
+    {
+      "path": "docs/verification/2026-10-27/compilation/android.log",
+      "bytes": 16490,
+      "sha256": "ed6282beee84559a5de3ce2337c4b1096218cec0bcd0430b4189bd454ce4b25d"
+    },
+    {
+      "path": "docs/verification/2026-10-27/compilation/integrity.log",
+      "bytes": 183,
+      "sha256": "10b13b92382510a5da6a96309ce990ad63fb01e2f0c9d186bee6975b18d28466"
+    },
+    {
+      "path": "docs/verification/2026-10-27/compilation/ios.log",
+      "bytes": 15022,
+      "sha256": "d9288b24285d3280096a7852d57e472ac58e1bf7b3457012e3f4cbe0fda18403"
+    },
+    {
+      "path": "docs/verification/2026-10-27/compilation/status.json",
+      "bytes": 3448,
+      "sha256": "939aa12a32dba3c3c2ed78c3e7ef192d741a8654dfee263cf98d90c6dcb1f212"
+    },
+    {
+      "path": "docs/verification/2026-10-27/compilation/sync.log",
+      "bytes": 2293,
+      "sha256": "b3618d81ce5b1860f3d701b7e2966677fc51bc0f1c695e968acf6cbd5dd5df50"
+    },
+    {
+      "path": "docs/verification/2026-10-27/compilation/tests.log",
+      "bytes": 48079,
+      "sha256": "dc73f92002e5a6664068dab458d26907f22ca78cb602debdfde1d348935aaa76"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/01-final-cold-launch.png",
+      "bytes": 104518,
+      "sha256": "09a7bdf93b61ab0a9445fd0fad2718d4c0dc44f8d427a414d5dd5f796a42b473"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/01-final-cold-launch.xml",
+      "bytes": 2697,
+      "sha256": "7ff11f4fd079646f39037301475381e6e55fe419c1f1712e863cc063eacafd8e"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/02-map-ready.png",
+      "bytes": 313998,
+      "sha256": "b9a54060e5ff51652a8eac9fa3b500f757fd442e13a59407976f6626b7b84101"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/02-map-ready.xml",
+      "bytes": 23359,
+      "sha256": "83c30931001a1ba0420527e84002e8b36eb1cc928c4efb5bd6f770d1979e2384"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/03-quick-gps-A.png",
+      "bytes": 315572,
+      "sha256": "14363bee361e62990cab861a0225e1f0c6866d75ebdb1ebe8e5c3f2a92e8d97f"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/03-quick-gps-A.xml",
+      "bytes": 20219,
+      "sha256": "2d85ca6e1a08acf2d0e11edea083a02389739e83a3ac266cd6a648c2d2521ba2"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/04-follow-gps-B.png",
+      "bytes": 271305,
+      "sha256": "7d879779c79c56bd5c50fda3f48733046c000fc72899f29a2a53ab8c0ce10f28"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/04-follow-gps-B.xml",
+      "bytes": 20220,
+      "sha256": "35efe49896599193d49d68ff887a5ad7a3a075ac7b89b17947d2054da24abca9"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/05-heading-test.png",
+      "bytes": 271644,
+      "sha256": "b173be5b09da74665b9f5a85b746a1cb270a9a8116157c789ca60e75016d904c"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/05-heading-test.xml",
+      "bytes": 20220,
+      "sha256": "35efe49896599193d49d68ff887a5ad7a3a075ac7b89b17947d2054da24abca9"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/06-settings.png",
+      "bytes": 288549,
+      "sha256": "4a6791b1cd8428d7fa98d8d34d22618f92a0f7ea9f0cc827dde52226f9ebde96"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/06-settings.xml",
+      "bytes": 15098,
+      "sha256": "c47349b96a8c33b7c142bd0fa22cbbb8799520239743816a63bd3522b7fc2857"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/07-wifi-panel.png",
+      "bytes": 384856,
+      "sha256": "b39fdbdddf740aca51377b7b2225a964ff3e9fd05cac209f160d415aa773c685"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/07-wifi-panel.xml",
+      "bytes": 13195,
+      "sha256": "3e190d0ada0bfdbb072c3b348848717c6cd7ba9ac9ec6fde8d237e1a79ab1973"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/08-exact-picker.png",
+      "bytes": 365978,
+      "sha256": "cf7465536754c06f5276a477b8a3243944d8f5edbba1c3f12624a8517d2f0798"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/08-exact-picker.xml",
+      "bytes": 17632,
+      "sha256": "8444003331bdebb2a5288ab0b8faac9d0b506b0570de9f162b9228569c4dd94b"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/09-exact-picker-shift.png",
+      "bytes": 367392,
+      "sha256": "36a3895f919858a7739e1c9414302e4c7fdcdaae18c20254e73605fa52eb3d67"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/09-exact-picker-shift.xml",
+      "bytes": 18074,
+      "sha256": "d719e4db068a8378fcae6ccce0cf507dff2a5160db99712c27789f84d7457fd4"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/10-final476-launch.png",
+      "bytes": 104486,
+      "sha256": "ea376e0e0a035da6c621d040039507e7fa63a3ddee794bca01c48c692decdf2f"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/10-final476-launch.xml",
+      "bytes": 2697,
+      "sha256": "7ff11f4fd079646f39037301475381e6e55fe419c1f1712e863cc063eacafd8e"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/11-final476-gps.png",
+      "bytes": 258838,
+      "sha256": "2412cbb0a4f1d08f4b45d286680965616726f775b8565acc08c4c3fdcfd62235"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/11-final476-gps.xml",
+      "bytes": 19314,
+      "sha256": "a8055e8d14ab725e2b681f1599b611a5fbdd9cb7497242daad69b80b0bf1a74d"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/actions.log",
+      "bytes": 4816,
+      "sha256": "25aa0551d10621254fecee89798f01991a468558e8c9abaa9b97f3a7347dae58"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/camera-follow-comparison.json",
+      "bytes": 327,
+      "sha256": "38502e56a4ed7477a38e517e44c7764e8bf229b04c1da4977a2bf929d99aa6fd"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/device-model.txt",
+      "bytes": 19,
+      "sha256": "2e781b655b0a1fbca1235d182864661fab33a2a3ef3d4521e580f04b0b009ead"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/driver.py",
+      "bytes": 2097,
+      "sha256": "e5ee91799d5fd8d858a143f1fe75ec0ff0521bfccf1efd647ddcf9e25c9aa239"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/emulator-boot.log",
+      "bytes": 8921,
+      "sha256": "1186aa3de066ba2495133ddd5decc057196300bc1e34d61a0b607c26c6aabecc"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/final-476-build.json",
+      "bytes": 141,
+      "sha256": "cbb53ddedd16c3db61c90c9093b08aaa49abf5b9859ef7efd40036b442e2a3a7"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/final-476-install.log",
+      "bytes": 97,
+      "sha256": "ce07de384bffa29423d41e369f9e5cf2fe75f2c9225f895ad0cdc6706fc41b10"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/final-build.json",
+      "bytes": 191,
+      "sha256": "6ce9c00e120e526bfa7a37347c076f7b8e0a58f4e0ef9cece9c260e4c9952497"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/final476-gps-input.log",
+      "bytes": 4,
+      "sha256": "19d8c9921b99c82d78c985136a5e28f6382011641fb6160c0c1a7573a402ea66"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/final476-gps.json",
+      "bytes": 808,
+      "sha256": "ea73da11d3b1f90e03e930b138e058b4df9d965181b0a8e32e9d3bf48a059e0e"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/gps-A-input.log",
+      "bytes": 4,
+      "sha256": "19d8c9921b99c82d78c985136a5e28f6382011641fb6160c0c1a7573a402ea66"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/gps-A-settled.json",
+      "bytes": 1685,
+      "sha256": "a2e86e906ed87f7634573aff93e012052dc541a9e67a0faec81fa7fc5521dbcb"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/gps-A.json",
+      "bytes": 1661,
+      "sha256": "cb9403b214ead51a3a99c1dc8804358ada720edecc3903b920e92a0585efeba4"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/gps-B-input.log",
+      "bytes": 4,
+      "sha256": "19d8c9921b99c82d78c985136a5e28f6382011641fb6160c0c1a7573a402ea66"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/gps-B.json",
+      "bytes": 1683,
+      "sha256": "3f3045063eea940f31a78588289a02fce23450ffbee712b101ac17c0e07d4fcf"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/heading-0.json",
+      "bytes": 1683,
+      "sha256": "d90211a27356916f9f86a8d852378950c53abca413ade56533b77012261ecf66"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/heading-90.json",
+      "bytes": 1683,
+      "sha256": "aafc3834fe6d9baf7721781d40f1711ca66523a3db689b5eb5c63f61e408dbc8"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/install.log",
+      "bytes": 97,
+      "sha256": "ce07de384bffa29423d41e369f9e5cf2fe75f2c9225f895ad0cdc6706fc41b10"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/launch-state.json",
+      "bytes": 731,
+      "sha256": "b99ac333ae8b784b1610e62a562e2a1f1acb02ac9cdaaa682aaaa1c2c8d5144a"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/picker-preview-A.json",
+      "bytes": 1743,
+      "sha256": "694f5ea57d3b5d847998e470ee5e3fe88198cf2cdde01a04d6712791c84159ee"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/picker-preview-B.json",
+      "bytes": 2068,
+      "sha256": "44c9bcaec77e6aa8cef0175ce5d87c2f826e363af13d52839624f06925f88563"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/read-state.mjs",
+      "bytes": 2927,
+      "sha256": "2443a4cee23d78be6533dc65bc81f8cd417ec822e09f75babd8c41dff6778fe1"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/report.json",
+      "bytes": 4100,
+      "sha256": "35d496ca7d1199df67a1d897ed8ddd203acf3656dd6917ae018fbab710ce6d0a"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/sensor-input-0.log",
+      "bytes": 4,
+      "sha256": "19d8c9921b99c82d78c985136a5e28f6382011641fb6160c0c1a7573a402ea66"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/sensor-input-90.log",
+      "bytes": 4,
+      "sha256": "19d8c9921b99c82d78c985136a5e28f6382011641fb6160c0c1a7573a402ea66"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/sensor-magnetic-before.txt",
+      "bytes": 41,
+      "sha256": "5c4192619b610ae5478b5553bf589558e054944c7346b8a16e9b6cd5314c760f"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/sensor-orientation-before.txt",
+      "bytes": 34,
+      "sha256": "528535a1890a48d38633810cc056fba3c9a31fa5c4f887d5b0ca10e4e76feb19"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/sensor-restored.log",
+      "bytes": 4,
+      "sha256": "19d8c9921b99c82d78c985136a5e28f6382011641fb6160c0c1a7573a402ea66"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/synthetic-gps-points.json",
+      "bytes": 655,
+      "sha256": "33f49ee384637582189ce59d02f635094d715aa5494be1eac445dc72fc0b7c63"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/webview.txt",
+      "bytes": 855,
+      "sha256": "4c1c2cdf704e992753596b296564d00b628f55228b46f04f642bc8f2c316b96f"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/wifi-exact-A.json",
+      "bytes": 2065,
+      "sha256": "d2a26cb0b69e9a08faef65e3ddafe4e9995d3b5e351dc8c33bf604db738bf45a"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/wifi-exact-B.json",
+      "bytes": 2068,
+      "sha256": "84bd863a4d27233c3646e3be65623b5cb76f643c3ec03db2202880428e903540"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/android/wifi-exact-comparison.json",
+      "bytes": 748,
+      "sha256": "7b510177a754f32e745834cef8db433a85212708d2f4e768001564ae3fef62f7"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/build-console.log",
+      "bytes": 49898,
+      "sha256": "79fea42fca7a452754644af7f48775b631c520e071929780e2f1f4e44a629a54"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/build-distances-console.log",
+      "bytes": 83881,
+      "sha256": "4a61d79b8743f610e951514b97d31ad66ae421cad6479796ecf8bf27b1c20e4e"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/build-final-console.log",
+      "bytes": 188131,
+      "sha256": "1a602545b5d4dd03619b5053da12c72671db7645540b82b1718735e19efe8d76"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/controller-tests.log",
+      "bytes": 8709,
+      "sha256": "29eab298876caa0ee609eece5417765f98a99b3341403c8bbe948cdee12b5d6a"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/embedded-assets.json",
+      "bytes": 54190,
+      "sha256": "1c584f1adf2aedda984d26ab1a77d8b343e2ce98110106dd56d4e311f7d49c4f"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/integration-tests.log",
+      "bytes": 4480,
+      "sha256": "78b5f4488870e7d7653825b7d5666d538d498d7766e47aa6b55cbcc3bb374a13"
+    },
+    {
+      "path": "docs/verification/2026-10-27/qa/ios-close-position.png",
+      "bytes": 168171,
+      "sha256": "5f8dd042df87ad3dc5ac673da56b374f47843889152815fa701e42e6c3e9f0b1"
+    },
+    {
+      "path": "index.html",
+      "bytes": 676,
+      "sha256": "e22bafaf839dda51acb1d530a95defc91a83ea3db901bf9c9a9dda1c822aa67f"
+    },
+    {
+      "path": "ios/.gitignore",
+      "bytes": 206,
+      "sha256": "2b7132a9943d2622e51e656897ca5162f56b121b40b423dedce1fbc699dba88a"
+    },
+    {
+      "path": "ios/App/App.xcodeproj/project.pbxproj",
+      "bytes": 15389,
+      "sha256": "3559461ae3770ed09d5ce7f8b3b532adb0d100b825cd51f861e81c1e23838f62"
+    },
+    {
+      "path": "ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+      "bytes": 238,
+      "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542"
+    },
+    {
+      "path": "ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+      "bytes": 696,
+      "sha256": "244ad8c9a85db237fdb7e0f5a128092d9ba97f883d4e01254fec027affbdf531"
+    },
+    {
+      "path": "ios/App/App/AppDelegate.swift",
+      "bytes": 2504,
+      "sha256": "481e2ad8672b14acbd3e3df65acdc6d046526ae542b7bec903cf842fc68d9e49"
+    },
+    {
+      "path": "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png",
+      "bytes": 13883,
+      "sha256": "21732f7fb04677779d5167292f05a21ca0343c320fe98ac86456f7bea9e224cc"
+    },
+    {
+      "path": "ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "bytes": 218,
+      "sha256": "5c09bec6eede599b14fa9e4c44b03e7febebc930615a0cd70f02981c09dfe48a"
+    },
+    {
+      "path": "ios/App/App/Assets.xcassets/Contents.json",
+      "bytes": 62,
+      "sha256": "972ec1fd42325872438eb085ac29e94f51c10788ec18ec5549439950866c541d"
+    },
+    {
+      "path": "ios/App/App/Assets.xcassets/Splash.imageset/Contents.json",
+      "bytes": 403,
+      "sha256": "041481917eb249533ac6dd63d283bc6190b2d0642a93deda11b2ed0f6f7b605a"
+    },
+    {
+      "path": "ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-1.png",
+      "bytes": 97938,
+      "sha256": "a577dcd93a1600288ec7945f9148436614e473f445ffa7b207b5a2dad5349a5a"
+    },
+    {
+      "path": "ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-2.png",
+      "bytes": 97938,
+      "sha256": "a577dcd93a1600288ec7945f9148436614e473f445ffa7b207b5a2dad5349a5a"
+    },
+    {
+      "path": "ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732.png",
+      "bytes": 97938,
+      "sha256": "a577dcd93a1600288ec7945f9148436614e473f445ffa7b207b5a2dad5349a5a"
+    },
+    {
+      "path": "ios/App/App/Base.lproj/LaunchScreen.storyboard",
+      "bytes": 1994,
+      "sha256": "87a42e842164d75f39cca56a2cf743652f4d8e858f2eba12ae21a8ddcd9a21c6"
+    },
+    {
+      "path": "ios/App/App/Base.lproj/Main.storyboard",
+      "bytes": 1019,
+      "sha256": "7b7dc7acc67134bfaa80e5ce9c9068ba53db5369b9b70248aa7439fc2b09daae"
+    },
+    {
+      "path": "ios/App/App/HeadingPlugin.swift",
+      "bytes": 5425,
+      "sha256": "579832bf5f243464e160bf4bed69921f391a258fc877ad72fb1f3f3f0f6d0dd1"
+    },
+    {
+      "path": "ios/App/App/Info.plist",
+      "bytes": 3137,
+      "sha256": "1bf8466b6457fbef663c30a5800391564b7146fee670fcd4780788a9af819caf"
+    },
+    {
+      "path": "ios/App/App/SceneDelegate.swift",
+      "bytes": 903,
+      "sha256": "6b0635f4928a53c567884b5cd248b2cbc40b10861a602f1736440f8f48953da0"
+    },
+    {
+      "path": "ios/App/App/config.xml",
+      "bytes": 185,
+      "sha256": "e9dcda493e663c5c4db9e3cb3bd968477a6e90aa8840bcbba40d72ed54b767ce"
+    },
+    {
+      "path": "ios/App/CapApp-SPM/.gitignore",
+      "bytes": 165,
+      "sha256": "4b958e2b4dd57319aadef2551153c74b9cb5ffe9f89d6e3e491122a94913f016"
+    },
+    {
+      "path": "ios/App/CapApp-SPM/Package.swift",
+      "bytes": 1394,
+      "sha256": "8b2cda57ba7b16d266cd75084cfef05d445a64ad1aeab10181bec098c652da70"
+    },
+    {
+      "path": "ios/App/CapApp-SPM/README.md",
+      "bytes": 162,
+      "sha256": "42c535861f4a866e35f85764ed6af1ea046d6a409bf9852ecb00e5d292a1626e"
+    },
+    {
+      "path": "ios/App/CapApp-SPM/Sources/CapApp-SPM/CapApp-SPM.swift",
+      "bytes": 33,
+      "sha256": "70bf9dafddc35e3877dfb133a996f5be7ccd1e132897a98fdbf4869ff605ece9"
+    },
+    {
+      "path": "ios/capacitor-cordova-ios-plugins/CordovaPluginsResources.podspec",
+      "bytes": 379,
+      "sha256": "6ace787f88f8c8da88526ed2ecdf0b9bd659cdb64f56bd5e73a684e0d26b7e06"
+    },
+    {
+      "path": "ios/capacitor-cordova-ios-plugins/resources/.gitkeep",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "ios/capacitor-cordova-ios-plugins/sources/.gitkeep",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "ios/debug.xcconfig",
+      "bytes": 23,
+      "sha256": "4838938a72b913b99cfda54a43bbe73f05893071dc6e3702b0adc44794b64272"
+    },
+    {
+      "path": "jsconfig.json",
+      "bytes": 186,
+      "sha256": "ad176fc7ab75041edcf2650b6a24293a77285724ac4711c671e70428e75f59ee"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 81891,
+      "sha256": "55ba81a32b2777c2bcc061c26243f11905615d5d9f212295818a2db11dc7c7e1"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1971,
+      "sha256": "6621c005b992bc3b16ad2ba598dc79c304ea9070e30ca456b5ceec7660c3a9cf"
+    },
+    {
+      "path": "public/data/assumptions.json",
+      "bytes": 1490,
+      "sha256": "39c9ab7faf0a814d2b56a860c8495968a71a925fe08966b37d28aa14e8d7c8d4"
+    },
+    {
+      "path": "public/data/campuses/mp-1/mp-1-floor0.json",
+      "bytes": 626238,
+      "sha256": "0334f1322a66fea3d3589059167874e159beb5e8ffb45b100d546fe382104b57"
+    },
+    {
+      "path": "public/data/campuses/mp-1/mp-1-floor1.json",
+      "bytes": 808209,
+      "sha256": "fade8f3e0ee225516c5a4cd24d451109d0e41255ec4660c5e9a9f4ba85fb40fa"
+    },
+    {
+      "path": "public/data/campuses/mp-1/mp-1-floor2.json",
+      "bytes": 621288,
+      "sha256": "9903b344e60510240bfe5f1702ae781325655f2c6b78c2e6f9ae13158fc60d4a"
+    },
+    {
+      "path": "public/data/campuses/mp-1/mp-1-floor3.json",
+      "bytes": 616051,
+      "sha256": "23a6294b961413ceace24018aac722602848969a968d6c221a6061ea70ea163a"
+    },
+    {
+      "path": "public/data/campuses/mp-1/mp-1-floor4.json",
+      "bytes": 617610,
+      "sha256": "f2280dffef4ddcfc4a0e3a4971c0fc2169b2c9f430f818107e6010e24ea0122d"
+    },
+    {
+      "path": "public/data/campuses/mp-1/mp-1-floor5.json",
+      "bytes": 365915,
+      "sha256": "3b3d7264f750a1f1e7a0581f8279071bd06f731101fd95a59fbee4b6e4eccc2d"
+    },
+    {
+      "path": "public/data/campuses/s-20/s-20-floor1.json",
+      "bytes": 173960,
+      "sha256": "cd125830931b1a9823651256e236a95f03aea538b585464973fe4fd9243fc341"
+    },
+    {
+      "path": "public/data/campuses/s-20/s-20-floor2.json",
+      "bytes": 148414,
+      "sha256": "ddd12b661a1d3888ba47ce10a97230ba6ca33287a3cb5349698784a6cf4c26f9"
+    },
+    {
+      "path": "public/data/campuses/s-20/s-20-floor3.json",
+      "bytes": 142869,
+      "sha256": "b17769856b1e2662f4a45f646d5d51c4cc600c1cd81af23dff9c3588b62b4767"
+    },
+    {
+      "path": "public/data/campuses/s-20/s-20-floor4.json",
+      "bytes": 78924,
+      "sha256": "f14d2a59350f9bdc57c5c08af0cf483eb14a5dbb9f5d5923b9743ca44ed62af1"
+    },
+    {
+      "path": "public/data/campuses/v-78/v-78-floor0.json",
+      "bytes": 320926,
+      "sha256": "1963609b3d52d68f2d20c1999cb3411cd6fa935fe97cebd5ebd126454c6c94b5"
+    },
+    {
+      "path": "public/data/campuses/v-78/v-78-floor1.json",
+      "bytes": 1107954,
+      "sha256": "00662efaf0d44e68ba615e0e8cb2d3a77b5e8a4a6d0eafadeae0052b9084da7c"
+    },
+    {
+      "path": "public/data/campuses/v-78/v-78-floor2.json",
+      "bytes": 659246,
+      "sha256": "7074bf6da38338271a4465bfc6db9ede9c0ea75e03aeff2d06ad457e71aed427"
+    },
+    {
+      "path": "public/data/campuses/v-78/v-78-floor3.json",
+      "bytes": 401482,
+      "sha256": "13632c80179a77d6316257a5d91dc2ddb0db31d013b59a385056fbd83a7a6ab3"
+    },
+    {
+      "path": "public/data/campuses/v-78/v-78-floor4.json",
+      "bytes": 73269,
+      "sha256": "7d2107e1af01759bdfc5874876e352673fd0e0c21f8fa8ea30a2deb2f5734850"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor0.json",
+      "bytes": 82783,
+      "sha256": "9842a5c4c1c110492c15666e8198c7cb43601f74cfef9c1258b25bab84f2ceca"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor1.json",
+      "bytes": 389001,
+      "sha256": "ddca8ead8ebdd4d50eaa8f0787353ad9aca4737b396357b766948240192fe488"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor2.json",
+      "bytes": 255406,
+      "sha256": "0005c3643263492764330e8bcc8178d5e407388ad8e42a40e1f502a3378b2e75"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor3.json",
+      "bytes": 123948,
+      "sha256": "a06a5f9cc5c52b9824164c2fe07206f7ff4ce86a47f778ddb8472761f006e89a"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor4.json",
+      "bytes": 101772,
+      "sha256": "81fd2b9c35bbdaaf7c501b7e65c84b981193287de8dc6ae8fdc3982e791d6ef5"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor5.json",
+      "bytes": 93043,
+      "sha256": "61cff8aadbc0356e4204bd93836eea575a48484011fccf326e6f42dce90c98c8"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor6.json",
+      "bytes": 55089,
+      "sha256": "ab6584825930e4e0d9e418807f587c0523e44074b6680b84845c3338c892c1b9"
+    },
+    {
+      "path": "public/data/campuses/v-86/v-86-floor7.json",
+      "bytes": 24629,
+      "sha256": "c50064bc31a82faab9b84531e027a9c0fdb624d0658c009e31dba2daa9b1616f"
+    },
+    {
+      "path": "public/data/exterior-context.json",
+      "bytes": 75208,
+      "sha256": "310a30f392a9e255af7c6fc9fdb2a4e3562c7892bf271039dbb1ece1e9ea7e15"
+    },
+    {
+      "path": "public/data/exterior-hall.json",
+      "bytes": 42598,
+      "sha256": "95dd431316bfa31e12521d960ccc3016d1095854660a743b8ef8273cc6e1acd6"
+    },
+    {
+      "path": "public/data/exterior-overrides.json",
+      "bytes": 34468,
+      "sha256": "faf4e35418fc746b57af1d514c0e00e597f72da76325707f2f56ff7664777fea"
+    },
+    {
+      "path": "public/data/exterior-shells.json",
+      "bytes": 2150487,
+      "sha256": "88cf4b881be540b28aea6453d58e7ce39d1771440d41f8330eb3dce88bd070b3"
+    },
+    {
+      "path": "public/data/exterior-special.json",
+      "bytes": 10593,
+      "sha256": "421e408e25a9ebdab9681461ba066bb5b683ca4a02a6f7211fe30c179a89a354"
+    },
+    {
+      "path": "public/data/facade-style.json",
+      "bytes": 7145,
+      "sha256": "1d4e45438702fb3193e4a9b6a503b3c87dc90590a92ed3602d497f83a068e0d4"
+    },
+    {
+      "path": "public/data/lidar/report.json",
+      "bytes": 12818,
+      "sha256": "285a9e7124e64beeb68e2789c2ac65a4a85280c028ccf1a9861c427f4f387123"
+    },
+    {
+      "path": "public/data/manifest.json",
+      "bytes": 23606,
+      "sha256": "2386176c4a2d616e986956a016c1b863af07aab93a5e17bfff5408c80e493871"
+    },
+    {
+      "path": "public/data/photo-index.json",
+      "bytes": 62030,
+      "sha256": "6abdd8b5c4f554a47e562c102248e7605fd0d2f81e5e421864684b5bfe457be4"
+    },
+    {
+      "path": "public/data/photos/IMG_3150.jpg",
+      "bytes": 780183,
+      "sha256": "23cd63963ec3ba2e4d38654a3e50456152ded107e965c29720a9b6205a762ea8"
+    },
+    {
+      "path": "public/data/photos/IMG_3151.jpg",
+      "bytes": 639604,
+      "sha256": "d006a7e5009f5f4defe8f22a79a04fd44e2d6b122547425ab75744bdcd14e94c"
+    },
+    {
+      "path": "public/data/photos/IMG_3155.jpg",
+      "bytes": 640759,
+      "sha256": "27c1405cebf474352ec05218957502cfcf48ab2bce58c054ae958f95e2938c5e"
+    },
+    {
+      "path": "public/data/photos/IMG_3156.jpg",
+      "bytes": 678416,
+      "sha256": "e1736c7039c99ea6e870c9ee561d4a7878f640fbe6932949fe8f25e4b8bfa063"
+    },
+    {
+      "path": "public/data/photos/IMG_3157.jpg",
+      "bytes": 718523,
+      "sha256": "63306c88d87209200f154d53223e2a933e2b86c6e584f0bf228bbc2b6ab1ce77"
+    },
+    {
+      "path": "public/data/photos/IMG_3158.jpg",
+      "bytes": 737484,
+      "sha256": "82294d72f019df06e7bad54895e05bcc6a74d6f29b3c608b56bf428ec7b82d11"
+    },
+    {
+      "path": "public/data/photos/IMG_3159.jpg",
+      "bytes": 707733,
+      "sha256": "b44a6e8670d5c9cd6958f7cc297b76406bb59b2c2f3f2477ec38ee0c4e2bc3e7"
+    },
+    {
+      "path": "public/data/photos/IMG_3160.jpg",
+      "bytes": 874014,
+      "sha256": "1927c705f207757f7c7a17b9b0ae1c7ad537c8420c7bac049b7ee01d8d025afa"
+    },
+    {
+      "path": "public/data/photos/IMG_3161.jpg",
+      "bytes": 866367,
+      "sha256": "15e8915aa123e0d9d78de9186c6764f05c67cbe9f0cd629b0ebed9666eaee26b"
+    },
+    {
+      "path": "public/data/photos/IMG_3162.jpg",
+      "bytes": 780644,
+      "sha256": "458947eef7e531cc5966e69b901e750d0a569df8080ff1b3b3dbe25a0843cc25"
+    },
+    {
+      "path": "public/data/photos/IMG_3163.jpg",
+      "bytes": 850839,
+      "sha256": "9aaf91602e7e9378bd8e94f44edc425d0f8eee0f60e9cfb6b77459674bb8f95e"
+    },
+    {
+      "path": "public/data/photos/IMG_3164.jpg",
+      "bytes": 798264,
+      "sha256": "0555fea955fb21529e49122cbe45a9a4cf4fd2ff8f7fab2e29a9483bad1352c1"
+    },
+    {
+      "path": "public/data/photos/IMG_3165.jpg",
+      "bytes": 532166,
+      "sha256": "63bc88e83d1452d9afe3744df9b24eb6c08b86cd259130b72f87fb4b46b6015d"
+    },
+    {
+      "path": "public/data/photos/IMG_3166.jpg",
+      "bytes": 694371,
+      "sha256": "70cbd508865ec1a49304f39876160606eae7ebed9a4c8200ead0aba00805c25c"
+    },
+    {
+      "path": "public/data/photos/IMG_3167.jpg",
+      "bytes": 707462,
+      "sha256": "3e642f368c024a6e7637b45325f4aaffa7c4bd56b3fae071654e8394329baa58"
+    },
+    {
+      "path": "public/data/photos/IMG_3168.jpg",
+      "bytes": 756317,
+      "sha256": "723a39824a71560d936d66ff91708223f559010729e64b471b8d32341b516584"
+    },
+    {
+      "path": "public/data/photos/IMG_3169.jpg",
+      "bytes": 869993,
+      "sha256": "6b3e6d2d386b060c166935738ebaf0adbabec9c4d7aebf5c9c49a89aa1fd63e2"
+    },
+    {
+      "path": "public/data/photos/IMG_3170.jpg",
+      "bytes": 717590,
+      "sha256": "59c37761dd8a98ab8ad73b904119ac1cb6c46b33adf4d1e212993fcacdcb9309"
+    },
+    {
+      "path": "public/data/photos/IMG_3171.jpg",
+      "bytes": 647474,
+      "sha256": "8e85c6d067a0ed4e2adfe75eeb105d6e5c58d0cc06a6be4712e2b66bf8ce445e"
+    },
+    {
+      "path": "public/data/photos/IMG_3172.jpg",
+      "bytes": 862881,
+      "sha256": "eb0f0654537d315f7bcc96321b9146200138da5889481ec4ec6b4a25d9fe07fe"
+    },
+    {
+      "path": "public/data/photos/IMG_3174.jpg",
+      "bytes": 781077,
+      "sha256": "ccbf4c9e20da94237a056fb46a6e810472b2892561fae9ea827dc7ac3b5f3af2"
+    },
+    {
+      "path": "public/data/photos/IMG_3176.jpg",
+      "bytes": 600518,
+      "sha256": "69da3bd1abcf4c5b0beb519b1b737c9ff05af850e84181c073c12bfd61f04aac"
+    },
+    {
+      "path": "public/data/photos/IMG_3208.jpg",
+      "bytes": 953325,
+      "sha256": "d93079a9798ea72c2f99d081a7b067959fbac1460a8c0bab5b477bd21bb92889"
+    },
+    {
+      "path": "public/data/photos/IMG_3209.jpg",
+      "bytes": 736691,
+      "sha256": "06579c303969f11d444d09748296eaa9a7c5770b1caa536a32cfb2efaf451ae2"
+    },
+    {
+      "path": "public/data/photos/IMG_3210.jpg",
+      "bytes": 732104,
+      "sha256": "b89a37e88b1e365a9ae939917b6a8a701e5c010b61f198737b25a2397269713e"
+    },
+    {
+      "path": "public/data/photos/IMG_3211.jpg",
+      "bytes": 609302,
+      "sha256": "88338ec33846186b1779ab6cceca50d80e5cc5c7dbd670fad9ea5cf505ab045b"
+    },
+    {
+      "path": "public/data/photos/IMG_3212.jpg",
+      "bytes": 720336,
+      "sha256": "1f46db12f4e41af03b9c44d4457612786b28de93297bf7e3394c85508b828999"
+    },
+    {
+      "path": "public/data/photos/IMG_3213.jpg",
+      "bytes": 715395,
+      "sha256": "2f28cc1a962dc7e165a0d3e9fe7c3cbb0f7243c245fa2b3e92f47ab4b51ce54d"
+    },
+    {
+      "path": "public/data/photos/IMG_3214.jpg",
+      "bytes": 783021,
+      "sha256": "66b25df0573a33532be2bb0e62d0b7bba543ca3224068768e18e1982c0e3f1ed"
+    },
+    {
+      "path": "public/data/photos/IMG_3215.jpg",
+      "bytes": 966665,
+      "sha256": "addb60b292d3393f71705c22ed5d477435ce501c8c679793dde9590d6b51e57f"
+    },
+    {
+      "path": "public/data/photos/IMG_3216.jpg",
+      "bytes": 791165,
+      "sha256": "10fe00d9e1a87c348006d0e101a1b3cee41da0d7bdcf94c72d5f21ea63492b3f"
+    },
+    {
+      "path": "public/data/photos/IMG_3217.jpg",
+      "bytes": 837486,
+      "sha256": "e8a8b5e628c4475ceec01abbed7a762f22e29b40bc53526ed5b58a9b454d0a8d"
+    },
+    {
+      "path": "public/data/photos/IMG_3218.jpg",
+      "bytes": 696529,
+      "sha256": "22731c7f1f847f0091963613285c5b7a3d359e57e51f27b4e6a0dde03cb957b8"
+    },
+    {
+      "path": "public/data/photos/IMG_3219.jpg",
+      "bytes": 856396,
+      "sha256": "1ded7941b5835b0807d0a496e6b90aa06ddfde358ec3333f50839bf24c369c9d"
+    },
+    {
+      "path": "public/data/photos/IMG_3220.jpg",
+      "bytes": 763952,
+      "sha256": "d34e10a640d3fb776f06192c373b26e0ad00cd517f60739824ca0a7889a9242f"
+    },
+    {
+      "path": "public/data/photos/IMG_3221.jpg",
+      "bytes": 776797,
+      "sha256": "b25f7dc05e8b0bc0e5834ca4ea723a62a70ae990e74a7c65651f6da6c18065a4"
+    },
+    {
+      "path": "public/data/photos/IMG_3222.jpg",
+      "bytes": 608370,
+      "sha256": "599350c54f332c83e16c154d597b99a92ee667be57ed79287e5430a99d9b953e"
+    },
+    {
+      "path": "public/data/photos/IMG_3223.jpg",
+      "bytes": 634945,
+      "sha256": "18edaa735826e6e2526be4cad050a789ca35d20196e5b91f0cee0e82ec04f06e"
+    },
+    {
+      "path": "public/data/photos/IMG_3224.jpg",
+      "bytes": 814521,
+      "sha256": "72c2eff7dd5db8c3de23f1dbc4aef2147c8f9ae05ba3078df95e126da3cb5b5d"
+    },
+    {
+      "path": "public/data/photos/IMG_3225.jpg",
+      "bytes": 728226,
+      "sha256": "a760c49db82d378c8ee5b6f66a3bdf2f6d50d6f16e67e52835e39415fdf91a13"
+    },
+    {
+      "path": "public/data/photos/IMG_3226.jpg",
+      "bytes": 899751,
+      "sha256": "35be673056673ef3bec34d0a74f0b507646ba18ee59dbd678a4f118a7e0767c6"
+    },
+    {
+      "path": "public/data/photos/IMG_3227.jpg",
+      "bytes": 750108,
+      "sha256": "6b29a8ff1c08f27f24943c99d8602371f41350ad8b40d8e78e380456dac4ca3b"
+    },
+    {
+      "path": "public/data/photos/IMG_3228.jpg",
+      "bytes": 888772,
+      "sha256": "f5ced7aae9744829dee6d6bdc59e677da8a26b69e424ffb92cf45a6393ef0ad5"
+    },
+    {
+      "path": "public/data/photos/IMG_3229.jpg",
+      "bytes": 894208,
+      "sha256": "4b13df34277d54e3de1620122a2ea5c9df4c655cea8ac4d66d0cefabfd291b3f"
+    },
+    {
+      "path": "public/data/photos/IMG_3230.jpg",
+      "bytes": 852786,
+      "sha256": "9515001a3a5bc3be377493f52cafedc2827134365ef0acca4f92f209945e4785"
+    },
+    {
+      "path": "public/data/photos/IMG_3231.jpg",
+      "bytes": 879293,
+      "sha256": "53c8fd4f0a505aa5fd26987c07170105b02cf2e87f1dff1db2290314e086b51c"
+    },
+    {
+      "path": "public/data/photos/IMG_3232.jpg",
+      "bytes": 725748,
+      "sha256": "2a5b08d5347274bf9fcee98abaca7e593ea4210f02066c92e8044fd574c00b94"
+    },
+    {
+      "path": "public/data/photos/IMG_3233.jpg",
+      "bytes": 777670,
+      "sha256": "fc4d4693685674d6ad24494a1dbaab73f75d2498278f686c0baee38703a4753c"
+    },
+    {
+      "path": "public/data/photos/IMG_3234.jpg",
+      "bytes": 707967,
+      "sha256": "a6da68a6d02514ee2b01d0aeb62f3c406560e16600f2fe3ae1ed27c0bb51ef03"
+    },
+    {
+      "path": "public/data/photos/IMG_3235.jpg",
+      "bytes": 751616,
+      "sha256": "30c9a64150747a605bb6c1f31eef51182789d2bcea587c811f57472bf575a689"
+    },
+    {
+      "path": "public/data/photos/IMG_3236.jpg",
+      "bytes": 749823,
+      "sha256": "449ba2087f4fdf11196cdc771a914ef3951e6134d542219d2be9a350472b28dc"
+    },
+    {
+      "path": "public/data/photos/IMG_3237.jpg",
+      "bytes": 733144,
+      "sha256": "bbb9df721f50f6cd9d2d6a2ab9674729439a648323bb3336f1d6ca21bcc8ed65"
+    },
+    {
+      "path": "public/data/photos/IMG_3238.jpg",
+      "bytes": 789649,
+      "sha256": "fae43eb44c6fe9643e44f2f2315caf53aa2779b3e7e6f4df7cfdb9849193ab2f"
+    },
+    {
+      "path": "public/data/photos/IMG_3239.jpg",
+      "bytes": 757669,
+      "sha256": "ad6249b4395366fe6663c3ca5a87251bea6ec61255d95719d8f3b1eca957dad4"
+    },
+    {
+      "path": "public/data/photos/IMG_3240.jpg",
+      "bytes": 594594,
+      "sha256": "9e1cee84d670afb076155f0cd6937a8a21087825f33eb823538e6d02d01dce72"
+    },
+    {
+      "path": "public/data/photos/IMG_3241.jpg",
+      "bytes": 722985,
+      "sha256": "9bcba21f9628e49af2304c670a400d4b932cbc1f234262ecbcd554243d6c8e4a"
+    },
+    {
+      "path": "public/data/photos/Снимок экрана — 2026-10-19 в 16.44.12.jpg",
+      "bytes": 531328,
+      "sha256": "3502e68863cc50ade0445c767c107269f17b7512f05b550e664c3794b400510f"
+    },
+    {
+      "path": "public/data/photos/Снимок экрана — 2026-10-19 в 16.44.31.jpg",
+      "bytes": 528889,
+      "sha256": "695600c2443e67f036b6acaa64927dff41745a812443300f7cd0135292067059"
+    },
+    {
+      "path": "public/data/plans/mp-1/mp-1-floor0.svg",
+      "bytes": 39067,
+      "sha256": "1cbb00f935693ef5c0d1e9e5c15e3658a716c007629c1b2588c3f34d837df3d4"
+    },
+    {
+      "path": "public/data/plans/mp-1/mp-1-floor1.svg",
+      "bytes": 71221,
+      "sha256": "761fe6356b9d3c4e492ac448d87f4c96ef5d9cbf89a04c4125481e0ac2f0f4e7"
+    },
+    {
+      "path": "public/data/plans/mp-1/mp-1-floor2.svg",
+      "bytes": 42639,
+      "sha256": "f836e00435648eb8d94e5a3bcb199182bb7a478535f1f0744008bf59615b41f9"
+    },
+    {
+      "path": "public/data/plans/mp-1/mp-1-floor3.svg",
+      "bytes": 42964,
+      "sha256": "0d447810c50ca45290952daa4083bc9febef609b1743b7097e196ccec729e7d7"
+    },
+    {
+      "path": "public/data/plans/mp-1/mp-1-floor4.svg",
+      "bytes": 45057,
+      "sha256": "c08b593ce5e802853762efbb9a1f65bd58338918dc7470e6a63a68b0769d1720"
+    },
+    {
+      "path": "public/data/plans/mp-1/mp-1-floor5.svg",
+      "bytes": 22982,
+      "sha256": "0ed2c82a6cd419437a1713d7ebf742d955edda8f224c66fc24452209498bc7ef"
+    },
+    {
+      "path": "public/data/plans/s-20/s-20-floor1.svg",
+      "bytes": 61746,
+      "sha256": "a1c5f8b014049b07b19be90c820635ba576b96eff21da4d1d21326e68141a841"
+    },
+    {
+      "path": "public/data/plans/s-20/s-20-floor2.svg",
+      "bytes": 57136,
+      "sha256": "f10a9b8e68f6cce6007fe7ec5450019ce8f1697e1533776a4e460c74a25991ab"
+    },
+    {
+      "path": "public/data/plans/s-20/s-20-floor3.svg",
+      "bytes": 54053,
+      "sha256": "1f0c4ff2dbd890f200461dd63c2174a9ffd5f7269ff834977b7328455adde147"
+    },
+    {
+      "path": "public/data/plans/s-20/s-20-floor4.svg",
+      "bytes": 30158,
+      "sha256": "7d7c2b1bcf35cbc6f7bb0c25fbb3dc60d006174c9bff216ebbb7c16b6e2997cd"
+    },
+    {
+      "path": "public/data/plans/v-78/v-78-floor0.svg",
+      "bytes": 104256,
+      "sha256": "6d0694bae1ad2e47b9689341749c92e1ef83b91996676c4120e97d2124867bec"
+    },
+    {
+      "path": "public/data/plans/v-78/v-78-floor1.svg",
+      "bytes": 323166,
+      "sha256": "0bd46ad48eb9d4da130e74b4f7da51bb8ddb2eadf033c3439578f0a5286c03b9"
+    },
+    {
+      "path": "public/data/plans/v-78/v-78-floor2.svg",
+      "bytes": 244843,
+      "sha256": "e8e8a7a002e4370f6213b041fadc92d7244dfc3acf9eee12d6f49c78d3adb828"
+    },
+    {
+      "path": "public/data/plans/v-78/v-78-floor3.svg",
+      "bytes": 135899,
+      "sha256": "7427000cc65ebb7050026cfa5e6b6211c346d38237e6ce67ed67d789c3ef9f4e"
+    },
+    {
+      "path": "public/data/plans/v-78/v-78-floor4.svg",
+      "bytes": 25271,
+      "sha256": "ea9169f9f4c8c2e3cdcc77b7b8fd4b269d446178275301a2a33bcce511fac5cb"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor0.svg",
+      "bytes": 27516,
+      "sha256": "777b5ef9ac60ed70da528c50c2c2327d8a917c324560c4bb95b3c40db068d0c7"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor1.svg",
+      "bytes": 139001,
+      "sha256": "f6116753e02191d83ac044aa480549aacbc0efbdfe60a7eef7f1c3e7098283fb"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor2.svg",
+      "bytes": 87696,
+      "sha256": "a96754c89d9517b89dcac3304648085969d3f2b72c4c2b3605d610ce59eec06b"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor3.svg",
+      "bytes": 45015,
+      "sha256": "f6e5863fc4d5a34e1aeb29fc467497d8d524215640ffeea782fa099906a63f61"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor4.svg",
+      "bytes": 37619,
+      "sha256": "0c02407ca31b7622590c08e5b7a16733ad86339d28c4fced6958f1477a02b6f7"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor5.svg",
+      "bytes": 32186,
+      "sha256": "0c24b3abfa1b57851d4c2569655f16df7b8a128a94abee73551ff41c8622754d"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor6.svg",
+      "bytes": 17971,
+      "sha256": "6b2080e79aee03e79bf631feb9154962824bf9f7ee027e4a70143fe4cbd7fdb7"
+    },
+    {
+      "path": "public/data/plans/v-86/v-86-floor7.svg",
+      "bytes": 8388,
+      "sha256": "30fecef48d1016679b67b790c828295a8a8b46334e59a4355940d263e69d5aad"
+    },
+    {
+      "path": "public/data/routing/mp-1.json",
+      "bytes": 1739,
+      "sha256": "06af1e2c89e288cb38fff335858b92c43dc0d7e19850cb476ec80310544b4941"
+    },
+    {
+      "path": "public/data/routing/s-20.json",
+      "bytes": 2375561,
+      "sha256": "895fee8c4d211da86e429fbe7c494752ecaa3369e64714bdb3a9ec4a9bef8c9c"
+    },
+    {
+      "path": "public/data/routing/v-78.json",
+      "bytes": 11621275,
+      "sha256": "a6f68d44482e87806a6a62d2c9717ce38ca7a2969e759320003898150c80958b"
+    },
+    {
+      "path": "public/data/routing/v-86.json",
+      "bytes": 4310398,
+      "sha256": "4996a9d3dec397b68aacabde576bf37718027bd7afb45fd80d792cd7d8a8ee4b"
+    },
+    {
+      "path": "public/data/search-index.json",
+      "bytes": 947691,
+      "sha256": "f620cc37b2373e6bb333ec898a6b12b138345c45e4a6ee10eefd3b36fa30eb74"
+    },
+    {
+      "path": "public/data/stair-assumptions.json",
+      "bytes": 2435,
+      "sha256": "07ff4d63e4d6a86ad4a8f13e5f4877a7565a8fafcdf38b14d8f1627a1b58c55d"
+    },
+    {
+      "path": "public/data/stair-layouts.json",
+      "bytes": 261147,
+      "sha256": "427f4a3372a34def5d61079d2750e5a382243fc07ae2d3c070dab0ba6ed048d3"
+    },
+    {
+      "path": "scripts/build-all.py",
+      "bytes": 2017,
+      "sha256": "d754c747e61f19846910c9466b5736ba6b06a720dacb8c1adbfbf5d60c8d4f93"
+    },
+    {
+      "path": "scripts/build-android.mjs",
+      "bytes": 4001,
+      "sha256": "b91a63338f19386804972d8bbcfa29e5fe176a8a6acf5d2b64bc99f00ab60830"
+    },
+    {
+      "path": "scripts/build-data.py",
+      "bytes": 23704,
+      "sha256": "cdc47c28bb30aa79b3097436479344abc7d16ab499a0541debe5e3ec8b2b36d8"
+    },
+    {
+      "path": "scripts/build-exterior-context.py",
+      "bytes": 9567,
+      "sha256": "5adae72b4ccb7eafe62a57373b933ddf54f249414682776bc3dbee4e0632bcf6"
+    },
+    {
+      "path": "scripts/build-exterior-hall.py",
+      "bytes": 7942,
+      "sha256": "347d55ad8bc38f17a8092763a6700173a6327f1d0313dc36386de274bc4e7321"
+    },
+    {
+      "path": "scripts/build-exterior-shells.py",
+      "bytes": 13268,
+      "sha256": "2965d7bb6ad3be29e76016ba0df8b80f80fae61e3061be7cac1dc58ca33135d6"
+    },
+    {
+      "path": "scripts/build-exterior-special.py",
+      "bytes": 4716,
+      "sha256": "d623504682a7973ffd512aa98e3c9312fbe607e8c92978b97f93c0d586abb4d9"
+    },
+    {
+      "path": "scripts/build-mobile-macos.mjs",
+      "bytes": 11527,
+      "sha256": "e933995510f13f76462b34833c4b694c97552ce1b2786509407a484c6371cd88"
+    },
+    {
+      "path": "scripts/build-photo-details.py",
+      "bytes": 2141,
+      "sha256": "ec05f6f0f8d4b3f50d853a90ddcda51792dcb8af8275fcb31f8bf05c3591cf18"
+    },
+    {
+      "path": "scripts/build-place-landmarks.mjs",
+      "bytes": 5507,
+      "sha256": "ed8339e90ebd0dbb24f95e8a543fdd30813aba3bb213c6b447f81da1ea76f6fc"
+    },
+    {
+      "path": "scripts/build-routing.py",
+      "bytes": 11125,
+      "sha256": "00c977c770f0c89390b4cd48f2adc9f1c88a7f094bfbd9a879740b75d7139a2f"
+    },
+    {
+      "path": "scripts/build-stair-layouts.py",
+      "bytes": 14360,
+      "sha256": "5fcf9847ec983da3b38bdbe1f745f4126f0def5788a97bd74ecb6f268153fee3"
+    },
+    {
+      "path": "scripts/check-data.py",
+      "bytes": 2226,
+      "sha256": "6f5e3afd008a4cec48d28db3fb297964cf3bfde7d1f4c7231315d985a807daf7"
+    },
+    {
+      "path": "scripts/check-exterior-connections.py",
+      "bytes": 4565,
+      "sha256": "90cf2b29593eca21c7a5e63bcc2fa8e8529ec35ffd12e453def991f723f00d4e"
+    },
+    {
+      "path": "scripts/check-mobile-package.mjs",
+      "bytes": 944,
+      "sha256": "21e3e9f40da0365080a44b316508696a9c4cd6b3f52ea44e781ad66cc826fb5b"
+    },
+    {
+      "path": "scripts/check-routing.mjs",
+      "bytes": 10503,
+      "sha256": "4c26785a6f7d13f3e4ae18f0a9b7336917aa5d341399812726d9427a0e255f9c"
+    },
+    {
+      "path": "scripts/check-stair-layouts.py",
+      "bytes": 5760,
+      "sha256": "5a9c3a28466fa4782696899885effbf9fcfbc652e04c9669365a39d0a2cb8999"
+    },
+    {
+      "path": "scripts/exterior-overrides.json",
+      "bytes": 10390,
+      "sha256": "2d9d31339e7f858172a433441ad78459c9f61391bc7dcaf617f5a68718017887"
+    },
+    {
+      "path": "scripts/lib/mobile-package.mjs",
+      "bytes": 3381,
+      "sha256": "0b770984a97a2e0643e869bd1cdb62e29c4281ba7a4d7411594cd89b55547bbd"
+    },
+    {
+      "path": "scripts/lib/release-data.mjs",
+      "bytes": 8649,
+      "sha256": "3f0b88918db69b472b80cd8729b4668ebe6ddfac3853a7e0b4ee90def547092b"
+    },
+    {
+      "path": "scripts/map-classifications.json",
+      "bytes": 1445,
+      "sha256": "ded51e34fbee271b164045d7262ac67d03916591f130ed71e395b9b1eba1056f"
+    },
+    {
+      "path": "scripts/mobile-doctor.mjs",
+      "bytes": 8207,
+      "sha256": "963ae601eaf38a647725a6806254829ff626e57176cc6b7fed3eb5955aa27079"
+    },
+    {
+      "path": "scripts/mobile-icons.swift",
+      "bytes": 3261,
+      "sha256": "c01bd20398db4b9f9a97dc6136167762fa44eb3e255bfb2dd98c7f27d52f031e"
+    },
+    {
+      "path": "scripts/mobile-package.mjs",
+      "bytes": 420,
+      "sha256": "3fb242c08d2e4cbbda9339e15773f48455af5e7c7ce1ed2cc418a9466572c7f0"
+    },
+    {
+      "path": "scripts/package-handoff.py",
+      "bytes": 5176,
+      "sha256": "3e5361c1fca6e94fe57299edabd51b05639d87a8f2c14ebac245bcd38ab6794f"
+    },
+    {
+      "path": "scripts/requirements-data.txt",
+      "bytes": 52,
+      "sha256": "d0973768f6b9af7dab5e86b5142ad44a29241ea878626db1ad997003f65a66cb"
+    },
+    {
+      "path": "scripts/serve.mjs",
+      "bytes": 6846,
+      "sha256": "74c66477fdaee7250165f202a432d841262ee8367e7f2a2805b90729fcf3c9b8"
+    },
+    {
+      "path": "scripts/stair-layout-a.json",
+      "bytes": 16807,
+      "sha256": "900a311bae1a57660721c8e386fc6a5a7a72e78814b5dc53aee534b372500343"
+    },
+    {
+      "path": "scripts/verify-native-artifacts.mjs",
+      "bytes": 16500,
+      "sha256": "42fc293236dfaadd525db16b3ac765982b1bcd1fa46ab770118a633f27397e07"
+    },
+    {
+      "path": "source/maps/README.txt",
+      "bytes": 2429,
+      "sha256": "392ec90c4fff455d9248e5de452307e9141765b93e42cd2507f602465bb5137e"
+    },
+    {
+      "path": "source/maps/archive-audit.json",
+      "bytes": 5795,
+      "sha256": "32725685f1640e2fa396db872b794665813451c2d2765e5c841c1e68ed8e9d01"
+    },
+    {
+      "path": "source/maps/exterior-osm.xml",
+      "bytes": 1876784,
+      "sha256": "923fb5a5b00a0df207fd17cad1ce646a3fb2cd3c36d99cb4dd1bfa49a5fcbfc3"
+    },
+    {
+      "path": "source/maps/index.html",
+      "bytes": 2455583,
+      "sha256": "fb22d0457f4a41e8a53f5a23e87f518ad2561fa6186c4a71cc99cd27395890ea"
+    },
+    {
+      "path": "source/maps/inventory.json",
+      "bytes": 4453,
+      "sha256": "d555bcd00b077e61300a2d5e78f38d5abff6eb2e31ff4a335f305f5fd53a7bb9"
+    },
+    {
+      "path": "source/maps/original/mp-1/-1.svg",
+      "bytes": 144891,
+      "sha256": "707bcb9d67fcacd75cf76dd3d6e6636e40b7e31301c8bf80ceab58c4d7a178fe"
+    },
+    {
+      "path": "source/maps/original/mp-1/1.svg",
+      "bytes": 175376,
+      "sha256": "05377954ff63eff2c1b73a4fd8c55ee30a81583e49db1430d8fa7195000e7b4b"
+    },
+    {
+      "path": "source/maps/original/mp-1/2.svg",
+      "bytes": 140554,
+      "sha256": "44261caffb1825f7ff7506fe4bb8bb1bdf7112e135f8575953e25c967d2b14b0"
+    },
+    {
+      "path": "source/maps/original/mp-1/3.svg",
+      "bytes": 164123,
+      "sha256": "58680538d9e56c5b29ea1ff5e1f53dc0ae3e8dd6ea15d5b3e08268c63bb8e1a5"
+    },
+    {
+      "path": "source/maps/original/mp-1/4.svg",
+      "bytes": 135253,
+      "sha256": "9ba0a1ae1b66502262ee691a48499cc1d365969d6d4004f7d683161d02ebe46e"
+    },
+    {
+      "path": "source/maps/original/mp-1/5.svg",
+      "bytes": 91332,
+      "sha256": "42572b8f99f995c9c8faf99c18a741ec81d55129f2d7a1b305dae49eca975cc9"
+    },
+    {
+      "path": "source/maps/original/objects.json",
+      "bytes": 66254,
+      "sha256": "e4bf1576fbbd3aaec8e0feb5ede8ba5b5750e9591f79f993e3eed80ad3dc4521"
+    },
+    {
+      "path": "source/maps/original/pulse/campus_mp-1.json",
+      "bytes": 1176774,
+      "sha256": "c4ce8a6702418bbabd2e02de761f511ca171fd3b0ba428bf1c14f150c70d1fd5"
+    },
+    {
+      "path": "source/maps/original/pulse/campus_s-20.json",
+      "bytes": 2143669,
+      "sha256": "d882f55311334cccdd055016b7f27d0eca2849b51360126cb279e595aa728f06"
+    },
+    {
+      "path": "source/maps/original/pulse/campus_v-78.json",
+      "bytes": 9859666,
+      "sha256": "6279e0c77ad3e70274aadc6622c64c17282a3e90e4cc5858c19975125c4f632b"
+    },
+    {
+      "path": "source/maps/original/pulse/campus_v-86.json",
+      "bytes": 3834298,
+      "sha256": "1a0994f7b2137f2478e0e544ade8f604476bb8ad1872f17ef55cfb017978f9f5"
+    },
+    {
+      "path": "source/maps/original/pulse/catalog.json",
+      "bytes": 3323,
+      "sha256": "ee53a0663fc71591487a2be60c1c70e5298e78c856cd267d1428251462f45438"
+    },
+    {
+      "path": "source/maps/original/pulse/provenance.json",
+      "bytes": 11255,
+      "sha256": "78ea50aa179fc00bd6b7ff50ad9395321b053d24324a2b19249d0b794bec89f9"
+    },
+    {
+      "path": "source/maps/original/s-20/floor_1.svg",
+      "bytes": 111929,
+      "sha256": "75d729d0ad780c24e87d344a7b4814c7495044db4cf7bf0a8b19ba855206d7f0"
+    },
+    {
+      "path": "source/maps/original/s-20/floor_2.svg",
+      "bytes": 158450,
+      "sha256": "bc93c98de47fad0a9b1ad3f6fe06b8f091e77c59511a1f6525a81442aa3923f8"
+    },
+    {
+      "path": "source/maps/original/s-20/floor_3.svg",
+      "bytes": 185929,
+      "sha256": "7440bf4ae2b4700b4f77d7056ca6a6acd8f9d469307a2bb3a7ed4e0994c85a0f"
+    },
+    {
+      "path": "source/maps/original/s-20/floor_4.svg",
+      "bytes": 87225,
+      "sha256": "f7501f087f54e1deca94cc63e9e7fa437a66ebfe94b84e3edba815b44f064704"
+    },
+    {
+      "path": "source/maps/original/v-78/floor_0.svg",
+      "bytes": 212275,
+      "sha256": "c2cc2e6b3f95ed6f6cb694987a3d62c536eca3551b91a4c8ce2fb47fc0647e0c"
+    },
+    {
+      "path": "source/maps/original/v-78/floor_1.svg",
+      "bytes": 450602,
+      "sha256": "42c1ef241492c89d45aec7c6d095b24b0dfe8d97eae722591fe189779f59e074"
+    },
+    {
+      "path": "source/maps/original/v-78/floor_2.svg",
+      "bytes": 554718,
+      "sha256": "b0f6f140062a9793b36849382ef647fa44cccc13b007fef58736cebd96918976"
+    },
+    {
+      "path": "source/maps/original/v-78/floor_3.svg",
+      "bytes": 446934,
+      "sha256": "f6cf4e37c53cb5d4e95f58642f98c8698970040b7473f999ee95984789507036"
+    },
+    {
+      "path": "source/maps/original/v-78/floor_4.svg",
+      "bytes": 95283,
+      "sha256": "dab3008a15ca72ee6ca92523bcdb54b3b900b55ad090fccea76a72c3fdc0c755"
+    },
+    {
+      "path": "source/maps/svg/mp-1/floor_-1.svg",
+      "bytes": 46020,
+      "sha256": "08e5200d5000cffeec5e5d726391d92b46a41ce79f8cdbfd571e864188d8d722"
+    },
+    {
+      "path": "source/maps/svg/mp-1/floor_1.svg",
+      "bytes": 80329,
+      "sha256": "a7275f715ef37af66d175c942693fe692cb71ae9a58d2e6ecf0771e7b2b56b68"
+    },
+    {
+      "path": "source/maps/svg/mp-1/floor_2.svg",
+      "bytes": 50214,
+      "sha256": "1d6aa5181b590b05dca9839753999bf197326f1285a615c5734682521831c891"
+    },
+    {
+      "path": "source/maps/svg/mp-1/floor_3.svg",
+      "bytes": 50718,
+      "sha256": "dc2eb5bcbd3d6c352ace28a65c53538e62fb8d1532f5160b12904dd96cf3cd89"
+    },
+    {
+      "path": "source/maps/svg/mp-1/floor_4.svg",
+      "bytes": 52914,
+      "sha256": "9b4e8d9a2e9e8f0a4745a17e4394091d81ae36dff91b614b3844072297be9cb7"
+    },
+    {
+      "path": "source/maps/svg/mp-1/floor_5.svg",
+      "bytes": 27741,
+      "sha256": "cce3318ca9e8b87e24bc12849a0ea0a7d5258d49c49277a7c35feb375a40a111"
+    },
+    {
+      "path": "source/maps/svg/s-20/floor_1.svg",
+      "bytes": 70928,
+      "sha256": "645d12b343fbe14942428f97b8b1a2c0bdb66a43356040548eb7789ddfb09669"
+    },
+    {
+      "path": "source/maps/svg/s-20/floor_2.svg",
+      "bytes": 68335,
+      "sha256": "a212be849fde01c7d16cc35d5ec0bbf7da394d99ef06ac369794e81a75daa545"
+    },
+    {
+      "path": "source/maps/svg/s-20/floor_3.svg",
+      "bytes": 64444,
+      "sha256": "1bb8fbf5fe1c3b628089918dd1f917afba3da2f4f080854b33e5c4fabffa3505"
+    },
+    {
+      "path": "source/maps/svg/s-20/floor_4.svg",
+      "bytes": 36372,
+      "sha256": "e8df46cd9f5ce0b79f24e7f76ebf899b3077ba175a87f5046a547e82d6f6361e"
+    },
+    {
+      "path": "source/maps/svg/v-78/floor_0.svg",
+      "bytes": 123493,
+      "sha256": "f43160ba80131cc51e36efe3f730750fd8a5a5ce3fc3a7f403f54e4be29b0644"
+    },
+    {
+      "path": "source/maps/svg/v-78/floor_1.svg",
+      "bytes": 360265,
+      "sha256": "373e5d17e8ae84b64221de02034a2ea938765075ca9583f12f2d1ac405b349a3"
+    },
+    {
+      "path": "source/maps/svg/v-78/floor_2.svg",
+      "bytes": 268526,
+      "sha256": "32dca15a3f36ff3dadc65f1a514c8de320b620015ffdea15280aa465474ab68d"
+    },
+    {
+      "path": "source/maps/svg/v-78/floor_3.svg",
+      "bytes": 156252,
+      "sha256": "9c5b8524be28eb0734b5fb55ff53e766baf1e72a9e94f553dffb2c4c35adc19c"
+    },
+    {
+      "path": "source/maps/svg/v-78/floor_4.svg",
+      "bytes": 30010,
+      "sha256": "4bf27c57e8600d3f04ed21e74aaae8a66699c0c5c181e61c9bc6d18e5d5fa830"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_0.svg",
+      "bytes": 30374,
+      "sha256": "1c516ee402876c5481ba867a97089a08c8953ebffd90d438a6dab0ccdf77fde6"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_1.svg",
+      "bytes": 161783,
+      "sha256": "6d41a8eb0805252145310a4ec6046191e121beed1e8281c2c674840de3c170ae"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_2.svg",
+      "bytes": 99080,
+      "sha256": "f47eb8ab15d6a3a4a6d645c4f2db3b5246ec8b101a412f61915926304edb0a25"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_3.svg",
+      "bytes": 50601,
+      "sha256": "9fd86fa0a128fa72a340886730221f43ae8759aa41c59ec0e2ffd8c51357bef2"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_4.svg",
+      "bytes": 41771,
+      "sha256": "311230543f57df4892a01b64c2e4225ff3d47d5b59125909c80738ee45876383"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_5.svg",
+      "bytes": 35293,
+      "sha256": "dc9390980211aec2817823d31e1e5763467fa12dc99e147ca969d635b4220c7b"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_6.svg",
+      "bytes": 20598,
+      "sha256": "f554c914e785a086f991b3e3f17ebe1bc3f9598212c37bcc84e5c045fc3e6a5e"
+    },
+    {
+      "path": "source/maps/svg/v-86/floor_7.svg",
+      "bytes": 8824,
+      "sha256": "beb22524b89196f48996d6ac099143eca45a990d4c1e9cfd79e140b4db068485"
+    },
+    {
+      "path": "src/app.js",
+      "bytes": 32783,
+      "sha256": "1273035db31b8a20ed17e08cb8ce571a0a80e676ea4d864a72d2847ac29660c9"
+    },
+    {
+      "path": "src/data/bootstrap.js",
+      "bytes": 5599,
+      "sha256": "086c9ca46f5c29e5cfb9c2eea440f68997fa070a059d85a9274a063c6242db92"
+    },
+    {
+      "path": "src/data/client.js",
+      "bytes": 502,
+      "sha256": "0c4dbfb4317439697c3cd44c1060e70fc4070006c49bd71d549ce74b1113d148"
+    },
+    {
+      "path": "src/data/current-route-origin.js",
+      "bytes": 10817,
+      "sha256": "8e2c70df109a5e5b48d336aaaa9f15acebd7f58268c22abdec6867a6bcc5ca07"
+    },
+    {
+      "path": "src/data/gps-registration.json",
+      "bytes": 1890,
+      "sha256": "25206698742dcf7025420119d5a7b10cd847527a10dfade7851278eeef2bc70a"
+    },
+    {
+      "path": "src/data/hall-adjacency.json",
+      "bytes": 6011,
+      "sha256": "b59a49b9ade770fc8e40fe1801e24890edf6187d6a4a36cbfd586efb7c76c120"
+    },
+    {
+      "path": "src/data/location-tracking.js",
+      "bytes": 10073,
+      "sha256": "e13d6e9d485706ffde55a161d5bdf1aa83eb2eb29e17b9cad9153921ab9e5741"
+    },
+    {
+      "path": "src/data/navigation.js",
+      "bytes": 1876,
+      "sha256": "8b3f30c327375606805ff99f3fb1fa92c14d0cdce9f19c45a81d9748eb0b3efa"
+    },
+    {
+      "path": "src/data/nearby-places.js",
+      "bytes": 8846,
+      "sha256": "4aea9b663a987c0ac3e1827914784b1a2801ad0d10cd7434ae78197a099d7ff5"
+    },
+    {
+      "path": "src/data/nearby-worker.js",
+      "bytes": 467,
+      "sha256": "e6e0a84ba4b039b5d6305e92df1077a4bfebec2bedbd3d2ff8c37c3382ec8c2e"
+    },
+    {
+      "path": "src/data/place-landmarks.json",
+      "bytes": 19743,
+      "sha256": "7d2cfe01651a1fac40f4ba8cce9a945f71ed123626bb2a5f87668d1cef507835"
+    },
+    {
+      "path": "src/data/place-location.js",
+      "bytes": 12919,
+      "sha256": "265e01a454fd7d87c53eb1f991a1018f5d22d66ac6db2b825dc3d33dfc9a057e"
+    },
+    {
+      "path": "src/data/place-search.js",
+      "bytes": 3434,
+      "sha256": "4bd23a28b5a9c11b6269e73b97e29162ee1a245cde0a952a11a50e4d1d05d542"
+    },
+    {
+      "path": "src/data/route-worker.js",
+      "bytes": 1011,
+      "sha256": "ea0a56b941cce445c94b2550a34066a2a37f060301237bf23fb44b004163515f"
+    },
+    {
+      "path": "src/data/routing.js",
+      "bytes": 14515,
+      "sha256": "5cc520716dbc6dfdf0515b927228bc3de55a2a92eaed547c0981c4e24b377901"
+    },
+    {
+      "path": "src/data/spatial.js",
+      "bytes": 4160,
+      "sha256": "5b089e7ecb55f9307d4a8069176c34af3608f79631c09785ec34ad5ec860f370"
+    },
+    {
+      "path": "src/data/stair-partition-routing.js",
+      "bytes": 1833,
+      "sha256": "8ad9dc55c148f863b47098c9ad0ec731cd525efa2f9f91bfa7abc59e0155d124"
+    },
+    {
+      "path": "src/data/stair-partitions.json",
+      "bytes": 3766,
+      "sha256": "3bde9430518d1e0cbda2e79b96f00cc0e387d9f736f5f8823eaad5a901cb8633"
+    },
+    {
+      "path": "src/data/survey-routing.js",
+      "bytes": 4308,
+      "sha256": "c86705f0b429b30a510b59b883638ac48a76e6f184cd1f97fad24acae1b0af20"
+    },
+    {
+      "path": "src/data/user-location.js",
+      "bytes": 4179,
+      "sha256": "6104f92db29e20d2cd260ade1af22740cfcc68d28d64586d4a4f06a33691c5e6"
+    },
+    {
+      "path": "src/data/utils.js",
+      "bytes": 5593,
+      "sha256": "60fadf048a41ed607137771f1022fd830e42f0594e436c1d85fae6860d1e17ad"
+    },
+    {
+      "path": "src/data/wifi-survey.js",
+      "bytes": 14756,
+      "sha256": "d73c1662c538963793d4e4d88332df67a56b4245757f99d1ebf000295be059a7"
+    },
+    {
+      "path": "src/heading.js",
+      "bytes": 7993,
+      "sha256": "b1cd55847291e23d88baa202f8a53fbd6943f717ef26c16a9773eb5c0a06d0a8"
+    },
+    {
+      "path": "src/location.js",
+      "bytes": 16752,
+      "sha256": "31efb08afb22e8b53be40e25d834e1c62a6bc04da857be157c7c7be5f48dfba6"
+    },
+    {
+      "path": "src/main.js",
+      "bytes": 164,
+      "sha256": "509134265a377d14bd47abe155fe6a04797c14bd5f7b5361b71939833e0e9b7c"
+    },
+    {
+      "path": "src/map/building-view.js",
+      "bytes": 5997,
+      "sha256": "cb30dafac7b27054c801e2ff05a3c4dafa37479be2aeb396bdf275e4e32942bc"
+    },
+    {
+      "path": "src/map/exterior.js",
+      "bytes": 22269,
+      "sha256": "63667d5781877f267dec15297b3affffc1df940abaea0e58a4160592f7a816f0"
+    },
+    {
+      "path": "src/map/gestures.js",
+      "bytes": 4536,
+      "sha256": "dcc022106a5d6ea4ee9d1243eabb2e54bb223bb1c09e621304b48e1a1c6de5f3"
+    },
+    {
+      "path": "src/map/hall-adjacency.js",
+      "bytes": 8456,
+      "sha256": "995e5dc83c1ecd88317fdcd369a74c25aee3449d881e68ccaf7caff83caeb6ea"
+    },
+    {
+      "path": "src/map/hall.js",
+      "bytes": 15513,
+      "sha256": "a0581544083f67ba70eb5c0128c2e5ae796923a0d2edd4a40ad170a5c1d58744"
+    },
+    {
+      "path": "src/map/indoor-overrides.js",
+      "bytes": 9265,
+      "sha256": "dee828a27027800e214e897373411051d46c99070fa8376b714caee76e5b06f4"
+    },
+    {
+      "path": "src/map/library-stair.js",
+      "bytes": 10152,
+      "sha256": "53d4e185d348ee4b162d2e66f148bb3766a3621fa1876072378ec4ad711f5877"
+    },
+    {
+      "path": "src/map/location-view.js",
+      "bytes": 7496,
+      "sha256": "b0e7e26f5dbf05fcc0e422e03d8b269b316cc24af1422e070b493725e4f9c7b8"
+    },
+    {
+      "path": "src/map/render-lifecycle.js",
+      "bytes": 2253,
+      "sha256": "73ed0455703e1f9c2132ea5ee3baf1377af79ad8c6b10a06613c3a53517d36b6"
+    },
+    {
+      "path": "src/map/route-guidance.js",
+      "bytes": 5262,
+      "sha256": "7bd958c42b915822f0622ee026f3a2befc5cc0757546bf71245a56379d0157ac"
+    },
+    {
+      "path": "src/map/route-rounding.js",
+      "bytes": 7593,
+      "sha256": "a9a8d1ca40d1fbfa73ffc6e05b0b4a4a8ed912d1a8f4510a81ad84c157de92b8"
+    },
+    {
+      "path": "src/map/route.js",
+      "bytes": 9392,
+      "sha256": "d500c5ef25e2197d635b7221138906e20366cfca6fe23780f8e8af6383352495"
+    },
+    {
+      "path": "src/map/scene.js",
+      "bytes": 90358,
+      "sha256": "9cb07f1cc801afcc57a6187afcd132cb9935f996ea7f33d616bf82f8cbd343bb"
+    },
+    {
+      "path": "src/map/stair-arrivals.js",
+      "bytes": 12166,
+      "sha256": "6fd764cbaf7dbe84bbbfa5dd5fc9bee91646c36cad0d4520f68c1a24f22c49fd"
+    },
+    {
+      "path": "src/map/stair-partitions.js",
+      "bytes": 11092,
+      "sha256": "6e3c63fbb4adde2460e8ac244b3bca19bf7758be4bd289566e5f19606876d39f"
+    },
+    {
+      "path": "src/map/stairs.js",
+      "bytes": 43044,
+      "sha256": "c65a2b6643087a5edbddd308bd91b86d7006a997f0983c3c89cf026d0172a7a5"
+    },
+    {
+      "path": "src/mobile.js",
+      "bytes": 3968,
+      "sha256": "41a65561750654bfd821687edfe76a45d7c90e63bac0952f54784a23577bf51d"
+    },
+    {
+      "path": "src/styles.css",
+      "bytes": 42093,
+      "sha256": "9b1d76c48f5f8c83642de51f51adadde4230be3e77422d70ad19fd334e3bc838"
+    },
+    {
+      "path": "src/ui/dom.js",
+      "bytes": 239,
+      "sha256": "1ba396b1660bbb691da77b33be69b7d967508a51b00ac9994a8ea9404538a329"
+    },
+    {
+      "path": "src/ui/experience.js",
+      "bytes": 10548,
+      "sha256": "5ed00c584b7f377b91e4b6082ccdef3aa29ec1cad5b9b238b48af712cc900318"
+    },
+    {
+      "path": "src/ui/icons.js",
+      "bytes": 1995,
+      "sha256": "7d5eafa2b24959b5410b482df985ce7b28d21171d66e27d968ac86123ba45d11"
+    },
+    {
+      "path": "src/ui/layout.js",
+      "bytes": 12615,
+      "sha256": "616ea6f5d73c1e4026e568c76703de1e09aeebd5b257e9bf8e04a7df707d09ba"
+    },
+    {
+      "path": "src/ui/location.js",
+      "bytes": 20291,
+      "sha256": "fab842daa0368d0c9195f75e2cca8e4406a3709a91bc5d4fd341cdc28f968f0b"
+    },
+    {
+      "path": "src/ui/routes.js",
+      "bytes": 34294,
+      "sha256": "53c1c8e808cecf3f87fedfdf992f05a78e9bbb94fd1223047b895fc63bc3bb95"
+    },
+    {
+      "path": "src/ui/search.js",
+      "bytes": 10293,
+      "sha256": "49c1d5ce917f13f6d14450f665cc78becea514753300b5c8044a7bb2a7ac1d93"
+    },
+    {
+      "path": "src/ui/sources.js",
+      "bytes": 8753,
+      "sha256": "80085519e56b12605d62cb23d5137e2788f4bfedf185960bbab0aa7efdc3f841"
+    },
+    {
+      "path": "src/ui/wifi-survey.js",
+      "bytes": 15654,
+      "sha256": "1c83fa2a64cbc5f009444982ce307186e7df24083757fc5c50236d1d538d6d8d"
+    },
+    {
+      "path": "tests/assets.test.mjs",
+      "bytes": 6270,
+      "sha256": "b2874cd71d7bc07c04706cf6533ebeaba9c811fc326f7571b708acf0a0348b1d"
+    },
+    {
+      "path": "tests/bootstrap.test.mjs",
+      "bytes": 8109,
+      "sha256": "606d19ab1d03f9a0ab9ef906351c545cd04eb874dafcac3eb19b3bb75d71c2de"
+    },
+    {
+      "path": "tests/build-android.test.mjs",
+      "bytes": 1510,
+      "sha256": "1bbee5902c66efa3a777d87f80314f540b751f419908c4477020df2e1a168127"
+    },
+    {
+      "path": "tests/build-mobile-macos.test.mjs",
+      "bytes": 6819,
+      "sha256": "317aa09e68131023ec51c7e9e6ab85a80c7b7c64277d60d39f1f79a7e8f3d8cf"
+    },
+    {
+      "path": "tests/building-view.test.mjs",
+      "bytes": 5147,
+      "sha256": "4c440b5ac86184378ef20ddaa528eb68211bade55ee0246d69cc6c95f782e56e"
+    },
+    {
+      "path": "tests/camera.test.mjs",
+      "bytes": 19951,
+      "sha256": "5ada6ee3d48a96e8c7ffbc0fc1e3889dd0891e3c0ffe77186768d17f9bfe2839"
+    },
+    {
+      "path": "tests/corridor-location-picking.test.mjs",
+      "bytes": 5092,
+      "sha256": "35f6d55dcad0dcb73503c71fcac83ccf173a42617c61e818c8636cc5893c5119"
+    },
+    {
+      "path": "tests/current-route-origin.test.mjs",
+      "bytes": 9175,
+      "sha256": "2c719dd78e1221509433529e1b6db58c75df860df61b247957c3e046205b9cbd"
+    },
+    {
+      "path": "tests/data.test.mjs",
+      "bytes": 6924,
+      "sha256": "0fd5efe7cff0aa4e10fad757ce09f03850bcfae04a2d67f81d59d6da1f14ccc1"
+    },
+    {
+      "path": "tests/exterior.test.mjs",
+      "bytes": 6053,
+      "sha256": "cd743304e2678502d0763d4e46c86c381df7690ebaedacee6776aa7cdc12e1ae"
+    },
+    {
+      "path": "tests/hall-adjacency.test.mjs",
+      "bytes": 10265,
+      "sha256": "7c5b5c9a5d5bd866474cdf99fad3d40104e9bd93ae7cda5b13cc91ae8b15ca94"
+    },
+    {
+      "path": "tests/heading.test.mjs",
+      "bytes": 8695,
+      "sha256": "baf3c0545f72e1ff09d66dd9b46bea1437c7a77101c76b0cebf420ed3b077fdc"
+    },
+    {
+      "path": "tests/indoor-overrides.test.mjs",
+      "bytes": 20850,
+      "sha256": "34b1720a87dc6fab25dddb9aa183a3cd3357f7363fe3ac1f69f1ac8cd31d4c8b"
+    },
+    {
+      "path": "tests/launcher.test.mjs",
+      "bytes": 7815,
+      "sha256": "44e3370a4f8d9b8f4e960944929f87c8ea48ca727914a1ad50d23dfe31a2f05a"
+    },
+    {
+      "path": "tests/library-stair.test.mjs",
+      "bytes": 10155,
+      "sha256": "3b2ab33583587a13422ac1d3eaa9a4af9a8d114a2542bf21e7c1895570ac6f31"
+    },
+    {
+      "path": "tests/location-map-actions.test.mjs",
+      "bytes": 10261,
+      "sha256": "029d2ca9836951154afc075442001e5ffe0ac890daaefefce502954911ec58e5"
+    },
+    {
+      "path": "tests/location-scene.test.mjs",
+      "bytes": 17021,
+      "sha256": "0513fb0732b5b9bcd7355232da084e8d9920c8b5f7aa1739a43a0207c8d6a7fb"
+    },
+    {
+      "path": "tests/location.test.mjs",
+      "bytes": 10878,
+      "sha256": "21449bca17213a543aff2c000a9d3b4672a4fee79dc67ab986c178d9a80daf37"
+    },
+    {
+      "path": "tests/map-gestures.test.mjs",
+      "bytes": 14688,
+      "sha256": "76d096aacad7b8053575e5bbcac074ce2314c31194d340e384b8d0b6b1723bc7"
+    },
+    {
+      "path": "tests/middle-stair-render.test.mjs",
+      "bytes": 4555,
+      "sha256": "dea1573fcc8c61d7f0034b5dc850eeaba044541c2684bbbaa15673146d6347fc"
+    },
+    {
+      "path": "tests/mobile-doctor.test.mjs",
+      "bytes": 7628,
+      "sha256": "e1c588f60b99c868bd925525c18a1d1693c86dd98da2139177712d93c922371d"
+    },
+    {
+      "path": "tests/mobile-lifecycle.test.mjs",
+      "bytes": 5474,
+      "sha256": "955f26ac8d9e47908235dcfdd442b23d4a3619a4444c74800a9e614506e8c845"
+    },
+    {
+      "path": "tests/mobile.test.mjs",
+      "bytes": 1075,
+      "sha256": "036938bdf95bb1bebc5a63cf492ae4cc67fb7b433a04cf721214e49474be4ea4"
+    },
+    {
+      "path": "tests/native-artifacts.test.mjs",
+      "bytes": 6378,
+      "sha256": "a931c3055a80e5a84b94f6674f2647c7e939c1b6d5e3a6b6429c3f2dfb46a9e4"
+    },
+    {
+      "path": "tests/navigation.test.mjs",
+      "bytes": 19997,
+      "sha256": "cf1ee7a0c79a57eb53264a37ad558d3b1536d19fc2a9264c30c8673a10fc0a28"
+    },
+    {
+      "path": "tests/nearby-places.test.mjs",
+      "bytes": 10761,
+      "sha256": "c28a0c9657743b1086dbb1bcc8e7d73404dd73f815135ab91c00f5212d9066e3"
+    },
+    {
+      "path": "tests/place-location.test.mjs",
+      "bytes": 13905,
+      "sha256": "fcb7069de60f8fd3a6aff32c6c47955c3916a1ce9c830158972fc4f2281f70ef"
+    },
+    {
+      "path": "tests/place-search.test.mjs",
+      "bytes": 1873,
+      "sha256": "0f1419afd26c5bbdd546b61d90fc3c913f661116b071981d1ddd9970e0d4ed93"
+    },
+    {
+      "path": "tests/release-package.test.mjs",
+      "bytes": 11859,
+      "sha256": "6b75f660aeaf51346c38e2d8fe42367e01da57defc57bc793c721f130ac6e7ee"
+    },
+    {
+      "path": "tests/rendering.test.mjs",
+      "bytes": 16937,
+      "sha256": "665bea71d85b2beff0ed980bd00b90cd34d62f8dfdfd61219c949a9ef3fab8d4"
+    },
+    {
+      "path": "tests/route-guidance-scene.test.mjs",
+      "bytes": 5633,
+      "sha256": "68648fa94f628931bdec53a786be614b9cd24bc49042657ef6ca424725d57cb9"
+    },
+    {
+      "path": "tests/route-guidance.test.mjs",
+      "bytes": 4895,
+      "sha256": "e118912ca3c94cea169bf88144d6cfc3260a66ed0d5544f811e8f6e717dea6d0"
+    },
+    {
+      "path": "tests/route-rounding.test.mjs",
+      "bytes": 10576,
+      "sha256": "c7bba3695f1cd695dbaa377669a834f5baf85246b2a8f35051f12d05cfe2b342"
+    },
+    {
+      "path": "tests/route-scene.test.mjs",
+      "bytes": 13745,
+      "sha256": "4fe2335b0f1b04aa0680be141febcdd222c82c91b944539fd70b4e8286610162"
+    },
+    {
+      "path": "tests/routing.test.mjs",
+      "bytes": 13573,
+      "sha256": "0cbb9dcfe02260a39aa66f80e4eb320d21c97447a3e19650c5d0c70ad78729fe"
+    },
+    {
+      "path": "tests/scene-lifecycle.test.mjs",
+      "bytes": 6712,
+      "sha256": "0ba90a0a526c8063571a6d73474127303efbdbe0a5e9cbd60653c8d5b768afbc"
+    },
+    {
+      "path": "tests/scene-stair-modules.test.mjs",
+      "bytes": 8139,
+      "sha256": "3902edcb1f6e7629315b0009cd374b643c72333855c92786523ad250f347f8b5"
+    },
+    {
+      "path": "tests/search-nearby-ui.test.mjs",
+      "bytes": 10378,
+      "sha256": "e8f8096eb58d26ac2dbb74f863dbc5f2dd49880c2e821cf0dd1c08b212343673"
+    },
+    {
+      "path": "tests/share.test.mjs",
+      "bytes": 3681,
+      "sha256": "9d00fff27791449e0348a51d5e603e43ce7ada6096bdca50501aa943cd391788"
+    },
+    {
+      "path": "tests/spatial.test.mjs",
+      "bytes": 3552,
+      "sha256": "a644f0060ef303760ef82baa61f18a12ec97e836d835d4eaf5613eaf7be16981"
+    },
+    {
+      "path": "tests/stair-arrivals.test.mjs",
+      "bytes": 9433,
+      "sha256": "fac9dcb19c87f88f53ec8db50205f95e68a012d5b145ee4ff778b3bdb6b79683"
+    },
+    {
+      "path": "tests/stair-labels.test.mjs",
+      "bytes": 8136,
+      "sha256": "185f246156e6315b200b06b1451e7ef52b63b2e2b5d4ba9dbc794e9ad0550f33"
+    },
+    {
+      "path": "tests/stair-partition-routing.test.mjs",
+      "bytes": 4565,
+      "sha256": "3587b4e7825af68137f54b457f0f502cb1a6093f3f02761d6bacc8b15a475873"
+    },
+    {
+      "path": "tests/stair-partitions.test.mjs",
+      "bytes": 7216,
+      "sha256": "83b7ff876c20bdb1f235dcf32b7723e498bde01e103174c20bac774bca425e54"
+    },
+    {
+      "path": "tests/stair-sketch.test.mjs",
+      "bytes": 1894,
+      "sha256": "1dd1acf040ba489ebb528a34ef848ce62d3ec9e0806258e007ab27d472cf4468"
+    },
+    {
+      "path": "tests/stairs.test.mjs",
+      "bytes": 33861,
+      "sha256": "160ef533ff7b4a3262792cb16734719ffd451a9049cedeca64b1e308ed648616"
+    },
+    {
+      "path": "tests/survey-routing.test.mjs",
+      "bytes": 8121,
+      "sha256": "ecaef4722b95eda766f72ddb5de9d4507dcbfedd8c5e0a930e8bb8be36fb7b70"
+    },
+    {
+      "path": "tests/tracking-location.test.mjs",
+      "bytes": 13367,
+      "sha256": "1c1478593c5978d36378eca844b9cab7d885740c7430a52dfa8995093a8120e5"
+    },
+    {
+      "path": "tests/tracking-watch.test.mjs",
+      "bytes": 8907,
+      "sha256": "a3c1cbda878d62719f3a030a7d71556b8107021131a8594568fcb443abe9ad75"
+    },
+    {
+      "path": "tests/ui-controller.test.mjs",
+      "bytes": 35835,
+      "sha256": "b42551b76695ad93924dbaebed58397a889041e3df255f3263d8ff7f548a9af1"
+    },
+    {
+      "path": "tests/user-location.test.mjs",
+      "bytes": 24054,
+      "sha256": "a9548d96b666e78f823bcc89c0da203fd5a2604474934d249cdc3cd2157ab7e0"
+    },
+    {
+      "path": "tests/wifi-survey-ui.test.mjs",
+      "bytes": 12290,
+      "sha256": "94f7d6b4c798496559215d674f2371760c857811ebd843d82ff8aac1c12d14a0"
+    },
+    {
+      "path": "tests/wifi-survey.test.mjs",
+      "bytes": 11416,
+      "sha256": "be46eccd4b7dd4b8276a5e1ff486aaba5f24872a79c0895024c2c89e5c2ee02e"
+    },
+    {
+      "path": "tools/stair-levels.svg",
+      "bytes": 2802,
+      "sha256": "b7436ea01983db959b528484baada852b56b537144c53864eca386f3281a106e"
+    },
+    {
+      "path": "tools/stair-sketch-model.mjs",
+      "bytes": 3428,
+      "sha256": "923609faec9a7d99d34a39f3a4a9207f7bacd9dddddb4f41177322deb4b257f4"
+    },
+    {
+      "path": "tools/stair-sketch.css",
+      "bytes": 4214,
+      "sha256": "34d63f4155027676e93a91649316884d808c3dde1735c0a6572714cef820c1a2"
+    },
+    {
+      "path": "tools/stair-sketch.html",
+      "bytes": 5945,
+      "sha256": "a65bd39284bad2ad42a6c5b4dc9dcf4a610d57fc421d76abe6d4927759760592"
+    },
+    {
+      "path": "tools/stair-sketch.js",
+      "bytes": 13786,
+      "sha256": "014bd8fa59efe578cab1f97779dab9b3e2658b6d4f7077317b3b10fbf7fb2587"
+    },
+    {
+      "path": "vite.config.js",
+      "bytes": 507,
+      "sha256": "d53e4608d7a6ac727379dbb3da604e8105e17d9fec835937c5bb2495a9d767ba"
+    },
+    {
+      "path": "ВОПРОСЫ_ПО_КАРТЕ.md",
+      "bytes": 82973,
+      "sha256": "1a61d622d09f14b94ebd6f76a2138af29456c4632b1c03f41faca3fd6f1e3a34"
+    }
+  ]
+}

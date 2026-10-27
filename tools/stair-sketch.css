@@ -1,0 +1,277 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172d43;
+  background: #eef2f5;
+  font-size: 15px;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+header {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  background: #fff;
+  border-bottom: 1px solid #d4dce3;
+}
+h1 {
+  font-size: 23px;
+  line-height: 1.25;
+  margin: 8px 0;
+}
+header p {
+  max-width: 850px;
+  line-height: 1.5;
+  margin: 0;
+  color: #465d70;
+}
+.back {
+  color: #245a86;
+  text-decoration: none;
+  font-weight: 650;
+  font-size: 13px;
+}
+.exports {
+  display: grid;
+  gap: 8px;
+  min-width: 235px;
+}
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  border: 1px solid #bdccd8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #172d43;
+  min-height: 42px;
+}
+button:hover {
+  background: #e9f1f7;
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #85bafa;
+  outline-offset: 2px;
+}
+button[aria-pressed="true"] {
+  background: #e3eef9;
+  border-color: #367fbf;
+  box-shadow: inset 0 0 0 1px #367fbf;
+}
+button.primary {
+  color: #fff;
+  background: #245d8e;
+  border-color: #245d8e;
+  font-weight: 650;
+}
+button.primary:hover {
+  background: #1d4c75;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button.danger {
+  color: #a33227;
+}
+main {
+  padding: 24px 32px;
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 24px;
+}
+aside,
+.drawing {
+  background: #fff;
+  border: 1px solid #d4dce3;
+  border-radius: 12px;
+}
+aside {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: 10px;
+}
+label,
+legend {
+  font-size: 13px;
+  font-weight: 700;
+}
+fieldset {
+  border: none;
+  margin: 4px 0;
+  padding: 0;
+}
+legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+select,
+input[type="text"],
+textarea {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #bdccd8;
+  border-radius: 7px;
+  background: #fff;
+  color: #172d43;
+}
+textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+.tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.colors button {
+  font-size: 12px;
+  padding: 7px;
+}
+.colors span {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+.hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #587085;
+  margin: 0;
+}
+.row {
+  display: flex;
+  gap: 7px;
+}
+.row button {
+  flex: 1;
+  font-size: 13px;
+}
+.drawing {
+  align-self: start;
+  overflow: hidden;
+}
+.sheet-heading {
+  padding: 16px 18px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 15px;
+  border-bottom: 1px solid #e0e6eb;
+}
+h2 {
+  margin: 0;
+  font-size: 18px;
+}
+#status {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #567081;
+  text-align: right;
+}
+.viewport {
+  width: 100%;
+  overflow: auto;
+  background: #e0e5e9;
+  max-height: 76vh;
+}
+canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+  background: #fff;
+}
+.footer {
+  padding: 0 18px;
+  color: #587085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+input[type="range"] {
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  header {
+    align-items: start;
+    padding: 20px;
+    gap: 20px;
+  }
+  main {
+    padding: 20px;
+    gap: 16px;
+    grid-template-columns: 245px minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  header {
+    display: block;
+    padding: 16px;
+  }
+  h1 {
+    font-size: 21px;
+  }
+  .exports {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    min-width: 0;
+  }
+  .exports button {
+    flex: 1 1 180px;
+  }
+  main {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  aside {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  aside > label,
+  aside > input,
+  aside > select,
+  aside > textarea,
+  aside > p,
+  aside > .row,
+  #load-background {
+    grid-column: 1 / -1;
+  }
+  fieldset {
+    min-width: 0;
+  }
+  .drawing {
+    width: 100%;
+  }
+  .sheet-heading {
+    align-items: start;
+  }
+}
