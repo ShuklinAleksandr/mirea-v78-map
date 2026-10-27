@@ -18,3 +18,7 @@ android/gradlew text eol=lf
 *.jpeg binary
 *.webp binary
 *.jar binary
+
+# Map data is checksummed against the original source bytes.
+public/data/** -text
+source/maps/** -text

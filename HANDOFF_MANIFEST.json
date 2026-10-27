@@ -11,8 +11,8 @@
     },
     {
       "path": ".gitattributes",
-      "bytes": 354,
-      "sha256": "e12e65c9485efb794b40edf4eae873d73355dd662a91f3c14c09ed87e94a9517"
+      "bytes": 458,
+      "sha256": "b694d8ea49de59cca19c032f29a1f27dc8c36b0f8bac9b100fc917444cca0bf7"
     },
     {
       "path": ".github/ISSUE_TEMPLATE/bug_report.md",
