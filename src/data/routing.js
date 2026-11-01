@@ -46,6 +46,41 @@ function prepare(graph) {
   return result;
 }
 
+/** Diagnose only a truly isolated destination in the retained source graph.
+ * Rejected, directed and runtime-blocked external edges still count as source
+ * exits here: their existence must not be misreported as a missing entrance.
+ * Internal edges are walked undirected for this diagnostic, never for routing.
+ */
+function isolatedRoomComponentSize(graph, roomId, anchorId) {
+  const own = new Set(
+    graph.nodes.filter((node) => node.areaId === roomId).map((node) => node.id),
+  );
+  if (!own.has(anchorId)) return null;
+  const neighbours = new Map([...own].map((id) => [id, []]));
+  const exits = new Set();
+  for (const edge of graph.edges) {
+    const from = own.has(edge.from),
+      to = own.has(edge.to);
+    if (from && to) {
+      neighbours.get(edge.from).push(edge.to);
+      neighbours.get(edge.to).push(edge.from);
+    } else if (from) exits.add(edge.from);
+    else if (to) exits.add(edge.to);
+  }
+  const visited = new Set([anchorId]);
+  const pending = [anchorId];
+  while (pending.length) {
+    const id = pending.pop();
+    if (exits.has(id)) return null;
+    for (const next of neighbours.get(id))
+      if (!visited.has(next)) {
+        visited.add(next);
+        pending.push(next);
+      }
+  }
+  return visited.size;
+}
+
 class MinHeap {
   data = [];
   push(id, cost) {
@@ -233,11 +268,27 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
       heap.push(next.to, cost);
     }
   }
-  if (!previous.has(to.nodeId))
+  if (!previous.has(to.nodeId)) {
+    const isolatedNodeCount = isolatedRoomComponentSize(graph, toId, to.nodeId);
+    if (isolatedNodeCount != null)
+      return {
+        ...failure(
+          "no-path",
+          `У ${to.label || "выбранного помещения"} в исходном графе нет подтверждённого входа. Помещение есть на плане, но маршрут пока недоступен.`,
+        ),
+        reason: "target-isolated-source-component",
+        details: {
+          targetRoomId: toId,
+          targetLabel: to.label || null,
+          floorId: to.floorId,
+          sourceComponentNodeCount: isolatedNodeCount,
+        },
+      };
     return failure(
       "no-path",
       "В исходных данных нет непрерывного допустимого пути между этими точками. Связь через стены не достраивается.",
     );
+  }
   const graphNodes = [];
   const edges = [];
   for (let id = to.nodeId; ; ) {

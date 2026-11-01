@@ -1,0 +1,77 @@
+{
+  "recordedAt": "2026-10-28T21:42:48.883087+00:00",
+  "scope": "Short Android emulator smoke for final smoothed/color stair APK; no physical geometry or GPS accuracy verification",
+  "apk": {
+    "path": "/Users/aleksandrshuklin/Documents/ChatGPT/3d-map MIREA/mirea-map-v78/android/app/build/outputs/apk/debug/app-debug.apk",
+    "bytes": 53915300,
+    "sha256": "e3dac2b6e5b9a040faf5eca897f7aed8672ccb7e2ec55c417c01b7f1c4dc4b5f"
+  },
+  "nativeBuildRun": "2026-10-28T21-37-51-013Z",
+  "device": {
+    "serial": "emulator-5554",
+    "avd": "mirea-v78-api36",
+    "model": "sdk_gphone64_arm64",
+    "os": "Android 16",
+    "api": 36,
+    "webview": "com.google.android.webview 133.0.6943.137"
+  },
+  "network": {
+    "before": {
+      "airplaneMode": 1,
+      "wifi": 0
+    },
+    "after": {
+      "airplaneMode": 1,
+      "wifi": 0
+    },
+    "changed": false
+  },
+  "checks": {
+    "installReplace": "passed",
+    "coldLaunchOffline": "passed",
+    "savedStateRestored": "G209 on building Г physical floor 2 restored",
+    "gpsPairRecordCountPreserved": 2,
+    "stairSelection": "Selected visible ЛК2 via ordinary UI tap, closed card, zoomed with UI button",
+    "denseMeshRendering": "passed; screenshot 05-colored-stair-close.png shows treads and contrast; no missing batch or crash",
+    "actualMeshAttributes": {
+      "name": "Approximate stair flights",
+      "faceRooms": [
+        "v78-Г-1-ЛК2"
+      ],
+      "vertices": 54528,
+      "colorCount": 54528,
+      "colorItemSize": 3,
+      "colorArrayLength": 163584,
+      "colorMin": 0.34191441535949707,
+      "colorMax": 0.7835378050804138,
+      "material": [
+        {
+          "type": "MeshStandardMaterial",
+          "vertexColors": true,
+          "color": "ffffff",
+          "roughness": 0.9
+        }
+      ]
+    },
+    "visibleErrorOverlay": null
+  },
+  "appErrorsLog": "app-errors.log",
+  "boundaries": [
+    "No app data or logs cleared",
+    "No GPS/Wifi collection or share action",
+    "No route/GPS repeat; unchanged features covered earlier",
+    "Read-only own debug WebView inspected; app changes performed only by normal adb UI taps",
+    "An initial diagnostic Math.min spread over large color array hit JS RangeError; replaced diagnostic with reduce; not application code failure"
+  ],
+  "artifacts": [
+    "01-cold-offline.png",
+    "02-map-ready.png",
+    "03-stair-selected.png",
+    "04-standard-scan-close.png",
+    "05-colored-stair-close.png",
+    "color-proof.json",
+    "actions.log",
+    "webview.txt",
+    "app-errors.log"
+  ]
+}

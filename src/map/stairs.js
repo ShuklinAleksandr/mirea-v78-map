@@ -4,6 +4,11 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { getFloorMarkers } from "../data/utils.js";
 import { libraryStairLayoutsForFloor } from "./library-stair.js";
 import { middleStairArrival } from "./stair-arrivals.js";
+import {
+  createStairScanVisual,
+  getStairScanDisplayCutouts,
+  scanBackedStairLayoutsForFloor,
+} from "./stair-scan-visual.js";
 import defaults from "../../public/data/stair-assumptions.json" with { type: "json" };
 import registry from "../../public/data/stair-layouts.json" with { type: "json" };
 
@@ -307,6 +312,7 @@ function displayLayoutsForFloor(floor) {
         : layout;
     }),
     ...libraryStairLayoutsForFloor(floor),
+    ...scanBackedStairLayoutsForFloor(floor),
   ];
 }
 
@@ -320,6 +326,8 @@ export function getStairDisplayCutouts(floor) {
     )
     .filter((layout) => layout.displayCutout)
     .flatMap((layout) => {
+      const scanOpenings = getStairScanDisplayCutouts(layout, { floor });
+      if (layout.scanDerivedCutout) return scanOpenings;
       const world = ([u, v]) => [
         layout.frame.origin[0] +
           layout.frame.axisU[0] * u * layout.frame.size[0] +
@@ -370,11 +378,27 @@ export function getStairDisplayCutouts(floor) {
         (layout.displayCutoutFootprints
           ? layout.displayCutoutFootprints.map((points) => points.map(world))
           : [layout.displayCutoutPoints || layout.footprint.map(world)]);
-      return openings.map((points, index) => ({
+      const merged = scanOpenings.length
+        ? polygonClipping
+            .union(
+              ...[...openings, ...scanOpenings.map((o) => o.points)].map(
+                (points) => [points],
+              ),
+            )
+            .map((polygon) => polygon[0].slice(0, -1))
+        : openings;
+      return merged.map((points, index) => ({
         layoutId: layout.id,
         sourcePolygonIds: layout.sourcePolygonIds,
         openingIndex: index,
         points,
+        ...(scanOpenings.length
+          ? {
+              geometryEvidence:
+                "existing-opening-union-observed-descending-scan-projection",
+              sourceSha256: scanOpenings[0].sourceSha256,
+            }
+          : {}),
       }));
     });
 }
@@ -383,14 +407,25 @@ export function withStairDisplayCutouts(polygon, cutouts) {
   const holes = cutouts.filter(
     (cutout) =>
       cutout.points.every((point) => inRing(point, polygon.points)) &&
-      !(polygon.holes || []).some((hole) =>
-        cutout.points.some((point) => inRing(point, hole)),
-      ),
+      !polygonClipping.difference([cutout.points], [polygon.points]).length,
   );
   if (!holes.length) return polygon;
+  const mergedHoles = [...(polygon.holes || [])];
+  for (const cutout of holes) {
+    let ring = cutout.points;
+    for (let i = 0; i < mergedHoles.length; ) {
+      const union = polygonClipping.union([ring], [mergedHoles[i]]);
+      if (union.length === 1 && union[0].length === 1) {
+        ring = union[0][0].slice(0, -1);
+        mergedHoles.splice(i, 1);
+        i = 0;
+      } else i++;
+    }
+    mergedHoles.push(ring);
+  }
   return {
     ...polygon,
-    holes: [...(polygon.holes || []), ...holes.map((cutout) => cutout.points)],
+    holes: mergedHoles,
   };
 }
 
@@ -920,6 +955,19 @@ export function createStaircase(
         ? layout.note
         : "Марши и площадки — по пожарному плану; высота, число ступеней и поручни приблизительны.",
   };
+  const scanned = createStairScanVisual(registeredLayout, marker, {
+    stack: renderOptions.stack,
+    floorRise: rise,
+    baseElevation: base,
+  });
+  if (scanned) {
+    for (const mesh of [...scanned.children]) group.add(mesh);
+    group.userData.scanVisual = scanned.userData.scanVisual;
+    group.userData.visualGeometrySource = "observed-user-scan-reconstruction";
+    group.userData.visualStepCounts = [];
+    group.userData.materialBatches = group.children.length;
+    return group;
+  }
   const frame = layout.frame;
   const world = ([u, v]) => [
     frame.origin[0] +

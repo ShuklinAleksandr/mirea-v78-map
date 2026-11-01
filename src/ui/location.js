@@ -12,6 +12,14 @@ import {
   createLocationCalibration,
   applyLocationTracking,
 } from "../data/location-tracking.js";
+import {
+  createGpsCalibrationRecord,
+  readGpsCalibrationSurvey,
+  appendGpsCalibrationRecord,
+  clearGpsCalibrationSurvey,
+  exportGpsCalibrationSurvey,
+} from "../data/gps-calibration-survey.js";
+import { exportGpsCalibrationJson } from "../data/gps-calibration-export.js";
 
 /** Foreground location, optional phone heading and explicit point confirmation. */
 export function bindLocation({
@@ -27,6 +35,7 @@ export function bindLocation({
   allowTrackingPoint,
   startWatching = watchGpsLocation,
   startHeading = watchHeading,
+  surveyStorage,
 }) {
   const dialog = $("#location-dialog");
   const tracking = (state.locationTracking = {
@@ -50,8 +59,72 @@ export function bindLocation({
     pickPurpose = "manual",
     closeOnFix = false;
   state.headingStatus = "off";
+  let refinementSurvey = null,
+    refinementError = "",
+    refinementExporting = false,
+    refinementStorage = surveyStorage;
+  try {
+    refinementStorage ??=
+      typeof localStorage !== "undefined" ? localStorage : null;
+  } catch {
+    refinementStorage = null;
+  }
+  function readRefinements() {
+    try {
+      refinementSurvey = readGpsCalibrationSurvey(refinementStorage);
+      refinementError = "";
+    } catch (error) {
+      refinementError = error.message || "Не удалось прочитать уточнения GPS.";
+    }
+  }
+  readRefinements();
+  function refreshRefinements() {
+    const count = refinementSurvey?.records?.length || 0;
+    const label = $("#gps-refinement-count");
+    if (label) label.textContent = count ? ` · ${count}` : "";
+    const info = $("#gps-refinement-state");
+    if (info)
+      info.textContent =
+        refinementError ||
+        (count
+          ? `Сохранено ${count} уточнений на этом устройстве. Выгрузите их для проверки привязки карты.`
+          : "Со включённым GPS уточните своё место на плане. Пара координат сохранится на этом устройстве; карта пока не меняется.");
+    const download = $("#gps-refinement-export");
+    if (download) {
+      download.hidden = !count;
+      download.disabled = refinementExporting;
+      download.textContent = refinementExporting
+        ? "Готовим файл…"
+        : "Выгрузить JSON";
+    }
+    const clear = $("#gps-refinement-clear");
+    if (clear) {
+      clear.hidden = !count && !refinementError;
+      clear.disabled = refinementExporting;
+    }
+  }
+  function recordRefinement(anchor) {
+    if (!tracking.enabled || !rawFix) return "";
+    try {
+      const record = createGpsCalibrationRecord(anchor, rawFix, {
+        now: Date.now(),
+      });
+      refinementSurvey = appendGpsCalibrationRecord(refinementStorage, record, {
+        now: Date.now(),
+      });
+      refinementError = "";
+      refreshRefinements();
+      return " Пара GPS/карта записана на устройстве.";
+    } catch (error) {
+      refinementError =
+        error.message || "Уточнение не записано; ваша точка сохранена.";
+      refreshRefinements();
+      return ` GPS-замер не записан: ${refinementError}`;
+    }
+  }
 
   function refresh() {
+    refreshRefinements();
     $("#location-current").textContent = describeUserLocation(
       state.userLocation,
       state.floorData,
@@ -322,6 +395,7 @@ export function bindLocation({
   }
   function open() {
     stopPicking();
+    readRefinements();
     refresh();
     if (!dialog.open) dialog.showModal();
   }
@@ -350,8 +424,11 @@ export function bindLocation({
     onChange?.();
     return true;
   }
-  function assignManual(location, purpose) {
+  function assignManual(location, purpose, { record = false } = {}) {
     if (purpose === "survey") return setSurveyLocation(location);
+    // A room-card action uses a catalogue centre. Only an explicitly confirmed
+    // crosshair pin is a control point for checking geographic registration.
+    const recordNote = record ? recordRefinement(location) : "";
     floorSelection = normalizeTrackingFloor(location, state.floorData);
     if (tracking.enabled) {
       try {
@@ -362,9 +439,9 @@ export function bindLocation({
         state.userLocation = location;
         applyFix(rawFix, { reapply: true });
         toast(
-          tracking.status === "live"
+          (tracking.status === "live"
             ? "Точка уточнена. Дальше показаны приблизительные смещения геопозиции."
-            : tracking.reason,
+            : tracking.reason) + recordNote,
         );
       } catch (error) {
         calibration = null;
@@ -372,7 +449,7 @@ export function bindLocation({
         tracking.status = "needs-refinement";
         tracking.reason = error.message;
         publish(location, "needs-refinement");
-        toast(error.message);
+        toast(error.message + recordNote);
       }
     } else {
       tracking.status = "off";
@@ -448,7 +525,7 @@ export function bindLocation({
       return false;
     }
     stopPicking();
-    assignManual(location, purpose);
+    assignManual(location, purpose, { record: purpose !== "survey" });
     if (purpose !== "survey") {
       tracking.following = true;
       experience.minimize();
@@ -523,6 +600,53 @@ export function bindLocation({
     if (rawFix && tracking.enabled) applyFix(rawFix, { reapply: true });
     else refresh();
   };
+  const refinementExport = $("#gps-refinement-export");
+  if (refinementExport)
+    refinementExport.onclick = async () => {
+      refinementExporting = true;
+      refreshRefinements();
+      try {
+        let survey,
+          backup = false;
+        try {
+          survey = readGpsCalibrationSurvey(refinementStorage);
+        } catch (error) {
+          if (!refinementSurvey?.records?.length) throw error;
+          survey = refinementSurvey;
+          backup = true;
+        }
+        const json = exportGpsCalibrationSurvey(survey, { now: Date.now() });
+        await exportGpsCalibrationJson(json);
+        refinementError = "";
+        toast(
+          backup
+            ? "Выгружена проверенная копия записей из памяти. Хранилище не перезаписано."
+            : "Файл уточнений подготовлен. Записи остались на устройстве.",
+        );
+      } catch (error) {
+        if (error?.message !== "Share canceled")
+          refinementError =
+            error.message ||
+            "Не удалось выгрузить записи. Они остались на устройстве.";
+      } finally {
+        refinementExporting = false;
+        refreshRefinements();
+      }
+    };
+  const refinementClear = $("#gps-refinement-clear");
+  if (refinementClear)
+    refinementClear.onclick = () => {
+      try {
+        clearGpsCalibrationSurvey(refinementStorage);
+        refinementSurvey = null;
+        refinementError = "";
+        refreshRefinements();
+        toast("Записи уточнений GPS удалены с этого устройства.");
+      } catch (error) {
+        refinementError = error.message || "Не удалось удалить записи.";
+        refreshRefinements();
+      }
+    };
   $("#location-follow").onchange = (e) => {
     tracking.following = e.target.checked;
     if (tracking.following) locate();
@@ -568,6 +692,24 @@ export function bindLocation({
     startTracking,
     stopTracking,
     routeOrigin,
+    confirmRouteFloor(selection) {
+      const selected = normalizeTrackingFloor(selection, state.floorData);
+      if (!selected || selected.campusId !== state.campus?.id) return false;
+      const changed =
+        selected.floorId !== floorSelection?.floorId ||
+        selected.building !== floorSelection?.building;
+      floorSelection = selected;
+      // A human confirmed this floor after a staircase. A translation aligned
+      // on the previous floor is not silently treated as surveyed here.
+      if (changed) {
+        calibration = null;
+        holdManual = false;
+      }
+      if (rawFix && tracking.enabled)
+        applyFix(rawFix, { reapply: true, center: false });
+      else refresh();
+      return true;
+    },
     nearbyOrigin: mapPositionContext,
     pick,
     pauseFollowing() {

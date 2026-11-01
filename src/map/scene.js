@@ -946,7 +946,10 @@ export class AtlasScene {
       this.setFloor(this.floor, this.building, { fit: false });
     this.invalidate();
   }
-  setRouteGuidance(sample, { padding, animate = false } = {}) {
+  setRouteGuidance(
+    sample,
+    { padding, animate = false, showMarker = true } = {},
+  ) {
     if (!sample) {
       if (this.guidanceLayer) {
         cleanup(this.guidanceLayer);
@@ -997,6 +1000,7 @@ export class AtlasScene {
       group.traverse((object) => (object.renderOrder = 25));
       this.scene.add(group);
     }
+    this.guidanceLayer.visible = showMarker;
     this.guidanceLayer.position.set(
       sample.position[0],
       0.65,
@@ -1964,7 +1968,9 @@ export class AtlasScene {
       stair.updateMatrixWorld(true);
       stair.traverse((o) => {
         if (!o.isMesh) return;
-        const key = o.material.color.getHex();
+        // Scan display tones add a color attribute. Keep their material apart
+        // from uncolored procedural stairs, even when the base color matches.
+        const key = `${o.material.color.getHex()}:${!!o.material.vertexColors}`;
         if (!batches.has(key))
           batches.set(key, {
             geometries: [],

@@ -165,3 +165,28 @@ for (const plan of [false, true]) {
     }
   });
 }
+
+test("real navigation can frame the source section without presenting a simulated position", () => {
+  const view = harness(true);
+  try {
+    const sample = sampleRouteGuidance(guide, 0, 10);
+    assert.equal(
+      view.setRouteGuidance(sample, {
+        showMarker: false,
+        padding: { bottom: 160 },
+      }),
+      true,
+    );
+    assert.equal(view.guidanceLayer.visible, false);
+    assert.ok(view.lastBounds);
+    assert.equal(view.userLocation, undefined);
+    view.setRouteGuidance(sample, { showMarker: true });
+    assert.equal(view.guidanceLayer.visible, true);
+  } finally {
+    view.setRouteGuidance(null);
+    view.model.traverse((o) => {
+      o.geometry?.dispose();
+      o.material?.dispose();
+    });
+  }
+});

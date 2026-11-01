@@ -3,6 +3,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { escape } from "../src/ui/dom.js";
+import { projectGpsToMap } from "../src/location.js";
+import {
+  GPS_CALIBRATION_SURVEY_STORAGE_KEY,
+  createGpsCalibrationRecord,
+  readGpsCalibrationSurvey,
+  appendGpsCalibrationRecord,
+  clearGpsCalibrationSurvey,
+  exportGpsCalibrationSurvey,
+} from "../src/data/gps-calibration-survey.js";
 import {
   manualPlaceLocation,
   manualMapLocation,
@@ -85,7 +94,15 @@ function harness({
   canPick = true,
   pendingStart = false,
   now = Date.now,
+  surveyStorage,
 } = {}) {
+  const saved = new Map();
+  const storage = surveyStorage || {
+    getItem: (key) => saved.get(key) ?? null,
+    setItem: (key, value) => saved.set(key, value),
+    removeItem: (key) => saved.delete(key),
+  };
+  const exported = [];
   const elements = new Map();
   function $(selector) {
     if (elements.has(selector)) return elements.get(selector);
@@ -210,6 +227,14 @@ function harness({
     describeUserLocation,
     isCurrentUserLocation: (location) => isCurrentUserLocation(location, now()),
     normalizeTrackingFloor,
+    createGpsCalibrationRecord,
+    readGpsCalibrationSurvey,
+    appendGpsCalibrationRecord,
+    clearGpsCalibrationSurvey,
+    exportGpsCalibrationSurvey,
+    async exportGpsCalibrationJson(json) {
+      exported.push(json);
+    },
     createLocationCalibration(anchor, raw, options) {
       return createLocationCalibration(anchor, raw, { ...options, now: now() });
     },
@@ -238,6 +263,7 @@ function harness({
   const controller = sandbox.bindLocation({
     state,
     scene,
+    surveyStorage: storage,
     startWatching,
     startHeading: async ({ signal, onHeading, onError }) => {
       const watch = { signal, emit: onHeading, fail: onError, stops: 0 };
@@ -268,6 +294,8 @@ function harness({
     state,
     scene,
     controller,
+    storage,
+    exported,
     watches,
     origins,
     points,
@@ -783,4 +811,165 @@ test("confirming my precise pin resumes following while a survey pin keeps GPS i
   h.$("#location-pick-confirm").onclick();
   assert.equal(h.state.locationTracking.following, false);
   assert.equal(h.state.userLocation.source, "gps");
+});
+
+function confirmExactGpsPin(h, point = room.center) {
+  h.controller.beginPicking();
+  const pick = {
+    campusId: "v-78",
+    floorId: h.state.floor.id,
+    building: "Г",
+    kind: "corridor",
+    point,
+  };
+  h.setPick(pick);
+  return h.controller.pick(pick);
+}
+
+test("explicit manual GPS refinements persist exact raw/manual pairs and export without continuous tracking logs", async () => {
+  const time = Date.now() + 100;
+  const h = harness({ now: () => time });
+  h.controller.startTracking();
+  await turn();
+  const latitude = 55.669957,
+    longitude = 37.480225;
+  const rawPoint = projectGpsToMap(longitude, latitude);
+  h.watches[0].emit({ ...fix(rawPoint, time, 5), latitude, longitude });
+  assert.equal(
+    readGpsCalibrationSurvey(h.storage),
+    null,
+    "GPS by itself is not a trail recorder",
+  );
+  confirmExactGpsPin(h);
+  const records = readGpsCalibrationSurvey(h.storage).records;
+  assert.equal(records.length, 1);
+  assert.deepEqual(records[0].anchor.point, room.center);
+  assert.deepEqual(records[0].gps.point, rawPoint);
+  assert.equal(records[0].gps.latitude, latitude);
+  assert.equal(records[0].gps.timestamp, time);
+  assert.notDeepEqual(
+    h.state.userLocation.point,
+    rawPoint,
+    "personal offset does not contaminate the recorded raw observation",
+  );
+  assert.equal(h.$("#gps-refinement-export").hidden, false);
+  const reopened = harness({ surveyStorage: h.storage, now: () => time });
+  assert.match(reopened.$("#gps-refinement-count").textContent, /1/);
+  await reopened.$("#gps-refinement-export").onclick();
+  assert.equal(reopened.exported.length, 1);
+  assert.equal(JSON.parse(reopened.exported[0]).records.length, 1);
+  assert.equal(
+    readGpsCalibrationSurvey(h.storage).records.length,
+    1,
+    "export does not delete observations",
+  );
+  reopened.$("#gps-refinement-clear").onclick();
+  assert.equal(readGpsCalibrationSurvey(h.storage), null);
+});
+
+test("stale GPS or unavailable recording never blocks a manual location and never fabricates a fresh pair", async () => {
+  let time = Date.now() + 100;
+  const h = harness({ now: () => time });
+  h.controller.startTracking();
+  await turn();
+  const latitude = 55.669957,
+    longitude = 37.480225;
+  h.watches[0].emit({
+    ...fix(projectGpsToMap(longitude, latitude), time, 5),
+    latitude,
+    longitude,
+  });
+  time += 12_000;
+  assert.equal(confirmExactGpsPin(h), true);
+  assert.equal(readGpsCalibrationSurvey(h.storage), null);
+  assert.match(h.$("#gps-refinement-state").textContent, /свеж|устар|10/);
+  assert.deepEqual(h.state.userLocation.point, room.center);
+  h.storage.setItem(GPS_CALIBRATION_SURVEY_STORAGE_KEY, "corrupted");
+  h.controller.open();
+  assert.match(h.$("#gps-refinement-state").textContent, /поврежден|повреждён/);
+  assert.equal(
+    h.storage.getItem(GPS_CALIBRATION_SURVEY_STORAGE_KEY),
+    "corrupted",
+  );
+});
+
+test("confirming a route stair floor is explicit manual context and resets an old-floor offset without changing observation time", async () => {
+  const h = harness();
+  h.controller.startTracking();
+  await turn();
+  const observed = Date.now();
+  h.watches[0].emit(fix([10, -20], observed));
+  confirmExactGpsPin(h);
+  assert.ok(h.state.userLocation.correction);
+  assert.equal(
+    h.controller.confirmRouteFloor({
+      campusId: "v-78",
+      floorId: upperFloor.id,
+      building: "Г",
+      physicalLevel: 3,
+    }),
+    true,
+  );
+  assert.equal(h.state.userLocation.floorId, upperFloor.id);
+  assert.equal(h.state.userLocation.floorEvidence, "manual");
+  assert.equal(h.state.userLocation.physicalLevel, 3);
+  assert.equal(h.state.userLocation.timestamp, observed);
+  assert.deepEqual(h.state.userLocation.point, [10, -20]);
+  assert.equal(h.state.userLocation.correction, null);
+  assert.equal(
+    h.controller.confirmRouteFloor({
+      campusId: "v-78",
+      floorId: upperFloor.id,
+      building: "Г",
+      physicalLevel: 2,
+    }),
+    false,
+  );
+});
+
+test("a room-card centre is not silently recorded as an exact geographic control point", async () => {
+  const time = Date.now() + 100;
+  const h = harness({ now: () => time });
+  h.controller.startTracking();
+  await turn();
+  const latitude = 55.669957,
+    longitude = 37.480225;
+  h.watches[0].emit({
+    ...fix(projectGpsToMap(longitude, latitude), time, 5),
+    latitude,
+    longitude,
+  });
+  assert.equal(h.controller.setPlace(room), true);
+  assert.equal(readGpsCalibrationSurvey(h.storage), null);
+  assert.deepEqual(
+    h.state.userLocation.point,
+    room.center,
+    "the existing manual room action still works",
+  );
+});
+
+test("failed new recording does not disable export of earlier good records, including a cached validated backup", async () => {
+  let time = Date.now() + 100;
+  const h = harness({ now: () => time });
+  h.controller.startTracking();
+  await turn();
+  const latitude = 55.669957,
+    longitude = 37.480225;
+  h.watches[0].emit({
+    ...fix(projectGpsToMap(longitude, latitude), time, 5),
+    latitude,
+    longitude,
+  });
+  confirmExactGpsPin(h);
+  assert.equal(readGpsCalibrationSurvey(h.storage).records.length, 1);
+  time += 12_000;
+  confirmExactGpsPin(h, [13, -28]);
+  assert.equal(h.$("#gps-refinement-export").disabled, false);
+  h.storage.getItem = () => {
+    throw new Error("storage became unavailable");
+  };
+  await h.$("#gps-refinement-export").onclick();
+  assert.equal(h.exported.length, 1);
+  assert.equal(JSON.parse(h.exported[0]).records.length, 1);
+  assert.match(h.toasts.at(-1), /копия.*памяти/);
 });

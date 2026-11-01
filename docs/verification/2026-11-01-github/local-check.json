@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-01",
+  "purpose": "Publish previously local map changes to GitHub",
+  "npmCi": "passed",
+  "npmRunCheck": {
+    "format": "passed",
+    "tests": 554,
+    "passed": 554,
+    "failed": 0,
+    "webBuild": "passed"
+  },
+  "applicationFilesMatchedToNativeTestedSource": 323,
+  "nativeBuildDate": "2026-10-28",
+  "nativeBuildRun": "2026-10-28T21-37-51-013Z",
+  "note": "Publication checks are separate from historical native compilation."
+}

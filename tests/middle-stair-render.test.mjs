@@ -42,6 +42,7 @@ const inRing = (p, ring) => {
 
 test("middle-floor sections show an up-flight and a down-flight while stacks retain the complete original ascent", () => {
   let count = 0;
+  const dMiddleViews = [];
   for (const level of [1, 2, 3]) {
     const floor = readFloor(level),
       original = structuredClone(floor);
@@ -49,6 +50,12 @@ test("middle-floor sections show an up-flight and a down-flight while stacks ret
       const layout = stairLayoutFor(marker, floor);
       if (!layout?.incomingDisplay) continue;
       count++;
+      if (layout.building === "Д")
+        dMiddleViews.push({
+          floorId: floor.id,
+          physicalFloor: layout.physicalFloor,
+          layoutId: layout.id,
+        });
       const section = createStaircase(marker, floor);
       const stack = createStaircase(marker, floor, {}, { stack: true });
       try {
@@ -93,7 +100,48 @@ test("middle-floor sections show an up-flight and a down-flight while stacks ret
     }
     assert.deepEqual(floor, original);
   }
-  assert.equal(count, 16);
+  assert.equal(count, 18);
+  assert.deepEqual(dMiddleViews, [
+    {
+      floorId: "v-78-floor1",
+      physicalFloor: 2,
+      layoutId: "v78-Д-scan-v-78-floor1",
+    },
+    {
+      floorId: "v-78-floor2",
+      physicalFloor: 3,
+      layoutId: "v78-Д-scan-v-78-floor2",
+    },
+  ]);
+});
+
+test("the last D floor shows arrival from below without another up-flight", () => {
+  const floor = readFloor(3),
+    original = structuredClone(floor);
+  const marker = getMapStairMarkers(floor).find(
+    (m) => m.layoutId === "v78-Д-scan-v-78-floor3",
+  );
+  assert.ok(marker, "D retains the registered top-floor stair marker");
+  const layout = stairLayoutFor(marker, floor);
+  assert.equal(layout.physicalFloor, 4);
+  assert.equal(layout.levelRole, "upper-arrival");
+  assert.equal(layout.incomingDisplay, undefined);
+  for (const stack of [false, true]) {
+    const group = createStaircase(marker, floor, {}, { stack });
+    try {
+      const box = new THREE.Box3().setFromObject(group);
+      assert.equal(group.userData.middleFloorCutaway, false);
+      assert.deepEqual(group.userData.scanVisual.parts, ["upper-arrival"]);
+      assert.ok(box.min.y < -3, "the arrival includes observed stairs below");
+      assert.ok(
+        box.max.y <= 1.041,
+        "only arrival walls/railings extend above the final floor",
+      );
+    } finally {
+      dispose(group);
+    }
+  }
+  assert.deepEqual(floor, original);
 });
 
 test("a G3 descent route uses the incoming side and the same visible negative-height tread profile", () => {

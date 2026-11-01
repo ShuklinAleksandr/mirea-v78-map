@@ -4,6 +4,14 @@
 
 **[Документация](docs/README.md) · [Участие в разработке](CONTRIBUTING.md) · [Android и iOS](docs/MOBILE.md) · [Вопросы по карте](ВОПРОСЫ_ПО_КАРТЕ.md)**
 
+**Обновление GitHub · 1 ноября 2026:** последние изменения карты собраны в `main` и тестовом выпуске **[v0.2.0-test](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.2.0-test)**. [Скачать Android APK](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-debug.apk) · [iOS Simulator](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-iOS-Simulator.zip). Нативные файлы собраны и испытаны 28 октября; сведения об этой публикации — [отдельно](docs/GITHUB_UPDATE_2026-11-01.md).
+
+**Изменения 28 октября:** [более ровные лестницы из сканов](docs/STAIR_SMOOTH_2026-10-28.md), [первый проход со сканами](docs/SCANNED_STAIRS_2026-10-28.md), [автоматические шаги маршрута и запись уточнений GPS](docs/GPS_ROUTE_CALIBRATION_2026-10-28.md). История реализации сохранена в [отдельном документе](docs/README_HISTORY_2026-10-28.md).
+
+**Текущая геометрия:** подготовлены три поверхности до 24 000 треугольников с ограниченным выравниванием наблюдаемых плоскостей и программным затенением ступеней. Новый проход: **554/554 теста**, обе настоящие компиляции и сверка **93/93 ресурсов** каждой платформы прошли. Новый вид проверен на Android без сети и в iOS Simulator; описанный ниже проход относится к предыдущим сеткам. Подробности и актуальные контрольные суммы — в [новом отчёте](docs/STAIR_SMOOTH_2026-10-28.md).
+
+**Первый проход 28 октября (история):** 550/550 тестов и настоящие сборки Android Debug APK и iOS Simulator прошли в запуске `2026-10-28T18-20-40-233Z`. В готовых APK/App отдельно сверены с `dist` все 93/93 ресурса. В Android-эмуляторе проверены холодный запуск без сети, сканированная лестница и маршрут Г-103-1 → Г-209; в iOS Simulator — поиск, карточка и тот же маршрут. Пути, SHA-256 и ограничения испытаний приведены в [отчёте сборки со сканами](docs/SCANNED_STAIRS_2026-10-28.md#новая-нативная-сборка-со-сканами). Настоящий iPhone пока отложен; жест перемещения карты на iOS остаётся неподтверждённым. GitHub Release `v0.1.0-test` относится к предыдущему коду.
+
 ## Возможности
 
 - Обзор кампуса, корпусов и этажей в 2D и 3D.
@@ -30,10 +38,10 @@ npm run dev
 ## Запуск на ПК: Windows, macOS и Linux
 
 1. Установите Node.js 24 и Git.
-2. Склонируйте репозиторий через GitHub Desktop или командой ниже. Замените `OWNER` на владельца репозитория.
+2. Склонируйте репозиторий через GitHub Desktop или командой ниже. Владелец репозитория — `ShuklinAleksandr`.
 
 ```sh
-git clone https://github.com/OWNER/mirea-v78-map.git
+git clone https://github.com/ShuklinAleksandr/mirea-v78-map.git
 cd mirea-v78-map
 npm ci
 npm run dev
@@ -61,33 +69,29 @@ npm run dev
 
 ## Установка на Android
 
-В полном архиве файл находится в `release-assets/android/MIREA-V78-debug.apk`. После загрузки владельцем откройте **Releases** этого GitHub-репозитория, скачайте APK на Android и разрешите установку из выбранного браузера или файлового менеджера. Это отладочная сборка для испытаний.
+Скачайте **[MIREA-V78-debug.apk](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-debug.apk)** из нового тестового выпуска. Откройте файл на Android и разрешите установку из выбранного браузера или файлового менеджера. Это отладочная сборка для испытаний.
 
 При установленном Android SDK можно установить APK по USB:
 
 ```sh
-adb install -r release-assets/android/MIREA-V78-debug.apk
+adb install -r MIREA-V78-debug.apk
 ```
 
-Папка `release-assets/` исключена из Git. Владелец прикрепляет APK и контрольные суммы к GitHub Release; исходники загружаются обычным commit. Если APK не прикреплён, соберите его по [мобильной инструкции](docs/MOBILE.md).
+APK, архив Simulator и контрольные суммы прикреплены к выпуску; исходники и подготовленные поверхности лестниц находятся в репозитории. Чтобы собрать приложение самостоятельно, следуйте [мобильной инструкции](docs/MOBILE.md).
 
-Размер переданного APK: **53 915 300 байт**. SHA-256:
-
-```text
-1e6c485e000a2dc1732f0c96e151399cd0d1579f10fdfa81031c086ec2249dfa
-```
+Размер, SHA-256 и фактические проверки этих APK/App указаны в [последнем отчёте 28 октября](docs/STAIR_SMOOTH_2026-10-28.md). Выпуск `v0.1.0-test` сохранён как предыдущая версия.
 
 ## Команды
 
-| Команда | Назначение |
-| --- | --- |
-| `npm run dev` | Локальный сервер разработки |
-| `npm run check` | Форматирование, автоматические тесты и production-сборка |
-| `npm test` | Автоматические тесты |
-| `npm run build` | Веб-сборка в `dist/` |
-| `npm run preview` | Просмотр собранной веб-версии |
-| `npm run mobile:doctor` | Диагностика мобильного окружения |
-| `npm run mobile:build:macos` | Общая проверка и сборка Android Debug + iOS Simulator |
+| Команда                      | Назначение                                               |
+| ---------------------------- | -------------------------------------------------------- |
+| `npm run dev`                | Локальный сервер разработки                              |
+| `npm run check`              | Форматирование, автоматические тесты и production-сборка |
+| `npm test`                   | Автоматические тесты                                     |
+| `npm run build`              | Веб-сборка в `dist/`                                     |
+| `npm run preview`            | Просмотр собранной веб-версии                            |
+| `npm run mobile:doctor`      | Диагностика мобильного окружения                         |
+| `npm run mobile:build:macos` | Общая проверка и сборка Android Debug + iOS Simulator    |
 
 ## Мобильные приложения
 
@@ -113,10 +117,10 @@ npm run mobile:check
 open ios/App/App.xcodeproj
 ```
 
-В Xcode выберите схему **App**, своё устройство или Simulator и нажмите Run. Для настоящего iPhone требуется отдельная development-подпись и Team владельца: **[инструкция Xcode → iPhone](XCODE_IPHONE.md)**. Simulator App не устанавливается на iPhone. Готовая сборка Simulator из полного архива находится в `release-assets/ios/MIREA-V78-iOS-Simulator.zip`. На совместимом Mac можно распаковать её и установить в запущенный iOS Simulator:
+В Xcode выберите схему **App**, своё устройство или Simulator и нажмите Run. Для настоящего iPhone требуется отдельная development-подпись и Team владельца: **[инструкция Xcode → iPhone](XCODE_IPHONE.md)**. Simulator App не устанавливается на iPhone. Готовый **[архив iOS Simulator](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-iOS-Simulator.zip)** можно скачать из нового выпуска. На совместимом Mac распакуйте его и установите в запущенный iOS Simulator:
 
 ```sh
-unzip release-assets/ios/MIREA-V78-iOS-Simulator.zip -d /tmp/mirea-v78-simulator
+unzip MIREA-V78-iOS-Simulator.zip -d /tmp/mirea-v78-simulator
 xcrun simctl install booted /tmp/mirea-v78-simulator/App.app
 ```
 
@@ -145,7 +149,7 @@ docs/          инструкции, архитектура, источники,
 
 [Подробный отчёт](docs/MAP_LOCATION_UX_2026-10-27.md) · [Журналы и материалы испытаний](docs/verification/2026-10-27/README.md).
 
-GitHub Actions проверяет форматирование, тесты и веб-сборку при push и Pull Request. Настроенный workflow впервые выполнится после загрузки на GitHub; нативные сборки выполняются отдельно. Готовые APK и Simulator ZIP размещаются в **Releases**; исходный код и данные находятся в репозитории.
+GitHub Actions проверяет форматирование, тесты и веб-сборку при push и Pull Request. Нативные сборки выполняются отдельно от GitHub Actions. Готовые APK и Simulator ZIP размещаются в **Releases**; исходный код и данные находятся в репозитории.
 
 ## Известные ограничения
 

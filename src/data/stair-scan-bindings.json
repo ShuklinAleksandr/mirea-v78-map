@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "evidence": "user-authorized-equivalent-standard-scan-with-existing-source-portals",
+  "placementStatus": "approximate-not-surveyed",
+  "unmapped": [
+    {
+      "floorId": "v-78-floor0",
+      "areaId": "v-78-floor0-area-191",
+      "reason": "cell-includes-extra-region-and-no-independently-registered-lower-stair-opening"
+    }
+  ],
+  "bindings": [
+    {
+      "floorId": "v-78-floor1",
+      "physicalFloor": 2,
+      "areaId": "v-78-floor1-area-398",
+      "points": [
+        [237.345, 5.6074],
+        [236.631, 7.7714],
+        [234.622, 13.6864],
+        [243.227, 16.6944],
+        [245.246, 10.8454],
+        [245.99, 8.6084]
+      ],
+      "holes": [],
+      "portals": [
+        {
+          "role": "up",
+          "edgeId": "v-78:edge:20724",
+          "position": [236.314, 12.8904],
+          "targetFloorId": "v-78-floor2",
+          "targetPosition": [242.201, 14.5184]
+        },
+        {
+          "role": "down",
+          "edgeId": "v-78:edge:20717",
+          "position": [241.982, 14.7694],
+          "targetFloorId": "v-78-floor0",
+          "targetPosition": [236.471, 11.2624]
+        }
+      ]
+    },
+    {
+      "floorId": "v-78-floor2",
+      "physicalFloor": 3,
+      "areaId": "v-78-floor2-area-264",
+      "points": [
+        [245.008, 10.6254],
+        [245.739, 8.3724],
+        [237.377, 5.2784],
+        [236.734, 7.2484],
+        [236.587, 7.2044],
+        [236.472, 7.5414],
+        [234.495, 13.4994],
+        [243.026, 16.5234]
+      ],
+      "holes": [],
+      "portals": [
+        {
+          "role": "up",
+          "edgeId": "v-78:edge:20743",
+          "position": [236.878, 12.3584],
+          "targetFloorId": "v-78-floor3",
+          "targetPosition": [242.389, 14.5504]
+        },
+        {
+          "role": "down",
+          "edgeId": "v-78:edge:20724",
+          "position": [242.201, 14.5184],
+          "targetFloorId": "v-78-floor1",
+          "targetPosition": [236.314, 12.8904]
+        }
+      ]
+    },
+    {
+      "floorId": "v-78-floor3",
+      "physicalFloor": 4,
+      "areaId": "v-78-floor3-area-232",
+      "points": [
+        [245.819, 7.9974],
+        [237.49, 5.0494],
+        [236.808, 7.2354],
+        [236.612, 7.1704],
+        [234.543, 13.1814],
+        [243.09, 16.2064],
+        [245.055, 10.3044]
+      ],
+      "holes": [],
+      "portals": [
+        {
+          "role": "down",
+          "edgeId": "v-78:edge:20743",
+          "position": [242.389, 14.5504],
+          "targetFloorId": "v-78-floor2",
+          "targetPosition": [236.878, 12.3584]
+        }
+      ]
+    }
+  ]
+}

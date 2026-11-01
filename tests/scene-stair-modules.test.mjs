@@ -115,8 +115,8 @@ test("A1 scene renders the confirmed incoming hall pair and the next IVC descent
       const ascending = result.yByLayout.get(ascendingId),
         descending = result.yByLayout.get(ivcId);
       assert.ok(
-        ascending.min < 0.3 && ascending.max > 4,
-        "A2 arrival is real geometry above A1",
+        ascending.min < 0.3 && ascending.max > 3.6 && ascending.max < 4.7,
+        "A2 arrival spans the assumed 3.6 m storey above A1; a scan need not reproduce the former invented rail height",
       );
       assert.ok(
         descending.min < -3 && descending.max < 1.1,
@@ -210,6 +210,42 @@ test("the real photographed A146 stair next to the schematic hall branches keeps
   } finally {
     result.dispose();
   }
+});
+
+test("the scene keeps synthetic scan color attributes separate from uncolored stairs and disposes each batch once", () => {
+  const result = renderConnections(readFloor(1), false, null);
+  const disposed = [];
+  try {
+    let colored = 0,
+      uncolored = 0;
+    for (const mesh of result.view.pickables) {
+      const color = mesh.geometry.getAttribute("color"),
+        position = mesh.geometry.getAttribute("position");
+      if (mesh.material.vertexColors) {
+        colored++;
+        assert.ok(color);
+        assert.equal(color.count, position.count);
+        assert.ok([...color.array].every(Number.isFinite));
+        assert.ok(
+          mesh.userData.faceRooms.every((owner) => owner.layoutId),
+          "colored scan triangles retain their selectable source markers",
+        );
+      } else {
+        uncolored++;
+        assert.equal(color, undefined);
+      }
+      for (const resource of [mesh.geometry, mesh.material]) {
+        const observation = { count: 0 };
+        resource.addEventListener("dispose", () => observation.count++);
+        disposed.push(observation);
+      }
+    }
+    assert.ok(colored > 0 && uncolored > 0);
+  } finally {
+    result.dispose();
+  }
+  assert.ok(disposed.length > 0);
+  assert.ok(disposed.every(({ count }) => count === 1));
 });
 
 test("last available building plans keep incoming flights pickable below the slab without stacked duplicates", () => {

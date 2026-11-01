@@ -106,6 +106,8 @@ if (scene) {
     updateUI,
     getUserOrigin: () => userPosition?.routeOrigin(),
     onLocate: () => userPosition?.locate(),
+    onPauseFollowing: () => userPosition?.pauseFollowing(),
+    onConfirmFloor: (selection) => userPosition?.confirmRouteFloor(selection),
     onRefineLocation: () =>
       userPosition?.beginPicking({
         onPicked: () => {

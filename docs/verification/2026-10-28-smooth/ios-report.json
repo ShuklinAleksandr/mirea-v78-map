@@ -1,0 +1,22 @@
+{
+  "scope": "Final polished-surface iOS Simulator visual smoke via CUA",
+  "model": "iPhone17Pro test simulator",
+  "os": "iOS26.0",
+  "udid": "29B4C7B6-A93B-466C-A12D-5E184147FA55",
+  "buildRun": "2026-10-28T21-37-51-013Z",
+  "bundleId": "ru.mirea.spatialatlas",
+  "install": "passed",
+  "launch": "passed:PID95446",
+  "checks": {
+    "map": "local3Dmap rendered",
+    "stairSelection": "LK2 G physical1 selected; dense surfaces/light tread-dark riser style rendered; room card/floor target visible",
+    "gps": "not enabled/tested in this visual pass",
+    "deviceSigning": "not performed"
+  },
+  "screenshot": "stair-smooth.jpg",
+  "limits": [
+    "Simulator only; realiPhone/team/development signing deferred by user",
+    "No repeated sensor/GPS/keyboard/gesture/fullroute/performance test in this geometry-only pass",
+    "Offline-network interruption on iOS not performed"
+  ]
+}

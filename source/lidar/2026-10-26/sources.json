@@ -1,0 +1,26 @@
+[
+  {
+    "index": 1,
+    "archive": "26.10.2026.zip",
+    "archiveSha256": "cf39dec46765d04dd7aacf3056172bac7d57d5c887b7a432eb26359c8575e9be",
+    "ply": "source/lidar/2026-10-26/scan-1.ply",
+    "plyBytes": 70601701,
+    "plySha256": "9e327c70bec30f5793158a07a9fd11e2d09bebcd4eaab892389632b18afe6bcb"
+  },
+  {
+    "index": 2,
+    "archive": "26.10.2026 2.zip",
+    "archiveSha256": "8f54a4eccb8f14a8ee84f740854bfa6b217df52368b7414017878e97de7fcd5e",
+    "ply": "source/lidar/2026-10-26/scan-2.ply",
+    "plyBytes": 71145211,
+    "plySha256": "521afad8667ae52e9e472fa3f79babbc13ed1efbeac32b9f28ae5e6cc281b446"
+  },
+  {
+    "index": 3,
+    "archive": "26.10.2026 3.zip",
+    "archiveSha256": "89fa5966de63abe8674cd36f2f1948c357232f7ccff838b313404850b665cd22",
+    "ply": "source/lidar/2026-10-26/scan-3.ply",
+    "plyBytes": 90483151,
+    "plySha256": "30dc9afe4872e1269c9d4176226a43b34bc09d31983f8a83a5b46221037986cf"
+  }
+]

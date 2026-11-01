@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { makeCurrentRouteEndpoint } from "../src/data/current-route-origin.js";
 import { isCurrentUserLocation } from "../src/data/user-location.js";
+import { createRouteTracker } from "../src/data/route-tracking.js";
+import { createRouteTrackingSurfaceGuard } from "../src/data/route-tracking-surface.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -87,6 +89,7 @@ function harness(file, exports, saved = {}) {
   const resizeObservers = [];
   let nextAnimationFrame = 0;
   let currentWorker;
+  let clock = null;
   class Worker {
     constructor() {
       currentWorker = this;
@@ -103,6 +106,8 @@ function harness(file, exports, saved = {}) {
     shareView: () => {},
     makeCurrentRouteEndpoint,
     isCurrentUserLocation,
+    createRouteTracker,
+    createRouteTrackingSurfaceGuard,
     createRouteGuidance,
     sampleRouteGuidance,
     guidanceAnchorForStep,
@@ -122,6 +127,11 @@ function harness(file, exports, saved = {}) {
     Worker,
     URL,
     URLSearchParams,
+    Date: class extends Date {
+      static now() {
+        return clock ?? Date.now();
+      }
+    },
     innerWidth: 390,
     innerHeight: 844,
     location: { hash: "" },
@@ -157,6 +167,9 @@ function harness(file, exports, saved = {}) {
     document: sandbox.document,
     store,
     workerMessages,
+    setNow(value) {
+      clock = value;
+    },
     tick(timestamp) {
       const next = animationFrames.entries().next().value;
       if (!next) return false;
@@ -193,6 +206,8 @@ function routeHarness({
   getUserOrigin,
   onLocate,
   onRefineLocation,
+  onConfirmFloor,
+  onPauseFollowing,
 } = {}) {
   const h = harness("../src/ui/routes.js", ["bindRoutes"]);
   const state = {
@@ -222,6 +237,8 @@ function routeHarness({
     getUserOrigin,
     onLocate,
     onRefineLocation,
+    onConfirmFloor,
+    onPauseFollowing,
     scene,
     loadCampus: async (id) => {
       state.campus = { id };
@@ -935,7 +952,8 @@ test("the route camera reserves the compact card's actual area, and a manual ori
   assert.equal(h.getEndpoints().from.label, "I am here");
   await buildPreview(h);
   h.element("#route-dock-next").dispatch("click");
-  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 226);
+  assert.equal(h.guidanceOptions.filter(Boolean).at(-1).padding.bottom, 226);
+  assert.equal(h.guidanceOptions.filter(Boolean).at(-1).showMarker, false);
   assert.equal(h.sheetCalls.at(-1), "minimized");
   assert.equal(h.animationFrames.size, 0);
   h.element("#route-dock-close").dispatch("click");
@@ -983,7 +1001,7 @@ test("a step with an unavailable destination floor cannot claim arrival or disca
     h.element("#route-dock-instruction").textContent,
     "Оставайтесь у лестницы",
   );
-  assert.equal(h.guidanceCalls.at(-1).floorId, "a-floor1");
+  assert.equal(h.guidanceCalls.filter(Boolean).at(-1).floorId, "a-floor1");
 });
 
 test("changing 2D/3D preserves an explicitly selected instruction at a shared anchor", async () => {
@@ -1107,4 +1125,297 @@ test("typing a different origin cancels a pending GPS selection before a late fi
   assert.equal(h.getEndpoints().from, null);
   assert.equal(h.element("#route-from").value, "Г-1");
   assert.equal(h.workerMessages.length, 0);
+});
+
+async function liveRouteHarness(options = {}) {
+  const h = routeHarness({ onLocate() {}, ...options });
+  h.state.mode = "floor";
+  h.state.locationTracking = { enabled: true, status: "live", following: true };
+  const points = [
+    [-5, -5],
+    [40, -5],
+    [40, 30],
+    [-5, 30],
+  ];
+  h.state.floorData = [
+    {
+      id: "a-floor1",
+      campusId: "a",
+      units: "meters",
+      polygons: [{ id: "hall", kind: "corridor", points }],
+      footprints: [{ points }],
+      walls: [],
+      doors: [],
+    },
+  ];
+  h.result.distanceMeters = 28;
+  h.result.segments = [
+    {
+      floorId: "a-floor1",
+      points: [
+        [0, 0],
+        [12, 0],
+        [12, 16],
+      ],
+      nodes: [{ physicalLevel: 1, building: "Г" }],
+    },
+  ];
+  h.result.steps = [
+    {
+      kind: "start",
+      floorId: "a-floor1",
+      position: [0, 0],
+      text: "Начните здесь",
+    },
+    {
+      kind: "walk",
+      floorId: "a-floor1",
+      position: [0, 0],
+      text: "По коридору",
+    },
+    {
+      kind: "turn",
+      floorId: "a-floor1",
+      position: [12, 0],
+      text: "Поверните налево",
+    },
+    {
+      kind: "arrive",
+      floorId: "a-floor1",
+      position: [12, 16],
+      text: "У аудитории",
+    },
+  ];
+  const pending = h.build();
+  h.reply(h.result);
+  await pending;
+  const base = Date.now();
+  h.setNow(base);
+  let tick = 0;
+  h.emitGps = (point, overrides = {}) => {
+    const now = base + ++tick * 1000;
+    h.setNow(now);
+    h.state.userLocation = {
+      source: "gps",
+      status: "inside",
+      campusId: "a",
+      point,
+      timestamp: now,
+      accuracyMeters: 3,
+      accuracyRadiusMap: 3,
+      floorEvidence: "unknown",
+      trackingStatus: "live",
+      ...overrides,
+    };
+    h.locationChanged();
+  };
+  h.element("#route-dock-next").dispatch("click");
+  return h;
+}
+
+test("live GPS advances to upcoming instructions and arrival without opening the sheet or creating a demonstration", async () => {
+  const h = await liveRouteHarness();
+  const sheetCount = h.sheetCalls.length;
+  h.emitGps([0, 0]);
+  assert.equal(
+    h.element("#route-dock-instruction").textContent,
+    "Начните здесь",
+  );
+  h.locationChanged();
+  h.locationChanged();
+  assert.equal(
+    h.element("#route-dock-instruction").textContent,
+    "Начните здесь",
+    "refreshes are not fresh evidence",
+  );
+  h.emitGps([1, 0]);
+  assert.equal(
+    h.element("#route-dock-instruction").textContent,
+    "Поверните налево",
+  );
+  assert.match(h.element("#route-dock-note").textContent, /автоматически/);
+  assert.match(h.element("#route-dock-meta").textContent, /м до шага/);
+  for (const point of [
+    [2, 0],
+    [6, 0],
+    [10, 0],
+    [12, 0],
+    [12, 2],
+    [12, 6],
+    [12, 10],
+    [12, 14],
+    [12, 15],
+    [12, 16],
+    [12, 16],
+  ])
+    h.emitGps(point);
+  assert.match(h.element("#route-dock-instruction").textContent, /Вы пришли/);
+  assert.equal(h.sheetCalls.length, sheetCount);
+  assert.equal(
+    h.guidanceCalls.at(-1),
+    null,
+    "GPS never gains an orange preview marker",
+  );
+  assert.equal(h.animationFrames.size, 0);
+  assert.deepEqual(h.state.userLocation.point, [12, 16]);
+  h.element("#route-dock-next").dispatch("click");
+  assert.equal(h.getRoute(), null);
+});
+
+test("live navigation holds poor or stale positions and retains actual GPS coordinates", async () => {
+  const h = await liveRouteHarness();
+  h.emitGps([0, 0]);
+  h.emitGps([1, 0]);
+  const instruction = h.element("#route-dock-instruction").textContent;
+  h.emitGps([12, 16], { accuracyMeters: 40 });
+  assert.equal(h.element("#route-dock-instruction").textContent, instruction);
+  assert.match(
+    h.element("#route-dock-note").textContent,
+    /Точности GPS недостаточно/,
+  );
+  assert.deepEqual(h.state.userLocation.point, [12, 16]);
+  h.setNow(h.state.userLocation.timestamp + 11_000);
+  h.locationChanged();
+  assert.match(h.element("#route-dock-note").textContent, /Нет свежего GPS/);
+  assert.equal(h.element("#route-dock-instruction").textContent, instruction);
+});
+
+test("a GPS stair handoff waits for explicit floor confirmation and never switches floors from coordinates alone", async () => {
+  const confirmations = [];
+  const h = routeHarness({
+    onLocate() {},
+    onConfirmFloor: (floor) => confirmations.push(floor),
+  });
+  h.state.mode = "floor";
+  const points = [
+    [-5, -5],
+    [30, -5],
+    [30, 20],
+    [-5, 20],
+  ];
+  h.state.floorData = [1, 2].map((n) => ({
+    id: `a-floor${n}`,
+    campusId: "a",
+    polygons: [{ id: `hall${n}`, kind: "corridor", points }],
+    footprints: [{ points }],
+    walls: [],
+    doors: [],
+  }));
+  h.result.distanceMeters = 22;
+  h.result.segments = [
+    {
+      floorId: "a-floor1",
+      points: [
+        [0, 0],
+        [12, 0],
+      ],
+      nodes: [{ physicalLevel: 1, building: "Г" }],
+    },
+    {
+      floorId: "a-floor2",
+      points: [
+        [12, 0],
+        [12, 10],
+      ],
+      nodes: [{ physicalLevel: 2, building: "Г" }],
+    },
+  ];
+  h.result.transitions = [
+    {
+      fromFloorId: "a-floor1",
+      toFloorId: "a-floor2",
+      point: [12, 0],
+      targetPoint: [12, 0],
+      label: "Лестница",
+    },
+  ];
+  h.result.steps = [
+    { kind: "start", floorId: "a-floor1", position: [0, 0], text: "Начало" },
+    {
+      kind: "stairs",
+      floorId: "a-floor1",
+      targetFloorId: "a-floor2",
+      position: [12, 0],
+      text: "Поднимитесь на 2 этаж",
+    },
+    {
+      kind: "walk",
+      floorId: "a-floor2",
+      position: [12, 0],
+      text: "По 2 этажу",
+    },
+    {
+      kind: "arrive",
+      floorId: "a-floor2",
+      position: [12, 10],
+      text: "У двери",
+    },
+  ];
+  const pending = h.build();
+  h.reply(h.result);
+  await pending;
+  const base = Date.now();
+  h.setNow(base);
+  h.element("#route-dock-next").dispatch("click");
+  for (const [i, x] of [0, 1, 5, 9, 11, 12, 12].entries()) {
+    const now = base + i * 1000;
+    h.setNow(now);
+    h.state.userLocation = {
+      source: "gps",
+      status: "inside",
+      campusId: "a",
+      point: [x, 0],
+      timestamp: now,
+      accuracyMeters: 3,
+      trackingStatus: "live",
+    };
+    h.locationChanged();
+  }
+  assert.equal(h.state.floor.id, "a-floor1");
+  assert.equal(confirmations.length, 0);
+  assert.match(h.element("#route-dock-next").innerHTML, /Я на следующем этаже/);
+  h.element("#route-dock-next").dispatch("click");
+  assert.equal(h.state.floor.id, "a-floor2");
+  assert.equal(confirmations.length, 1);
+  assert.equal(confirmations[0].floorId, "a-floor2");
+  assert.equal(confirmations[0].physicalLevel, 2);
+});
+
+test("live guidance does not refit the route after manual pan or a dock resize, and waits for new GPS after resume", async () => {
+  const h = await liveRouteHarness();
+  h.emitGps([0, 0]);
+  h.emitGps([1, 0]);
+  h.state.locationTracking.following = false;
+  const calls = h.guidanceCalls.length;
+  h.resize();
+  assert.equal(
+    h.guidanceCalls.length,
+    calls,
+    "automatic route framing cannot override manual map view",
+  );
+  const pause = new Event("atlas:app-state");
+  Object.defineProperty(pause, "detail", { value: { isActive: false } });
+  h.window.dispatchEvent(pause);
+  assert.match(h.element("#route-dock-note").textContent, /Нет свежего GPS/);
+  const resume = new Event("atlas:app-state");
+  Object.defineProperty(resume, "detail", { value: { isActive: true } });
+  h.window.dispatchEvent(resume);
+  assert.match(h.element("#route-dock-note").textContent, /Нет свежего GPS/);
+  h.emitGps([2, 0]);
+  assert.match(h.element("#route-dock-note").textContent, /автоматически/);
+});
+
+test("an unavailable destination keeps the honest graph explanation visible instead of leaving an empty minimized route", async () => {
+  const h = routeHarness();
+  const pending = h.build();
+  h.reply({
+    ok: false,
+    code: "no-path",
+    message: "У Г-424-1 не задан подтверждённый вход в графе проходов.",
+  });
+  await pending;
+  assert.equal(h.getRoute(), null);
+  assert.match(h.element("#route-status").textContent, /Г-424-1.*вход/);
+  assert.equal(h.sheetCalls.at(-1), "expanded");
+  assert.equal(h.element("#route-guidance-dock").hidden, true);
 });

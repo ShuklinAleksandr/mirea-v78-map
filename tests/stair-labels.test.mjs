@@ -64,7 +64,27 @@ test("confirmed stairs can be found by library text without changing or deduplic
   const original = structuredClone(source);
   const floors = [floor(1), floor(2)];
   const shown = withConfirmedStairSearch(source, floors);
-  assert.equal(shown.length, source.length + 4);
+  assert.equal(shown.length, source.length + 6);
+  const additions = shown.slice(source.length);
+  assert.deepEqual(
+    additions.map((marker) => marker.layoutId).sort(),
+    [
+      "v-78-floor1-photo-stair-A154",
+      "v-78-floor1-user-stair-basement",
+      "v-78-floor2-photo-stair-A154-arrival",
+      "v-78-floor2-user-stair-library",
+      "v78-Д-scan-v-78-floor1",
+      "v78-Д-scan-v-78-floor2",
+    ].sort(),
+    "the two new source-guarded D scan views account for the changed count",
+  );
+  assert.equal(new Set(additions.map((marker) => marker.id)).size, 6);
+  assert.ok(
+    additions.every(
+      (marker) => !source.some((place) => place.id === marker.id),
+    ),
+    "view-only additions never collide with an archived catalogue ID",
+  );
   assert.deepEqual(shown.slice(0, source.length), source);
   const matches = findPlaces(shown, { query: "библиот" });
   assert.equal(matches.length, 1);
@@ -181,8 +201,12 @@ test("confirmed lower schemes state their user evidence while preserving the acc
       marker.shapeReviewStatus === "user-confirmed-schematic" &&
       marker.layoutId !== "v-78-floor2-user-stair-library",
   );
-  assert.equal(confirmed.length, 3);
-  for (const marker of confirmed) {
+  assert.equal(confirmed.length, 6);
+  const described = confirmed.filter(
+    (marker) => marker.geometryEvidence === "user-description-and-sketch",
+  );
+  assert.equal(described.length, 3);
+  for (const marker of described) {
     assert.match(marker.note, /две зеркальные ветви/);
     assert.match(marker.note, /половине высоты/);
     assert.match(marker.note, /допущения модели/);
@@ -194,7 +218,33 @@ test("confirmed lower schemes state their user evidence while preserving the acc
     assert.equal(marker.geometryEvidence, "user-description-and-sketch");
     assert.deepEqual(marker.shapeSourcePhotoIds, []);
   }
-  const ivc = confirmed.find(
+  const scanned = confirmed.filter(
+    (marker) =>
+      marker.geometryEvidence ===
+      "user-authorized-equivalent-standard-scan-with-existing-source-portals",
+  );
+  assert.equal(scanned.length, 3);
+  assert.deepEqual(
+    scanned.map((marker) => marker.layoutId).sort(),
+    [1, 2, 3].map((n) => `v78-Д-scan-v-78-floor${n}`),
+  );
+  for (const marker of scanned) {
+    assert.equal(marker.building, "Д");
+    assert.equal(marker.source, "user-confirmed-location");
+    assert.equal(marker.label, "Межэтажная лестница · корпус Д");
+    assert.equal(
+      marker.dimensionsStatus,
+      "uniform-xy-fit-and-explicit-assumed-height-fit",
+    );
+    const sourceFloor = floor(Number(marker.floorId.match(/floor(\d+)$/)[1]));
+    assert.equal(
+      stairLayoutFor(marker, sourceFloor).placementStatus,
+      "approximate-not-surveyed",
+      "a concise place name does not remove the registration uncertainty metadata",
+    );
+    assert.deepEqual(marker.sourcePhotoIds, []);
+  }
+  const ivc = described.find(
     (marker) => marker.destinationStatus === "plan-unavailable",
   );
   assert.match(ivc.note, /План нижнего уровня и маршрут/);

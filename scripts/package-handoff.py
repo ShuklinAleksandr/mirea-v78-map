@@ -1,4 +1,8 @@
-"""Create a portable source ZIP. No local SDKs, stale binaries or signing files."""
+"""Create a portable source ZIP. No local SDKs, stale binaries or signing files.
+
+Scan surfaces and reconstruction scripts travel with the source. Large original
+XYZ/RGB point clouds remain local; only their explicit provenance files travel.
+"""
 
 from __future__ import annotations
 
@@ -13,13 +17,18 @@ import zipfile
 
 
 ROOT_FILES = {
-    ".editorconfig", ".gitattributes", ".gitignore", ".nvmrc", ".prettierignore",
+    ".editorconfig", ".gitignore", ".nvmrc", ".prettierignore",
     "capacitor.config.json", "index.html", "jsconfig.json",
-    "package.json", "package-lock.json", "README.md", "CONTRIBUTING.md", "vite.config.js",
+    "package.json", "package-lock.json", "README.md", "vite.config.js",
     "BUILD_ON_MAC.txt", "PROMPT_FOR_BUILD_PC.txt", "STAIRS_TODO_FOR_MAC.txt",
     "XCODE_IPHONE.md", "ВОПРОСЫ_ПО_КАРТЕ.md",
 }
+OPTIONAL_ROOT_FILES = {".gitattributes", "CONTRIBUTING.md"}
 TREES = {".github", "src", "public", "scripts", "tests", "docs", "tools", "android", "ios"}
+SOURCE_METADATA_FILES = {
+    "source/lidar/2026-10-26/README.md",
+    "source/lidar/2026-10-26/sources.json",
+}
 EXCLUDED_DIRS = {
     "node_modules", "build", ".gradle", ".idea", "Pods", "DerivedData",
     "xcuserdata", ".swiftpm", ".build", "__pycache__", ".git",
@@ -35,8 +44,12 @@ SECRET_SUFFIXES = {".jks", ".keystore", ".p12", ".p8", ".pfx", ".key", ".pem", "
 def included(relative: Path) -> bool:
     parts = relative.parts
     if len(parts) == 1:
-        return relative.name in ROOT_FILES
-    if parts[0] not in TREES and parts[:2] != ("source", "maps"):
+        return relative.name in ROOT_FILES | OPTIONAL_ROOT_FILES
+    if (
+        parts[0] not in TREES
+        and parts[:2] != ("source", "maps")
+        and relative.as_posix() not in SOURCE_METADATA_FILES
+    ):
         return False
     if any(part in EXCLUDED_DIRS for part in parts):
         return False
@@ -66,7 +79,8 @@ def main() -> None:
     output = args.output.resolve()
     if output.exists():
         raise SystemExit(f"Output already exists: {output}")
-    candidates = [project / name for name in ROOT_FILES]
+    candidates = [project / name for name in ROOT_FILES | OPTIONAL_ROOT_FILES]
+    candidates.extend(project / name for name in SOURCE_METADATA_FILES)
     for root_name in [*sorted(TREES), "source/maps"]:
         for directory, folders, names in os.walk(project / root_name):
             folders[:] = sorted(folder for folder in folders if folder not in EXCLUDED_DIRS)
@@ -86,7 +100,7 @@ def main() -> None:
             if file.is_symlink():
                 raise SystemExit(f"Unexpected source symlink: {relative}")
             data = file.read_bytes()
-            info = zipfile.ZipInfo(f"mirea-v78-map/{relative}")
+            info = zipfile.ZipInfo(f"mirea-map-v78/{relative}")
             info.create_system = 3
             mode = 0o755 if relative == "android/gradlew" else 0o644
             info.external_attr = (stat.S_IFREG | mode) << 16
@@ -95,19 +109,19 @@ def main() -> None:
             entries.append({"path": relative, "bytes": len(data), "sha256": sha256(data)})
         manifest = {
             "format": 1,
-            "project": "mirea-v78-map",
+            "project": "mirea-map-v78",
             "date": datetime.now(timezone.utc).date().isoformat(),
-            "purpose": "GitHub repository source; browser, Android and iOS development",
+            "purpose": "Portable source; build Android and iOS on the receiving Mac",
             "files": entries,
         }
-        bundle.writestr("mirea-v78-map/HANDOFF_MANIFEST.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+        bundle.writestr("mirea-map-v78/HANDOFF_MANIFEST.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     # Verify the actual ZIP, including every decompressed file and its source hash.
     with zipfile.ZipFile(output) as bundle:
         damaged = bundle.testzip()
         if damaged:
             raise SystemExit(f"ZIP CRC failure: {damaged}")
         for entry in entries:
-            data = bundle.read(f"mirea-v78-map/{entry['path']}")
+            data = bundle.read(f"mirea-map-v78/{entry['path']}")
             if sha256(data) != entry["sha256"]:
                 raise SystemExit(f"ZIP hash failure: {entry['path']}")
     digest = sha256(output.read_bytes())

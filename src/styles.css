@@ -1934,6 +1934,25 @@ dialog::backdrop {
 .location-clear {
   color: var(--muted);
 }
+.gps-refinement-records {
+  margin: 16px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.gps-refinement-records summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 8px 0;
+}
+.gps-refinement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gps-refinement-actions button {
+  min-height: 44px;
+  padding: 8px 12px;
+}
 .location-floor-select {
   display: grid;
   grid-template-columns: 1fr 1fr;

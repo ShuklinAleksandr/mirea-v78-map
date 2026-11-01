@@ -3,6 +3,8 @@ import { icon } from "./icons.js";
 import { shareView } from "./experience.js";
 import { makeCurrentRouteEndpoint } from "../data/current-route-origin.js";
 import { isCurrentUserLocation } from "../data/user-location.js";
+import { createRouteTracker } from "../data/route-tracking.js";
+import { createRouteTrackingSurfaceGuard } from "../data/route-tracking-surface.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -44,6 +46,8 @@ export function bindRoutes({
   getUserOrigin,
   onLocate,
   onRefineLocation,
+  onConfirmFloor,
+  onPauseFollowing,
 }) {
   let from = null,
     to = null,
@@ -61,6 +65,12 @@ export function bindRoutes({
     previewTimestamp = null,
     previewRevision = 0;
   let pendingCurrentOrigin = null;
+  let liveTracker = null,
+    automatic = false,
+    liveProgress = null,
+    liveExpiryTimer = null,
+    resumeAfterTimestamp = -Infinity;
+  const surfaceGuards = new WeakMap();
   const pending = new Map();
   function calculate(a, b, id) {
     if (!worker) {
@@ -111,6 +121,10 @@ export function bindRoutes({
   }
   function invalidate() {
     pausePreview(false);
+    automatic = false;
+    liveTracker = liveProgress = null;
+    resumeAfterTimestamp = -Infinity;
+    if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
     revision++;
     route = null;
     guiding = false;
@@ -193,6 +207,7 @@ export function bindRoutes({
   }
   function locationChanged() {
     refreshCurrentOriginButton();
+    updateLiveGuidance();
     if (!pendingCurrentOrigin) return;
     const options = pendingCurrentOrigin;
     if (isCurrentUserLocation(state.userLocation)) {
@@ -210,6 +225,54 @@ export function bindRoutes({
       );
       refreshCurrentOriginButton();
     }
+  }
+  function liveSurface(point, projectedPoint, section) {
+    const floor = state.floorData?.find((item) => item.id === section.floorId);
+    if (!floor) return false;
+    let guard = surfaceGuards.get(floor);
+    if (!guard) {
+      guard = createRouteTrackingSurfaceGuard(floor);
+      surfaceGuards.set(floor, guard);
+    }
+    return guard(point, projectedPoint);
+  }
+  function updateLiveGuidance() {
+    if (!route || !guiding || !automatic || previewing || !liveTracker) return;
+    if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
+    if (
+      document.hidden ||
+      scene.locationPicking ||
+      state.campus?.id !== route.campusId
+    ) {
+      liveProgress = {
+        ...liveTracker.snapshot(),
+        status: "stale",
+        reason: "navigation-paused",
+      };
+      updateDockReadout();
+      return;
+    }
+    if (state.userLocation?.timestamp <= resumeAfterTimestamp) {
+      liveProgress = { ...liveTracker.snapshot(), status: "stale" };
+      updateDockReadout();
+      return;
+    }
+    liveProgress = liveTracker.update(state.userLocation, {
+      now: Date.now(),
+      floorId: state.mode === "overview" ? null : state.floor?.id,
+      allowPoint: liveSurface,
+    });
+    guideSection = liveProgress.sectionIndex;
+    guideDistance = liveProgress.distance;
+    stepIndex = liveProgress.stepIndex;
+    // The only moving location marker is the actual provider position. The
+    // projected route distance is evidence for instructions, not a replacement
+    // coordinate or an orange demonstration marker.
+    scene.setRouteGuidance?.(null);
+    updateProgressReadout();
+    const expires = state.userLocation?.timestamp + 10_001 - Date.now();
+    if (expires > 0 && typeof setTimeout === "function")
+      liveExpiryTimer = setTimeout(updateLiveGuidance, expires);
   }
   const currentOriginButton = $("#route-use-location");
   if (currentOriginButton)
@@ -432,6 +495,9 @@ export function bindRoutes({
       toast(
         "Не удалось открыть этаж этого шага. Выберите другой шаг или измените маршрут.",
       );
+    } else if (automatic && liveTracker) {
+      liveProgress = liveTracker.seekStep(index);
+      updateLiveGuidance();
     }
     renderSteps();
     return opened;
@@ -450,9 +516,13 @@ export function bindRoutes({
   }
   function startGuidance() {
     if (!route) return;
+    automatic = true;
+    liveTracker ||= createRouteTracker(route);
     guiding = true;
     guideSection = guideDistance = 0;
     focusStep(0);
+    onLocate?.();
+    updateLiveGuidance();
   }
   function clear({ open = false, completed = false } = {}) {
     pendingCurrentOrigin = null;
@@ -484,13 +554,43 @@ export function bindRoutes({
       if (!route) return;
       if (!guiding) startGuidance();
       else if (stepIndex === route.steps.length - 1) clear({ completed: true });
-      else focusStep(stepIndex + 1);
+      else {
+        const targetFloorId = route.steps[stepIndex]?.targetFloorId;
+        const nextSection = targetFloorId
+          ? guide.sections.find(
+              (section, index) =>
+                index > guideSection && section.floorId === targetFloorId,
+            )
+          : null;
+        const target = nextSection
+          ? route.segments[nextSection.sourceSegmentIndex]?.nodes?.[0]
+          : null;
+        if (focusStep(stepIndex + 1) && automatic && targetFloorId) {
+          // This button is an explicit human confirmation of the staircase
+          // hand-off. The provider itself never measured the new floor.
+          onConfirmFloor?.({
+            campusId: route.campusId,
+            floorId: targetFloorId,
+            building: target?.building,
+            physicalLevel: target?.physicalLevel,
+          });
+          onLocate?.();
+          updateLiveGuidance();
+        }
+      }
     });
     $("#route-dock-previous")?.addEventListener("click", () =>
       focusStep(stepIndex - 1),
     );
     $("#route-dock-recenter")?.addEventListener("click", () => {
-      if (guiding) focusStep(stepIndex);
+      if (guiding && onLocate) {
+        pausePreview(false);
+        automatic = true;
+        liveTracker ||= createRouteTracker(route);
+        scene.setRouteGuidance?.(null);
+        onLocate();
+        updateLiveGuidance();
+      } else if (guiding) focusStep(stepIndex);
       else {
         minimizePanel();
         viewFloor(route.segments[0].floorId, !guide.sections.length);
@@ -512,20 +612,60 @@ export function bindRoutes({
   function updateDockReadout() {
     if (!route) return;
     const meta = $("#route-dock-meta");
+    const nextDistance =
+      automatic && Number.isFinite(liveProgress?.distanceToNextMeters)
+        ? ` · ≈ ${Math.round(liveProgress.distanceToNextMeters)} м до шага`
+        : "";
     if (meta)
       meta.textContent = guiding
-        ? `Шаг ${stepIndex + 1} из ${route.steps.length}`
+        ? `Шаг ${stepIndex + 1} из ${route.steps.length}${nextDistance}`
         : `${route.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}`;
     const instruction = $("#route-dock-instruction");
     if (instruction)
       instruction.textContent = guiding
-        ? route.steps[stepIndex]?.text || "Следуйте по выделенному пути"
+        ? liveProgress?.arrived && automatic
+          ? `Вы пришли · ${to?.label || "назначение"}`
+          : route.steps[stepIndex]?.text || "Следуйте по выделенному пути"
         : `${from?.label || "Начало"} → ${to?.label || "Назначение"}`;
+    const note = $("#route-dock-note");
+    if (note && guiding) {
+      const notes = {
+        waiting: "Ждём GPS. Пока можно переключать шаги вручную.",
+        acquiring: "Сверяем свежие координаты с маршрутом…",
+        tracking: "По GPS · шаги меняются автоматически",
+        "low-accuracy":
+          "Точности GPS недостаточно для смены шагов. Уточните точку или идите по кнопке «Далее».",
+        stale: "Нет свежего GPS. Автоматическое продвижение приостановлено.",
+        "off-route":
+          "Позиция вне подтверждённого пути. Уточните точку; маршрут не перестраивается по догадке.",
+        "floor-mismatch":
+          "Проверьте свой этаж и уточните точку. GPS не определяет этаж.",
+        "floor-change":
+          "После лестницы подтвердите, что перешли на следующий этаж.",
+        arrived: "Вы у назначения по данным GPS. Проверьте указатель на месте.",
+      };
+      note.textContent = automatic
+        ? notes[liveProgress?.status] || notes.waiting
+        : previewing
+          ? "Демонстрация маршрута · это не ваше движение"
+          : "Переключайте шаги, когда дойдёте до указанного места";
+    }
     const previous = $("#route-dock-previous");
     if (previous) previous.hidden = !guiding || stepIndex === 0;
     const next = $("#route-dock-next");
-    if (next)
-      next.innerHTML = `${guiding ? (stepIndex === route.steps.length - 1 ? "Завершить" : "Далее") : "В путь"}${icon("arrow", 17)}`;
+    if (next) {
+      const transition =
+        guiding && automatic && route.steps[stepIndex]?.targetFloorId;
+      next.innerHTML = `${guiding ? (stepIndex === route.steps.length - 1 ? "Завершить" : transition ? "Я на следующем этаже" : "Далее") : "В путь"}${icon("arrow", 17)}`;
+    }
+    const recenter = $("#route-dock-recenter");
+    if (recenter && guiding && onLocate) {
+      recenter.setAttribute(
+        "aria-label",
+        "К моему местоположению — продолжить ведение",
+      );
+      recenter.innerHTML = `${icon("locate", 20)}<span>Ко мне</span>`;
+    }
   }
   function renderProgress() {
     $("#route-panel").dataset.guiding = String(guiding);
@@ -548,6 +688,8 @@ export function bindRoutes({
     });
     $("#route-progress-position")?.addEventListener("input", (event) => {
       pausePreview(false);
+      automatic = false;
+      onPauseFollowing?.();
       const section = guide.sections[guideSection];
       if (!section) return;
       guideDistance =
@@ -565,6 +707,8 @@ export function bindRoutes({
       )
         return;
       pausePreview(false);
+      automatic = false;
+      onPauseFollowing?.();
       guideSection++;
       guideDistance = 0;
       guiding = true;
@@ -621,11 +765,26 @@ export function bindRoutes({
     const sample = sampleRouteGuidance(guide, guideSection, guideDistance);
     if (!sample) return null;
     if (
-      (scene.routeOverview || state.floor?.id !== sample.floorId) &&
+      (scene.routeOverview ||
+        (scene.mode && scene.mode !== "floor") ||
+        (state.mode && state.mode !== "floor") ||
+        state.floor?.id !== sample.floorId) &&
       !viewFloor(sample.floorId, false)
     )
       return null;
     if (!keepStep) stepIndex = sample.stepIndex;
+    if (automatic) {
+      if (
+        scene.setRouteGuidance?.(sample, {
+          padding: padding(),
+          animate,
+          showMarker: false,
+        }) === false
+      )
+        return null;
+      updateProgressReadout();
+      return sample;
+    }
     if (
       scene.setRouteGuidance?.(sample, { padding: padding(), animate }) ===
       false
@@ -639,6 +798,8 @@ export function bindRoutes({
     const section = guide.sections[guideSection];
     if (!section || typeof requestAnimationFrame !== "function") return;
     pausePreview(false);
+    automatic = false;
+    onPauseFollowing?.();
     guiding = true;
     if (guideDistance >= section.length) guideDistance = 0;
     if (!applyGuidance({ animate: true })) return;
@@ -714,10 +875,14 @@ export function bindRoutes({
       }
       if (!result.ok) {
         status(result.message, true);
+        experience.expand(true);
         return;
       }
       route = result;
       guide = createRouteGuidance(result);
+      liveTracker = createRouteTracker(result);
+      liveProgress = null;
+      automatic = false;
       guideSection = guideDistance = 0;
       stepIndex = 0;
       guiding = false;
@@ -770,14 +935,33 @@ export function bindRoutes({
     if (!e.target.closest(".route-inputs,.route-results")) closeResults();
   });
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) pausePreview();
+    if (document.hidden) {
+      pausePreview();
+      resumeAfterTimestamp = Date.now();
+    }
+    updateLiveGuidance();
   });
   window.addEventListener("atlas:app-state", (event) => {
     if (event.detail?.isActive === false) pausePreview();
+    if (automatic && event.detail?.isActive === false) {
+      resumeAfterTimestamp = Date.now();
+      if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
+      liveProgress = { ...liveTracker.snapshot(), status: "stale" };
+      updateDockReadout();
+    } else updateLiveGuidance();
   });
-  window.addEventListener("pagehide", () => pausePreview());
+  window.addEventListener("pagehide", () => {
+    pausePreview();
+    resumeAfterTimestamp = Date.now();
+    if (automatic) {
+      if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
+      liveProgress = { ...liveTracker.snapshot(), status: "stale" };
+      updateDockReadout();
+    }
+  });
   if (typeof ResizeObserver === "function") {
     const observer = new ResizeObserver(() => {
+      if (automatic) return;
       const section = guide.sections[guideSection];
       if (
         guiding &&

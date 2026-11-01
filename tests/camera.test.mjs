@@ -404,15 +404,29 @@ for (const sourceLevel of [2, 3]) {
       "refocusing replaces the old ring",
     );
 
-    // Use the rendered flights, landings and rails as an independent spatial
-    // reference. A generic 40×40 marker crop or the broad hall polygon fails.
+    // The actual scan must fit, while the unchanged accepted plan footprint
+    // retains context around its uniformly fitted surface. The scan no longer
+    // fills every edge of that footprint; a 40×40 crop/full hall still fails.
     const stair = createStaircase(marker, floor);
     const box = new THREE.Box3().setFromObject(stair);
+    const layout = stairLayoutFor(marker, floor);
+    const planPoints = layout.footprint.map(([u, v]) => [
+      layout.frame.origin[0] +
+        layout.frame.axisU[0] * u * layout.frame.size[0] +
+        layout.frame.axisV[0] * v * layout.frame.size[1],
+      layout.frame.origin[1] +
+        layout.frame.axisU[1] * u * layout.frame.size[0] +
+        layout.frame.axisV[1] * v * layout.frame.size[1],
+    ]);
+    const planX = planPoints.map((p) => p[0]),
+      planZ = planPoints.map((p) => p[1]);
     const [x, z, X, Z] = fits[0];
     assert.ok(fits[0].every(Number.isFinite));
     assert.ok(x < box.min.x && z < box.min.z && X > box.max.x && Z > box.max.z);
-    assert.ok(X - x <= box.max.x - box.min.x + 6);
-    assert.ok(Z - z <= box.max.z - box.min.z + 6);
+    assert.ok(x < Math.min(...planX) && X > Math.max(...planX));
+    assert.ok(z < Math.min(...planZ) && Z > Math.max(...planZ));
+    assert.ok(X - x <= Math.max(...planX) - Math.min(...planX) + 6);
+    assert.ok(Z - z <= Math.max(...planZ) - Math.min(...planZ) + 6);
     disposeGroup(stair);
     AtlasScene.prototype.selectRoom.call(view, null);
     assert.equal(selection.children.length, 0);

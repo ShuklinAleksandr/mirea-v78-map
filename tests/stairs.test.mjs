@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
+import polygonClipping from "polygon-clipping";
+import { pointInLocationPolygon } from "../src/location.js";
+import lowerScan from "../src/data/stair-scan-meshes/grand-lower.json" with { type: "json" };
 import { getFloorMarkers } from "../src/data/utils.js";
 import {
   createStaircase,
@@ -24,6 +27,94 @@ const floors = manifest.campuses.flatMap((campus) =>
   campus.floors.map((floor) => read(floor.url.replace("/data/", ""))),
 );
 const byId = new Map(floors.map((floor) => [floor.id, floor]));
+
+function assertObservedLowerScan(group, sourceFloorRange, top) {
+  const evidence = group.userData.scanVisual;
+  assert.equal(evidence.assetId, "grand-lower");
+  assert.equal(evidence.sourceSha256, lowerScan.sourceSha256);
+  assert.deepEqual(evidence.sourceFloorRange, sourceFloorRange);
+  assert.equal(evidence.reconstruction.fillHoles, false);
+  assert.equal(evidence.synthesizedSurfaces, false);
+  assert.equal(evidence.rawTriangles, lowerScan.indices.length / 3);
+  assert.deepEqual(group.userData.visualStepCounts, []);
+  assert.equal(group.children.length, 1, "no extra procedural walls or stairs");
+  const positions = group.children[0].geometry.attributes.position;
+  assert.equal(positions.count, evidence.displayedTriangles * 3);
+  assert.ok(evidence.displayedTriangles > 1000);
+  const box = new THREE.Box3().setFromObject(group);
+  assert.ok(box.min.y >= 0.14 + (top - 1) * 3.6 - 0.15001);
+  assert.ok(box.max.y <= 0.14 + top * 3.6 + 0.00001);
+  assert.ok(box.max.y - box.min.y > 3.5, "the full observed storey remains");
+  return positions;
+}
+
+function assertScanOpeningExposesTreads(group, layout, openings, container) {
+  assert.ok(openings.length > 0);
+  const frame = layout.frame;
+  const framePoints = [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+  ].map(([u, v]) => [
+    frame.origin[0] +
+      frame.axisU[0] * u * frame.size[0] +
+      frame.axisV[0] * v * frame.size[1],
+    frame.origin[1] +
+      frame.axisU[1] * u * frame.size[0] +
+      frame.axisV[1] * v * frame.size[1],
+  ]);
+  for (const opening of openings) {
+    assert.equal(opening.sourceSha256, group.userData.scanVisual.sourceSha256);
+    assert.match(opening.geometryEvidence, /observed-descending-scan/u);
+    assert.equal(
+      polygonClipping.difference(
+        [opening.points],
+        [container.points, ...(container.holes || [])],
+      ).length,
+      0,
+      "a merged scan opening cannot cut beyond the known hall",
+    );
+    assert.equal(
+      polygonClipping.difference([opening.points], [framePoints]).length,
+      0,
+      "scan-derived cuts remain inside the existing registration frame",
+    );
+  }
+  let exposedTreads = 0;
+  group.traverse((object) => {
+    const positions = object.geometry?.attributes.position;
+    if (!positions) return;
+    for (let i = 0; i < positions.count; i += 3) {
+      const a = new THREE.Vector3().fromBufferAttribute(positions, i),
+        b = new THREE.Vector3().fromBufferAttribute(positions, i + 1),
+        c = new THREE.Vector3().fromBufferAttribute(positions, i + 2);
+      const normal = b.clone().sub(a).cross(c.clone().sub(a));
+      const center = a
+        .clone()
+        .add(b)
+        .add(c)
+        .multiplyScalar(1 / 3);
+      if (
+        normal.lengthSq() < 1e-12 ||
+        normal.y / normal.length() < 0.35 ||
+        center.y <= 0.14 - 3.6 + 0.08 ||
+        center.y >= 0.14 - 0.05
+      )
+        continue;
+      const point = [center.x + group.position.x, center.z + group.position.z];
+      assert.ok(
+        openings.some((opening) => pointInLocationPolygon(point, opening)),
+        "the slab cannot hide a real descending tread behind an obsolete narrow opening",
+      );
+      exposedTreads++;
+    }
+  });
+  assert.ok(
+    exposedTreads > 10,
+    "substantial observed descending tread geometry is actually exposed",
+  );
+}
 
 test("main stair floor buttons select its paired arrival rather than the overlapping broad stair", () => {
   const lower = byId.get("v-78-floor1"),
@@ -244,7 +335,6 @@ test("main stair on A3 descends to A2 through a display cutout, while the separa
         .map((cutout) => cutout.layoutId),
       [
         "v-78-floor2-photo-stair-A154-arrival",
-        "v-78-floor2-photo-stair-A154-arrival",
         "v-78-floor2-user-stair-library",
       ],
     );
@@ -356,15 +446,10 @@ test("confirmed lower hall scheme has two separate mirrored half-level returns w
       const bounds = new THREE.Box3().setFromObject(group);
       assert.equal(group.userData.geometryStatus, "user-confirmed-schematic");
       assert.equal(group.userData.room, marker);
-      assert.equal(group.userData.visualStepCounts.length, 4);
+      assertObservedLowerScan(group, [-5.475, -1.375], top);
       assert.ok(
-        bounds.max.x - bounds.min.x > 18,
-        "two separated side branches replace the narrow central U",
-      );
-      assert.ok(
-        top === 0
-          ? bounds.min.y < -3 && bounds.max.y < 1.1
-          : bounds.min.y < 0.3 && bounds.max.y > 4,
+        bounds.max.x - bounds.min.x > layout.frame.size[0] * 0.5,
+        "uniform XY registration keeps the real broad scan without stretching it to fill the old frame",
       );
       const container = floor.polygons.find(
         (polygon) => polygon.id === layout.containerAreaId,
@@ -387,16 +472,12 @@ test("confirmed lower hall scheme has two separate mirrored half-level returns w
       const openings = getStairDisplayCutouts(floor).filter(
         (cutout) => cutout.layoutId === layout.id,
       );
-      assert.equal(openings.length, top === 0 ? 2 : 0);
+      assert.equal(openings.length, top === 0 ? 1 : 0);
       if (openings.length) {
-        assert.ok(
-          Math.max(...openings[0].points.map(([x]) => x)) <
-            Math.min(...openings[1].points.map(([x]) => x)),
-          "the two shafts keep the central floor intact",
-        );
+        assertScanOpeningExposesTreads(group, layout, openings, container);
         assert.equal(
           withStairDisplayCutouts(container, openings).holes.length,
-          (container.holes || []).length + 2,
+          (container.holes || []).length + 1,
         );
       }
       assert.deepEqual(floor, source);
@@ -683,11 +764,12 @@ test("the confirmed second descent repeats the mirrored scheme toward IVC withou
     layout.shapeStatus,
     "user-confirmed-topology-schematic-dimensions",
   );
+  const basementOpenings = getStairDisplayCutouts(floor).filter(
+    (cutout) => cutout.layoutId === basement.layoutId,
+  );
   assert.deepEqual(
-    getStairDisplayCutouts(floor)
-      .filter((cutout) => cutout.layoutId === basement.layoutId)
-      .map((cutout) => cutout.layoutId),
-    [basement.layoutId, basement.layoutId],
+    basementOpenings.map((cutout) => cutout.layoutId),
+    [basement.layoutId],
   );
   assert.ok(
     !byId
@@ -700,7 +782,13 @@ test("the confirmed second descent repeats the mirrored scheme toward IVC withou
     const box = new THREE.Box3().setFromObject(group);
     assert.ok(box.min.y < -3 && box.max.y < 1.1);
     assert.equal(group.userData.geometryStatus, "user-confirmed-schematic");
-    assert.equal(group.userData.visualStepCounts.length, 4);
+    assertObservedLowerScan(group, [-9.375, -5.475], 0);
+    assertScanOpeningExposesTreads(
+      group,
+      layout,
+      basementOpenings,
+      floor.polygons.find((polygon) => polygon.id === layout.containerAreaId),
+    );
     assert.deepEqual(
       layout.flights,
       stairLayoutFor(ascending, floor).flights.map((flight) => ({
@@ -847,11 +935,22 @@ test("all photographed stairs produce finite batched geometry and unknown points
         group.children.length <= (layout.enclosureWalls?.length ? 5 : 4),
         "one merged batch per material, including the explicit rear-wall material",
       );
-      assert.ok(
-        group.userData.visualStepCounts.every(
-          (count) => count >= 4 && count <= 28,
-        ),
-      );
+      if (group.userData.scanVisual) {
+        assert.deepEqual(group.userData.visualStepCounts, []);
+        assert.equal(group.userData.scanVisual.synthesizedSurfaces, false);
+        assert.ok(group.userData.scanVisual.displayedTriangles > 0);
+        assert.equal(
+          group.children[0].geometry.attributes.position.count,
+          group.userData.scanVisual.displayedTriangles * 3,
+        );
+      } else {
+        assert.ok(group.userData.visualStepCounts.length > 0);
+        assert.ok(
+          group.userData.visualStepCounts.every(
+            (count) => count >= 4 && count <= 28,
+          ),
+        );
+      }
       group.traverse((object) => {
         if (object.geometry) {
           const positions = object.geometry.attributes.position.array;
@@ -882,7 +981,7 @@ test("all photographed stairs produce finite batched geometry and unknown points
   assert.equal(group.userData.visualStepCounts, undefined);
 });
 
-test("confirmed rear walls enclose only the back of each lower opening, leaving corridor and central passages open", () => {
+test("lower stair scans retain observed tall wall faces without generating the old enclosure boxes", () => {
   for (const [level, layoutId, top] of [
     [2, "v-78-floor2-photo-stair-A154-arrival", 0],
     [1, "v-78-floor1-photo-stair-A154", 1],
@@ -914,27 +1013,45 @@ test("confirmed rear walls enclose only the back of each lower opening, leaving 
         group.userData.enclosureStatus,
         "user-confirmed-rear-only-approximate-dimensions",
       );
-      const wall = group.children.find((mesh) =>
-        mesh.name.endsWith(" · enclosure"),
+      const p = assertObservedLowerScan(
+        group,
+        layoutId === "v-78-floor1-user-stair-basement"
+          ? [-9.375, -5.475]
+          : [-5.475, -1.375],
+        top,
       );
-      assert.ok(wall);
-      wall.updateMatrixWorld(true);
-      const bounds = new THREE.Box3().setFromObject(wall);
-      assert.ok(Math.abs(bounds.min.y - (0.14 + 3.6 * (top - 1))) < 1e-5);
-      assert.ok(Math.abs(bounds.max.y - (0.14 + 3.6 * top)) < 1e-5);
-      const p = wall.geometry.attributes.position;
-      for (let i = 0; i < p.count; i++) {
-        const x = p.getX(i) + group.position.x;
-        const z = p.getZ(i) + group.position.z;
-        assert.ok(
-          x <= 47.50001 || x >= 51.49999,
-          "central connection stays open",
-        );
-        assert.ok(
-          Math.abs(z - (-20 + 5 * 0.09)) <= 0.071,
-          "no side/front wall is invented",
-        );
+      assert.ok(
+        group.children.every((mesh) => !mesh.name.endsWith(" · enclosure")),
+        "old guessed enclosure boxes are not overlaid on the real scan",
+      );
+      let tallWallFaces = 0,
+        wallMinY = Infinity,
+        wallMaxY = -Infinity;
+      for (let i = 0; i < p.count; i += 3) {
+        const a = new THREE.Vector3().fromBufferAttribute(p, i),
+          b = new THREE.Vector3().fromBufferAttribute(p, i + 1),
+          c = new THREE.Vector3().fromBufferAttribute(p, i + 2);
+        const normal = b.clone().sub(a).cross(c.clone().sub(a));
+        const min = Math.min(a.y, b.y, c.y),
+          max = Math.max(a.y, b.y, c.y);
+        if (
+          normal.lengthSq() > 1e-12 &&
+          Math.abs(normal.y) / normal.length() < 0.15 &&
+          max - min > 0.35
+        ) {
+          tallWallFaces++;
+          wallMinY = Math.min(wallMinY, min);
+          wallMaxY = Math.max(wallMaxY, max);
+        }
       }
+      assert.ok(
+        tallWallFaces > 100,
+        "observed walls survive above tread-riser height",
+      );
+      assert.ok(
+        wallMaxY - wallMinY > 3.5,
+        "wall evidence spans the observed storey",
+      );
     } finally {
       group.traverse((o) => {
         o.geometry?.dispose();

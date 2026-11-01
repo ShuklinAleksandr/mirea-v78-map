@@ -12,7 +12,13 @@ analysis/stair-module-build/
 .native-tools/
 android/local.properties
 
-# Local configuration and signing material
+# User-exported GPS control points remain local.
+MIREA-V78-GPS-*.json
+
+# Raw Polycam clouds stay out of Git and app bundles; processed meshes are tracked.
+/source/lidar/2026-10-26/*.ply
+
+# Local configuration, signing material and generated distributions
 .env
 .env.*
 !.env.example
@@ -26,7 +32,6 @@ android/local.properties
 *.mobileprovision
 key.properties
 keystore.properties
-# Personal IDE state and generated distribution files
 .idea/
 .vscode/
 *.xcuserstate
@@ -35,6 +40,7 @@ keystore.properties
 *.dSYM/
 *.apk
 *.aab
-
-# Local assets to attach manually to GitHub Releases
 /release-assets/
+
+# Generated only for portable source ZIPs.
+/HANDOFF_MANIFEST.json

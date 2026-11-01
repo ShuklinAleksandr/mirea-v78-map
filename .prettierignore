@@ -4,3 +4,6 @@ public/data
 source
 analysis
 package-lock.json
+
+# Generated compact triangle buffers; rebuilt from source PLY.
+src/data/stair-scan-meshes

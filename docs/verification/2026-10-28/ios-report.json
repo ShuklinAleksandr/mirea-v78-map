@@ -1,0 +1,37 @@
+{
+  "scope": "Actual installed final Simulator App short UI smoke via CUA",
+  "device": {
+    "model": "iPhone 17 Pro (MIREA V78 test simulator)",
+    "os": "iOS 26.0",
+    "udid": "29B4C7B6-A93B-466C-A12D-5E184147FA55",
+    "webview": "WKWebView supplied with iOS 26.0; exact user-agent not collected"
+  },
+  "nativeBuildRun": "2026-10-28T18-20-40-233Z",
+  "bundleId": "ru.mirea.spatialatlas",
+  "installedPublicMatchesDist": {
+    "matching": 93,
+    "expected": 93,
+    "changed": []
+  },
+  "checks": {
+    "installAndLaunch": "passed;simctl install and launch returned PID88785",
+    "render": "passed:local 3D floor map visible, existing selected floor/state preserved",
+    "search": "passed:hardware keyboard query209 returned9 results, Г-209 selected; card shows physical2/buildingГ",
+    "route": "passed:Г-103-1→Г-209 built; compact approx1minute ready card and route start floor framed",
+    "safeAreas": "basic portrait screenshot:status island and home indicator remain outside core controls; no full device matrix",
+    "gps": "not tested with real readings; stopped after route test",
+    "dataCleared": false,
+    "singleTouchPan": "CUA simulated drag did not produce a visible map shift; iOS touch panning remains unconfirmed and needs physical-device validation"
+  },
+  "screenshots": [
+    "route-G103-1-G209.png"
+  ],
+  "limitations": [
+    "Simulator only, no physical iPhone or signing/TestFlight archive",
+    "No independent offline-network interruption on iOS in this pass; APK offline test is separate",
+    "Hardware input tested; onscreen keyboard, multi-touch rotation, real compass, live GPS walking, battery and performance require physical-device follow-up",
+    "Final native GPS Share not exercised in this iOS smoke",
+    "CUA Simulator drag result cannot distinguish input-tool limitation from app gesture behavior; no passing claim"
+  ],
+  "codeEdited": false
+}

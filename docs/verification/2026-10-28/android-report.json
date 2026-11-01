@@ -1,0 +1,100 @@
+{
+  "scope": "Actual Android final scan APK UI smoke on pre-existing owned AVD, offline",
+  "device": {
+    "serial": "emulator-5554",
+    "model": "sdk_gphone64_arm64",
+    "os": "16",
+    "api": "36",
+    "webview": "133.0.6943.137",
+    "renderer": "headless SwiftShader"
+  },
+  "apk": {
+    "path": "/Users/aleksandrshuklin/Documents/ChatGPT/3d-map MIREA/mirea-map-v78/android/app/build/outputs/apk/debug/app-debug.apk",
+    "sha256": "ca2c0ebbbb92cad55c305c6ac43031f2f255ea0ac9c5e463a3cee53e11a74b9d",
+    "bytes": 53915300,
+    "nativeBuildRun": "2026-10-28T18-20-40-233Z"
+  },
+  "networkBefore": {
+    "airplaneMode": "1",
+    "wifiOn": "0"
+  },
+  "networkAfter": {
+    "airplaneMode": "1",
+    "wifiOn": "0"
+  },
+  "networkChanged": false,
+  "checks": {
+    "install": "adb install-r success",
+    "coldOfflineLaunch": "passed:local resource fetches and map visible; no error overlay",
+    "standardScan": "passed:LK2 selected in G physical2/sourcefloor1; reconstructed scan visible in07-standard-scan-close.png; source batch13350vertices",
+    "search": "passed:route destination query G-209 returns Г-209 with building/physicalfloor label",
+    "route": "passed:G-103-1→Г-209;2 horizontal floor segments,1 original stair transition v-78:edge:20714,9 steps",
+    "gpsPairPersistence": "2 previous synthetic control-point records preserved",
+    "share": "not opened",
+    "wifiSurvey": "not touched/no scan",
+    "realGps": "not used/no new SDK geo fixes"
+  },
+  "routeEvidence": {
+    "start": {
+      "floorId": "v-78-floor0",
+      "point": [
+        -15.1644,
+        -19.207904999999997
+      ],
+      "roomId": "v-78--floor-0--200",
+      "endpointKind": "place",
+      "label": "Г-103-1"
+    },
+    "end": {
+      "floorId": "v-78-floor1",
+      "point": [
+        10.083255000000001,
+        -31.623155
+      ],
+      "roomId": "v-78--floor-1--6dn",
+      "endpointKind": "place",
+      "label": "Г-209"
+    },
+    "segmentFloors": [
+      "v-78-floor0",
+      "v-78-floor1"
+    ],
+    "transitions": [
+      {
+        "fromFloorId": "v-78-floor0",
+        "toFloorId": "v-78-floor1",
+        "point": [
+          -9.852,
+          -30.11857
+        ],
+        "targetPoint": [
+          -4.535,
+          -30.03357
+        ],
+        "label": "Поднимитесь на 2 этаж, корпус Г",
+        "kind": "stairs",
+        "sourceEdgeId": "v-78:edge:20714"
+      }
+    ],
+    "distanceMeters": null,
+    "durationMinutes": 1
+  },
+  "screenshots": {
+    "newScan": "07-standard-scan-close.png",
+    "route": "12-route-built.png"
+  },
+  "limitations": [
+    "Software AVD is not physical device/GPU accuracy evidence",
+    "No complete live GPS/multi-floor walking or physical sensor test performed in this pass",
+    "Only standard G stair visual selected; main upper/lower visual geometry covered by parent focused tests/native build, not independently opened here",
+    "Empty destination input absent from UIAutomator XML; read-only DOM bounds plus ordinary adb tap used successfully"
+  ],
+  "codeEdited": false,
+  "dataCleared": false,
+  "errorsLogEmpty": false,
+  "runtimeObservations": [
+    "Two non-fatal Capacitor Console startup safe-area CSS injection errors: document node was null when reading style. Map, stair closeup, UI navigation and route still rendered; whether this is an existing upstream issue or regression not established.",
+    "Android software renderer MESA rendernode and Chromium variations seed/ashmem notices present; no native crash observed."
+  ],
+  "runtimeCrashObserved": false
+}
