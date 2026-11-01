@@ -1,7 +1,7 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Share } from "@capacitor/share";
-import { $, escape } from "./dom.js";
-import { icon } from "./icons.js";
+import { $, escape } from "../../../../src/ui/dom.js";
+import { icon } from "../../../../src/ui/icons.js";
 import {
   WIFI_SURVEY_SSID,
   WIFI_SURVEY_LIMIT,

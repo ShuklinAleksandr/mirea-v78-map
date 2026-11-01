@@ -320,17 +320,7 @@ summary:focus-visible {
   font-size: 12px;
   color: var(--muted);
 }
-#osm-attribution {
-  position: absolute;
-  bottom: 30px;
-  right: 24px;
-  font-size: 12px;
-  color: var(--muted);
-  background: var(--paper);
-  padding: 6px 8px;
-  border-radius: 6px;
-  z-index: 4;
-}
+
 .sidebar {
   position: fixed;
   z-index: 10;
@@ -698,14 +688,7 @@ summary:focus-visible {
   padding: 0;
   color: var(--green);
 }
-.sidebar-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--line);
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--muted);
-}
+
 .route-inputs {
   position: relative;
   border: 1px solid var(--line);
@@ -1424,9 +1407,7 @@ dialog::backdrop {
     padding: 0 18px 12px;
     max-height: calc(100dvh - 150px - var(--safe-top) - var(--safe-bottom));
   }
-  .sidebar-footer {
-    display: none;
-  }
+
   .address {
     display: none;
   }
@@ -1516,14 +1497,7 @@ dialog::backdrop {
   .map-status {
     display: none;
   }
-  #osm-attribution {
-    display: block;
-    top: calc(118px + var(--safe-top));
-    bottom: auto;
-    left: auto;
-    right: 12px;
-    font-size: 12px;
-  }
+
   .room-card {
     padding: 4px 0;
   }
@@ -1806,10 +1780,7 @@ dialog::backdrop {
 .topbar #settings-open {
   margin-left: auto;
 }
-.map-sources {
-  font-size: 12px;
-  line-height: 1.8;
-}
+
 .map-status #scale-note,
 .map-caption .approx-badge {
   display: none;
@@ -1873,44 +1844,7 @@ dialog::backdrop {
 .sidebar:has(#results:not([hidden])) .explore-details {
   display: none;
 }
-.wifi-survey-content {
-  padding: 0 24px 24px;
-  font-size: 14px;
-}
-.wifi-survey-content p {
-  color: var(--muted);
-  line-height: 1.5;
-}
-.wifi-survey-content > button {
-  width: 100%;
-  margin: 8px 0;
-  min-height: 44px;
-}
-.wifi-survey-point,
-.wifi-survey-last {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: 12px;
-  padding: 12px;
-  overflow-wrap: anywhere;
-}
-.wifi-survey-summary {
-  display: flex;
-  gap: 24px;
-  margin: 16px 0;
-}
-.wifi-survey-summary dt {
-  color: var(--muted);
-  font-size: 12px;
-}
-.wifi-survey-summary dd {
-  margin: 4px 0 0;
-  font-size: 20px;
-  font-weight: 650;
-}
-.wifi-survey-feedback {
-  color: var(--ink) !important;
-}
+
 .location-content {
   padding: 0 24px 24px;
   font-size: 14px;
@@ -2071,12 +2005,7 @@ dialog::backdrop {
 .user-location-marker[data-stale="true"] .user-location-label {
   background: #596777;
 }
-.survey-location-marker .user-location-dot {
-  background: #a855f7;
-}
-.survey-location-marker .user-location-label {
-  background: #7e22ce;
-}
+
 .route-guidance-dock {
   position: fixed;
   z-index: 11;

@@ -14,7 +14,7 @@ import {
   exportWifiSurveyBackup,
   wifiSurveyLocationCount,
   createWifiSurveyRecorder,
-} from "../src/data/wifi-survey.js";
+} from "../tools/archive/wifi-survey/data/wifi-survey.js";
 
 // These fixtures exercise the native response contract, not radio hardware.
 const now = 1793044800000;

@@ -228,11 +228,6 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   $("#settings-dialog").addEventListener("click", (e) => {
     if (e.target === $("#settings-dialog")) e.target.close();
   });
-  $("#clear-history").onclick = () => {
-    writeSaved("recent", []);
-    renderSaved();
-    toast("История поиска очищена");
-  };
   getBundledMapPackage()
     .then((pkg) => {
       if (pkg)

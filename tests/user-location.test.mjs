@@ -629,40 +629,38 @@ test("an invalid center cannot be confirmed and cancel leaves the current point 
   assert.equal(h.$("#location-pick-banner").hidden, true);
 });
 
-test("survey center pin is independent of GPS and contains a precise point on the chosen map floor", async () => {
+test("removed survey picking cannot create a second marker or interrupt live GPS", async () => {
   const h = harness();
   h.controller.locate();
   await turn();
   const now = Date.now();
   h.watches[0].emit(fix([10, -20], now));
   const current = h.state.userLocation;
-  h.browseFloor("Г", upperFloor.id);
-  h.setPick(corridorPick([9.5, -19.125], upperFloor));
   let complete;
-  h.controller.beginPicking({
-    purpose: "survey",
-    onPicked: (value) => (complete = value),
-  });
-  h.$("#location-pick-confirm").onclick();
+  assert.equal(
+    h.controller.beginPicking({
+      purpose: "survey",
+      onPicked: (value) => (complete = value),
+    }),
+    false,
+  );
+  assert.equal(h.controller.setSurveyLocation, undefined);
   assert.equal(h.state.userLocation, current);
-  assert.equal(h.state.userLocation.floorId, null);
-  assert.deepEqual(h.state.surveyLocation.point, [9.5, -19.125]);
-  assert.equal(h.state.surveyLocation.physicalLevel, 3);
-  assert.equal(h.state.surveyLocation.placeId, null);
-  assert.equal(complete.floorId, upperFloor.id);
+  assert.equal(h.state.surveyLocation, undefined);
+  assert.equal(h.scene.locationPicking, false);
+  assert.equal(complete, undefined);
   h.watches[0].emit(fix([11, -21], now + 1000));
-  assert.deepEqual(h.state.surveyLocation.point, [9.5, -19.125]);
-  assert.equal(h.origins.length, 0);
+  assert.equal(h.state.userLocation.source, "gps");
+  assert.equal(h.state.locationTracking.following, true);
 });
 
-test("survey confirmation rejects an unestablished physical floor rather than borrowing an adjacent classroom", () => {
+test("unsupported picker purposes never open the crosshair or create a measurement point", () => {
   const h = harness();
-  h.setPick({ ...corridorPick(), building: null });
-  h.controller.beginPicking({ purpose: "survey" });
-  h.$("#location-pick-confirm").onclick();
-  assert.equal(h.state.surveyLocation, undefined);
-  assert.equal(h.scene.locationPicking, true);
-  assert.match(h.toasts.at(-1), /этаж/);
+  for (const purpose of ["survey", "other", null]) {
+    assert.equal(h.controller.beginPicking({ purpose }), false);
+    assert.equal(h.state.surveyLocation, undefined);
+    assert.equal(h.scene.locationPicking, false);
+  }
 });
 
 test("failed map placement never leaves a misleading crosshair or banner", () => {
@@ -792,7 +790,7 @@ test("reset after lost GPS clears correction but preserves old timestamps until 
   assert.equal(h.state.userLocation.correction, null);
 });
 
-test("confirming my precise pin resumes following while a survey pin keeps GPS independent", async () => {
+test("confirming my precise pin resumes following and removed survey mode cannot stop it", async () => {
   const h = harness();
   h.controller.locate();
   await turn();
@@ -807,9 +805,8 @@ test("confirming my precise pin resumes following while a survey pin keeps GPS i
   const prior = h.follows;
   h.watches[0].emit(fix([11, -20], now + 1000));
   assert.equal(h.follows, prior + 1);
-  h.controller.beginPicking({ purpose: "survey" });
-  h.$("#location-pick-confirm").onclick();
-  assert.equal(h.state.locationTracking.following, false);
+  assert.equal(h.controller.beginPicking({ purpose: "survey" }), false);
+  assert.equal(h.state.locationTracking.following, true);
   assert.equal(h.state.userLocation.source, "gps");
 });
 

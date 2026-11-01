@@ -56,7 +56,6 @@ export function bindLocation({
     stopHeading = null,
     headingGeneration = 0,
     pickCompletion = null,
-    pickPurpose = "manual",
     closeOnFix = false;
   state.headingStatus = "off";
   let refinementSurvey = null,
@@ -410,22 +409,7 @@ export function bindLocation({
     if (state.userLocation?.point) scene.focusUserLocation();
     refresh();
   }
-  function setSurveyLocation(location) {
-    if (
-      location?.source !== "manual" ||
-      !location.floorId ||
-      !location.campusId ||
-      !Array.isArray(location.point) ||
-      !location.point.slice(0, 2).every(Number.isFinite)
-    )
-      return false;
-    state.surveyLocation = { ...location, point: location.point.slice() };
-    scene.setSurveyLocation(state.surveyLocation);
-    onChange?.();
-    return true;
-  }
-  function assignManual(location, purpose, { record = false } = {}) {
-    if (purpose === "survey") return setSurveyLocation(location);
+  function assignManual(location, { record = false } = {}) {
     // A room-card action uses a catalogue centre. Only an explicitly confirmed
     // crosshair pin is a control point for checking geographic registration.
     const recordNote = record ? recordRefinement(location) : "";
@@ -479,6 +463,7 @@ export function bindLocation({
     return pick;
   }
   function beginPicking({ onPicked, purpose = "manual" } = {}) {
+    if (purpose !== "manual") return false;
     stopPicking();
     document.activeElement?.blur?.();
     if (dialog.open) dialog.close();
@@ -497,16 +482,12 @@ export function bindLocation({
       toast("Откройте нужный этаж карты, затем уточните точку.");
       return false;
     }
-    pickPurpose = purpose;
     pickCompletion = onPicked || null;
     $("#location-pick-banner").hidden = false;
     $("#location-crosshair").hidden = false;
     $("#location-pick-banner-text").textContent =
-      purpose === "survey"
-        ? "Выберите этаж и двигайте карту под меткой: здесь вы стоите во время замера."
-        : "Выберите этаж и передвиньте карту под меткой к своему месту.";
-    $("#location-pick-confirm").textContent =
-      purpose === "survey" ? "Здесь замер" : "Я здесь";
+      "Выберите этаж и передвиньте карту под меткой к своему месту.";
+    $("#location-pick-confirm").textContent = "Я здесь";
     document.body.dataset.locationPicking = "true";
     previewPicking();
     refresh();
@@ -516,25 +497,14 @@ export function bindLocation({
     const floor = state.floorData.find((f) => f.id === pick?.floorId);
     const location = manualMapLocation(pick, floor, state.search);
     if (!location) return false;
-    const complete = pickCompletion,
-      purpose = pickPurpose;
-    if (purpose === "survey" && !Number.isFinite(location.physicalLevel)) {
-      toast(
-        "Для этого участка этаж не установлен. Выберите корпус и этаж переключателями карты.",
-      );
-      return false;
-    }
+    const complete = pickCompletion;
     stopPicking();
-    assignManual(location, purpose, { record: purpose !== "survey" });
-    if (purpose !== "survey") {
-      tracking.following = true;
-      experience.minimize();
-      scene.focusUserLocation();
-      refresh();
-    }
+    assignManual(location, { record: true });
+    tracking.following = true;
+    experience.minimize();
+    scene.focusUserLocation();
+    refresh();
     complete?.(location);
-    if (purpose === "survey")
-      toast("Точка замера закреплена отдельно от геопозиции.");
     return true;
   }
   // A route/search action may use the floor the user is explicitly viewing.
@@ -688,7 +658,6 @@ export function bindLocation({
     beginPicking,
     previewPicking,
     cancelPicking: stopPicking,
-    setSurveyLocation,
     startTracking,
     stopTracking,
     routeOrigin,
@@ -720,7 +689,7 @@ export function bindLocation({
       const floor = state.floorData.find((f) => f.id === place.floorId);
       const location = manualPlaceLocation(place, floor, state.campus?.id);
       if (!location) return false;
-      assignManual(location, "manual");
+      assignManual(location);
       if (tracking.enabled) tracking.following = true;
       refresh();
       if (location.placeId) routes.setOrigin(place, { open: false });

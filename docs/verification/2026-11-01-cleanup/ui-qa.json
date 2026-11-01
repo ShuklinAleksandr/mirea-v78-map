@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-01",
+  "nodeTests": 557,
+  "nodeTestsPassed": 557,
+  "androidJUnitTests": 4,
+  "androidJUnitFailures": 0,
+  "buildRun": "2026-11-01T16-25-18-218Z",
+  "nativeResourceMatches": {
+    "android": 93,
+    "ios": 93
+  },
+  "android": {
+    "serial": "emulator-5554",
+    "model": "sdk_gphone64_arm64",
+    "os": "Android 16 / API 36",
+    "webView": "133.0.6943.137",
+    "offlineColdLaunch": "passed; preexisting airplane_mode_on=1, wifi_on=0",
+    "settings": "passed; no Wi-Fi, clear-history or source links",
+    "dex": "WifiSurveyPlugin and WifiSurveyPolicy absent",
+    "permissions": "no ACCESS_WIFI_STATE, CHANGE_WIFI_STATE or NEARBY_WIFI_DEVICES"
+  },
+  "ios": {
+    "device": "MIREA V78 iPhone 17 Pro Simulator",
+    "os": "iOS 26.0",
+    "installAndLaunch": "passed",
+    "settings": "visually passed through native Simulator UI"
+  },
+  "browser": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "settings": "passed; 0 removed elements remain in DOM",
+    "search": "Г-209 found with Корпус Г · 2 этаж; card opened"
+  },
+  "limitations": [
+    "Physical phones not tested",
+    "No signed iPhone build or TestFlight archive",
+    "Real GPS, memory, battery and iOS touch panning not newly tested"
+  ]
+}

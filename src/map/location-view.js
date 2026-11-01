@@ -132,15 +132,7 @@ export function pickLocationSurface(
 /** Render projection does not change the user's confirmed floor or coordinates. */
 export function presentLocationOnMap(
   location,
-  {
-    campusId,
-    mode,
-    floor,
-    floors = [],
-    stages = [],
-    survey = false,
-    now = Date.now(),
-  },
+  { campusId, mode, floor, floors = [], stages = [], now = Date.now() },
 ) {
   if (
     !location ||
@@ -180,13 +172,6 @@ export function presentLocationOnMap(
     : null;
   const visibleStage = stages.find((stage) => stage.floorId === floor?.id);
   const sameFloor = knownFloor && location.floorId === floor?.id;
-  if (
-    survey &&
-    (!knownFloor ||
-      mode === "overview" ||
-      (stacked ? !matchingStage : !sameFloor))
-  )
-    return null;
   const sourceFloor = floors.find((item) => item.id === location.floorId);
   const physicalLevel =
     location.physicalLevel ?? sourceFloor?.buildingLevels?.[location.building];
@@ -210,17 +195,15 @@ export function presentLocationOnMap(
           (location.trackingStatus && location.trackingStatus !== "live"))),
   );
   const label = [
-    survey
-      ? "Точка замера"
-      : manualUnrefreshed
-        ? "Указано вручную · нет обновления"
-        : stale
-          ? "Последняя позиция"
-          : gps
-            ? location.correction?.type === "manual-offset"
-              ? "GPS с поправкой"
-              : "GPS"
-            : "Я здесь",
+    manualUnrefreshed
+      ? "Указано вручную · нет обновления"
+      : stale
+        ? "Последняя позиция"
+        : gps
+          ? location.correction?.type === "manual-offset"
+            ? "GPS с поправкой"
+            : "GPS"
+          : "Я здесь",
     floorLabel,
     gps && Number.isFinite(location.accuracyMeters)
       ? `±${Math.round(location.accuracyMeters)} м`

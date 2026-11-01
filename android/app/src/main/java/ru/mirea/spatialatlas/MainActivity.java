@@ -7,7 +7,6 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(WifiSurveyPlugin.class);
         registerPlugin(HeadingPlugin.class);
         registerPlugin(GpsCalibrationExportPlugin.class);
         super.onCreate(savedInstanceState);

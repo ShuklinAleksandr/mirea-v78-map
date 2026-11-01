@@ -256,20 +256,12 @@ test("compass direction is transformed through geographic registration and never
   );
 });
 
-test("heading updates reuse arrow geometry and expire without touching GPS or survey positions", (t) => {
+test("heading updates reuse arrow geometry and expire without touching GPS positions", (t) => {
   const { view } = viewHarness();
   t.after(() => {
     view.setUserHeading(null);
     view.setUserLocation(null);
-    view.setSurveyLocation(null);
   });
-  const reference = {
-    source: "manual",
-    campusId: "v-78",
-    floorId: "f2",
-    point: [-3, 2],
-  };
-  view.setSurveyLocation(reference);
   view.setUserLocation(gps());
   const accuracy = view.userLocationLayer.getObjectByName(
     "gps-provider-accuracy",
@@ -301,7 +293,6 @@ test("heading updates reuse arrow geometry and expire without touching GPS or su
     "10Hz compass events do not recreate the position circle",
   );
   assert.deepEqual(view.userLocation.point, [1, 2]);
-  assert.deepEqual(reference.point, [-3, 2]);
   assert.match(
     view.userLocationLayer.userData.headingPresentation.label,
     /Направление телефона 90°.*магнитный/,

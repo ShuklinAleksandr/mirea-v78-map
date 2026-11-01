@@ -5,7 +5,8 @@
 - [Запуск и команды](../README.md)
 - [Работа команды: ветки, задачи и Pull Request](../CONTRIBUTING.md)
 - [Первоначальная загрузка на GitHub](GITHUB_UPLOAD.md)
-- [Обновление GitHub и выпуск 1 ноября 2026](GITHUB_UPDATE_2026-11-01.md)
+- [Очистка тестового интерфейса и новые сборки 1 ноября](INTERFACE_CLEANUP_2026-11-01.md)
+- [Предыдущая публикация GitHub 1 ноября](GITHUB_UPDATE_2026-11-01.md)
 - [Android/iOS: окружение и сборка](MOBILE.md)
 - [Xcode и настоящий iPhone](../XCODE_IPHONE.md)
 
@@ -30,11 +31,11 @@
 - [Пользовательские планы, рисунки и замечания](evidence/2026-10-25/)
 - [Схема уровней](reference/levels.svg) и [порядок ответа на вопросы](reference/answering-map-questions.txt)
 
-## Геопозиция и Wi-Fi
+## Геопозиция
 
 - [Текущее поведение и проверка GPS/компаса/выбора точки](MAP_LOCATION_UX_2026-10-27.md)
 - [Методы позиционирования и ограничения](POSITIONING_METHODS_2026-10-27.md)
-- [Сборщик Wi-Fi-замеров](WIFI_SURVEY.md)
+- [Архив снятого Wi-Fi-инструмента](WIFI_SURVEY.md)
 - [План полевых испытаний внутри здания](INDOOR_POSITIONING_2026-10-26.md)
 
 ## Источники

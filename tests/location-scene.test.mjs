@@ -407,25 +407,11 @@ test("continuous tracking retains a dim last position after expiry or signal los
   );
 });
 
-test("Wi-Fi survey reference stays fixed while live GPS moves and is limited to its own floor", (t) => {
+test("the location scene has only the current-position marker after Wi-Fi collection is removed", (t) => {
   const view = harness();
   withLabelDocument(t, view);
-  t.after(() => {
-    view.setUserLocation(null);
-    view.setSurveyLocation(null);
-  });
-  const reference = {
-    source: "manual",
-    campusId: "v-78",
-    floorId: "f2",
-    physicalLevel: 2,
-    point: [-3, 2],
-  };
-  view.setSurveyLocation(reference);
-  const layer = view.surveyLocationLayer;
-  assert.equal(layer.visible, true);
-  assert.equal(layer.userData.role, "wifi-survey-reference");
-  assert.match(view.surveyLocationCaption.textContent, /^Точка замера/);
+  t.after(() => view.setUserLocation(null));
+  assert.equal(view.setSurveyLocation, undefined);
   for (const point of [
     [1, 2],
     [4, 5],
@@ -437,25 +423,12 @@ test("Wi-Fi survey reference stays fixed while live GPS moves and is limited to 
       timestamp: Date.now(),
       trackingStatus: "live",
     });
-    assert.deepEqual(layer.position.toArray(), [-3, 0.4, 2]);
-    assert.deepEqual(reference.point, [-3, 2]);
-    assert.notEqual(view.userLocationLayer, layer);
+    assert.equal(view.userLocationLayer.visible, true);
+    assert.equal(view.userLocationLayer.position.x, point[0]);
+    assert.equal(view.userLocationLayer.position.z, point[1]);
+    assert.equal(view.userLocationOverlay.dataset.source, "gps");
+    assert.equal(view.surveyLocationLayer, undefined);
   }
-  view.floor = { id: "f3" };
-  view.refreshUserLocation();
-  assert.equal(layer.visible, false);
-  assert.equal(view.userLocationLayer.visible, true);
-  view.mode = "building-overview";
-  view.routeStages = [
-    { floorId: "f2", y: 3.6 },
-    { floorId: "f3", y: 7.2 },
-  ];
-  view.refreshUserLocation();
-  assert.equal(layer.visible, true);
-  assert.deepEqual(layer.position.toArray(), [-3, 4, 2]);
-  view.mode = "overview";
-  view.refreshUserLocation();
-  assert.equal(layer.visible, false);
 });
 
 test("focus current position keeps the map view and targets the visible stack height", () => {

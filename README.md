@@ -4,7 +4,9 @@
 
 **[Документация](docs/README.md) · [Участие в разработке](CONTRIBUTING.md) · [Android и iOS](docs/MOBILE.md) · [Вопросы по карте](ВОПРОСЫ_ПО_КАРТЕ.md)**
 
-**Обновление GitHub · 1 ноября 2026:** последние изменения карты собраны в `main` и тестовом выпуске **[v0.2.0-test](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.2.0-test)**. [Скачать Android APK](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-debug.apk) · [iOS Simulator](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-iOS-Simulator.zip). Нативные файлы собраны и испытаны 28 октября; сведения об этой публикации — [отдельно](docs/GITHUB_UPDATE_2026-11-01.md).
+**Текущий тестовый выпуск — [v0.3.0-test](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.3.0-test), 1 ноября 2026:** удалены Wi-Fi-замеры, разрешения на сканирование, отдельная точка замера, кнопка очистки истории и подписи источников в тестовом интерфейсе. GPS, поиск, избранное и данные карты сохранены. **557/557 тестов, 4/4 Android JUnit, обе нативные компиляции и 93/93 ресурса каждой платформы прошли.** [Новый отчёт](docs/INTERFACE_CLEANUP_2026-11-01.md).
+
+**Предыдущая публикация · 1 ноября 2026:** последние изменения карты собраны в `main` и тестовом выпуске **[v0.2.0-test](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.2.0-test)**. [Скачать Android APK](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-debug.apk) · [iOS Simulator](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-iOS-Simulator.zip). Нативные файлы собраны и испытаны 28 октября; сведения об этой публикации — [отдельно](docs/GITHUB_UPDATE_2026-11-01.md).
 
 **Изменения 28 октября:** [более ровные лестницы из сканов](docs/STAIR_SMOOTH_2026-10-28.md), [первый проход со сканами](docs/SCANNED_STAIRS_2026-10-28.md), [автоматические шаги маршрута и запись уточнений GPS](docs/GPS_ROUTE_CALIBRATION_2026-10-28.md). История реализации сохранена в [отдельном документе](docs/README_HISTORY_2026-10-28.md).
 
@@ -19,7 +21,6 @@
 - Маршруты по существующим проходам, компактные шаги и кнопка «От меня».
 - Системная геопозиция, ручное уточнение точки и следование камеры.
 - Направление телефона при доступном надёжном компасе.
-- Android-инструмент Wi-Fi-замеров: точное место на плане и локальный экспорт JSON.
 - Ресурсы карты внутри Android/iOS-приложений для работы без сайта.
 
 ## Быстрый старт
@@ -69,7 +70,7 @@ npm run dev
 
 ## Установка на Android
 
-Скачайте **[MIREA-V78-debug.apk](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-debug.apk)** из нового тестового выпуска. Откройте файл на Android и разрешите установку из выбранного браузера или файлового менеджера. Это отладочная сборка для испытаний.
+Скачайте **[MIREA-V78-debug.apk](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.3.0-test/MIREA-V78-debug.apk)** из нового тестового выпуска. Откройте файл на Android и разрешите установку из выбранного браузера или файлового менеджера. Это отладочная сборка для испытаний.
 
 При установленном Android SDK можно установить APK по USB:
 
@@ -79,7 +80,7 @@ adb install -r MIREA-V78-debug.apk
 
 APK, архив Simulator и контрольные суммы прикреплены к выпуску; исходники и подготовленные поверхности лестниц находятся в репозитории. Чтобы собрать приложение самостоятельно, следуйте [мобильной инструкции](docs/MOBILE.md).
 
-Размер, SHA-256 и фактические проверки этих APK/App указаны в [последнем отчёте 28 октября](docs/STAIR_SMOOTH_2026-10-28.md). Выпуск `v0.1.0-test` сохранён как предыдущая версия.
+Размер, SHA-256 и фактические проверки этих APK/App указаны в [отчёте 1 ноября](docs/INTERFACE_CLEANUP_2026-11-01.md). Выпуск `v0.1.0-test` сохранён как предыдущая версия.
 
 ## Команды
 
@@ -117,7 +118,7 @@ npm run mobile:check
 open ios/App/App.xcodeproj
 ```
 
-В Xcode выберите схему **App**, своё устройство или Simulator и нажмите Run. Для настоящего iPhone требуется отдельная development-подпись и Team владельца: **[инструкция Xcode → iPhone](XCODE_IPHONE.md)**. Simulator App не устанавливается на iPhone. Готовый **[архив iOS Simulator](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.2.0-test/MIREA-V78-iOS-Simulator.zip)** можно скачать из нового выпуска. На совместимом Mac распакуйте его и установите в запущенный iOS Simulator:
+В Xcode выберите схему **App**, своё устройство или Simulator и нажмите Run. Для настоящего iPhone требуется отдельная development-подпись и Team владельца: **[инструкция Xcode → iPhone](XCODE_IPHONE.md)**. Simulator App не устанавливается на iPhone. Готовый **[архив iOS Simulator](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.3.0-test/MIREA-V78-iOS-Simulator.zip)** можно скачать из нового выпуска. На совместимом Mac распакуйте его и установите в запущенный iOS Simulator:
 
 ```sh
 unzip MIREA-V78-iOS-Simulator.zip -d /tmp/mirea-v78-simulator

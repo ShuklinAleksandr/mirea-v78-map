@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { escape } from "../src/ui/dom.js";
-import * as survey from "../src/data/wifi-survey.js";
+import * as survey from "../tools/archive/wifi-survey/data/wifi-survey.js";
 
 // DOM, Android plugin and file sharing are boundaries. These tests neither
 // scan real radio networks nor demonstrate measured positioning accuracy.
@@ -168,7 +168,7 @@ function harness({
       },
     });
   const source = readFileSync(
-    new URL("../src/ui/wifi-survey.js", import.meta.url),
+    new URL("../tools/archive/wifi-survey/ui/wifi-survey.js", import.meta.url),
     "utf8",
   )
     .replace(/^import[\s\S]*?;\n/gm, "")

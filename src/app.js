@@ -8,7 +8,6 @@ import { bindSearch } from "./ui/search.js";
 import { bindExperience, readSaved, shareView } from "./ui/experience.js";
 import { bindRoutes } from "./ui/routes.js";
 import { bindLocation } from "./ui/location.js";
-import { bindWifiSurvey } from "./ui/wifi-survey.js";
 import { resolveRoom, geometryEvidence } from "./data/utils.js";
 import {
   placeDescription,
@@ -41,7 +40,6 @@ const state = {
   search: [],
   loading: 0,
   userLocation: null,
-  surveyLocation: null,
   locationTracking: null,
 };
 $("#app").innerHTML = layout;
@@ -60,7 +58,7 @@ const searchUI = bindSearch({
       : userPosition?.locate(),
   getPosition: () => userPosition?.nearbyOrigin(),
 });
-let scene, experience, routes, userPosition, wifiSurvey;
+let scene, experience, routes, userPosition;
 try {
   scene = new AtlasScene($("#viewport"), {
     getViewportPadding: () => roomPadding(),
@@ -159,11 +157,9 @@ if (scene) {
     onChange: () => {
       searchUI.refreshPosition?.();
       routes?.locationChanged?.();
-      wifiSurvey?.refresh();
       if (state.campus) updateUI();
     },
   });
-  wifiSurvey = bindWifiSurvey({ state, userPosition, toast });
 }
 function showError(message, e) {
   console.error(e);
@@ -293,20 +289,6 @@ function updateUI() {
     state.mode === "overview"
       ? `${state.campus.floors.length} уровней · ${count} подписанных объектов`
       : `${count} подписанных объектов · верхние этажи скрыты`;
-  $("#osm-attribution")?.remove();
-  if (
-    state.mode === "overview" &&
-    state.campus.id === "v-78" &&
-    scene.contextOn !== false
-  ) {
-    const a = document.createElement("a");
-    a.id = "osm-attribution";
-    a.href = "https://www.openstreetmap.org/copyright";
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = "© OpenStreetMap contributors";
-    $(".map-shell").append(a);
-  }
   $("#metric-badge").textContent =
     state.campus.id === "mp-1" ? "Схема ≈" : "Высоты ≈";
   $("#scale-note").textContent =

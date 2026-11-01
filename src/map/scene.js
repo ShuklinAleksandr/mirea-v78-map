@@ -408,10 +408,6 @@ export class AtlasScene {
     }
     this.refreshUserLocation();
   }
-  setSurveyLocation(location) {
-    this.surveyLocation = location || null;
-    this.refreshSurveyLocation();
-  }
   setUserHeading(heading) {
     clearTimeout(this.userHeadingExpiryTimer);
     this.userHeading = heading || null;
@@ -504,15 +500,10 @@ export class AtlasScene {
     // Stack builders inherit this scene. Their temporary floor rebuilds must
     // never own, hide or dispose either real location marker.
     if (this.stackDisplay) return;
-    this.refreshLocationMarker(this.userLocation, false);
-    this.refreshSurveyLocation();
+    this.refreshLocationMarker(this.userLocation);
   }
-  refreshSurveyLocation() {
-    if (this.stackDisplay) return;
-    this.refreshLocationMarker(this.surveyLocation, true);
-  }
-  refreshLocationMarker(location, survey) {
-    const prefix = survey ? "surveyLocation" : "userLocation";
+  refreshLocationMarker(location) {
+    const prefix = "userLocation";
     this.invalidate();
     const layer = this[`${prefix}Layer`];
     if (this[`${prefix}Overlay`]) this[`${prefix}Overlay`].hidden = true;
@@ -526,27 +517,24 @@ export class AtlasScene {
       floor: this.floor,
       floors: this.floors,
       stages: this.routeStages,
-      survey,
     });
     if (!this.scene || !presentation) return;
     const gps = location.source === "gps";
     const group = layer || new THREE.Group();
     if (!layer) {
       this[`${prefix}Layer`] = group;
-      group.name = survey ? "wifi-survey-reference" : "current-user-location";
+      group.name = "current-user-location";
       this.scene.add(group);
     }
-    group.userData.role = survey
-      ? "wifi-survey-reference"
-      : gps
-        ? presentation.floorState === "unknown"
-          ? "gps-location-floor-unknown"
-          : "gps-user-location"
-        : "manual-user-location";
+    group.userData.role = gps
+      ? presentation.floorState === "unknown"
+        ? "gps-location-floor-unknown"
+        : "gps-user-location"
+      : "manual-user-location";
     group.userData.location = location;
     group.userData.presentation = presentation;
     group.position.set(location.point[0], presentation.y, location.point[1]);
-    const color = survey ? 0xa855f7 : presentation.stale ? 0x8997a7 : 0x2585ff;
+    const color = presentation.stale ? 0x8997a7 : 0x2585ff;
     if (gps && Number.isFinite(location.accuracyRadiusMap)) {
       const circle = new THREE.Mesh(
         new THREE.CircleGeometry(Math.max(0.5, location.accuracyRadiusMap), 64),
@@ -593,19 +581,16 @@ export class AtlasScene {
     group.add(dot);
     group.userData.dot = dot;
     group.visible = true;
-    if (!survey) this.updateUserHeading();
+    this.updateUserHeading();
     this.updateUserLocationScale();
-    this.updateLocationOverlay(survey);
+    this.updateLocationOverlay();
     this.invalidate();
   }
   updateUserLocationOverlay() {
-    return this.updateLocationOverlay(false);
+    return this.updateLocationOverlay();
   }
-  updateSurveyLocationOverlay() {
-    return this.updateLocationOverlay(true);
-  }
-  updateLocationOverlay(survey) {
-    const prefix = survey ? "surveyLocation" : "userLocation";
+  updateLocationOverlay() {
+    const prefix = "userLocation";
     const layer = this[`${prefix}Layer`];
     const width = this.host.clientWidth,
       height = this.host.clientHeight;
@@ -632,11 +617,11 @@ export class AtlasScene {
     const location = layer.userData.location;
     const presentation = layer.userData.presentation;
     const label = presentation.label;
-    const hasHeading = Boolean(!survey && layer.userData.headingPresentation);
+    const hasHeading = Boolean(layer.userData.headingPresentation);
     let overlay = this[`${prefix}Overlay`];
     if (!overlay && globalThis.document?.createElement && this.host.append) {
       overlay = document.createElement("div");
-      overlay.className = `user-location-marker${survey ? " survey-location-marker" : ""}`;
+      overlay.className = "user-location-marker";
       overlay.setAttribute("role", "img");
       const dot = document.createElement("span");
       dot.className = "user-location-dot";
@@ -649,7 +634,7 @@ export class AtlasScene {
     }
     if (overlay) {
       overlay.hidden = !visible;
-      overlay.dataset.source = survey ? "survey" : location.source;
+      overlay.dataset.source = location.source;
       overlay.dataset.floorState = presentation.floorState;
       overlay.dataset.projection = String(presentation.projection);
       overlay.dataset.stale = String(presentation.stale);
@@ -660,16 +645,14 @@ export class AtlasScene {
         "aria-label",
         [
           label,
-          !survey ? layer.userData.headingPresentation?.label : null,
+          layer.userData.headingPresentation?.label,
           presentation.floorState === "unknown"
             ? "этаж не определён автоматически"
             : null,
           presentation.projection ? "проекция на видимый уровень карты" : null,
-          survey
-            ? "неподвижная точка замера Wi-Fi"
-            : location.source === "gps"
-              ? "привязка карты приблизительная"
-              : "точка указана вручную",
+          location.source === "gps"
+            ? "привязка карты приблизительная"
+            : "точка указана вручную",
         ]
           .filter(Boolean)
           .join(", "),
@@ -688,7 +671,7 @@ export class AtlasScene {
     };
   }
   updateUserLocationScale() {
-    for (const layer of [this.userLocationLayer, this.surveyLocationLayer]) {
+    for (const layer of [this.userLocationLayer]) {
       if (!layer?.visible || !layer.userData.dot || !this.camera) continue;
       const height = Math.max(1, this.host.clientHeight);
       const unitsPerPixel = this.camera.isOrthographicCamera
@@ -1499,7 +1482,7 @@ export class AtlasScene {
   clear() {
     this.invalidate(true);
     if (!this.stackDisplay) {
-      for (const prefix of ["userLocation", "surveyLocation"]) {
+      for (const prefix of ["userLocation"]) {
         if (this[`${prefix}Layer`]) this[`${prefix}Layer`].visible = false;
         if (this[`${prefix}Overlay`]) this[`${prefix}Overlay`].hidden = true;
       }
@@ -2458,8 +2441,7 @@ export class AtlasScene {
     const width = this.host.clientWidth,
       height = this.host.clientHeight;
     const currentPosition = this.updateUserLocationOverlay();
-    const surveyPosition = this.updateSurveyLocationOverlay();
-    const occupied = [currentPosition, surveyPosition].filter(Boolean);
+    const occupied = [currentPosition].filter(Boolean);
     const hostRect = this.host.getBoundingClientRect();
     const obstacles = [
       ...document.querySelectorAll(
