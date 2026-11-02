@@ -44,3 +44,4 @@ keystore.properties
 
 # Generated only for portable source ZIPs.
 /HANDOFF_MANIFEST.json
+desktop-build/

@@ -36,12 +36,16 @@ export const writeSaved = (key, value) => {
 };
 export async function shareView(hash, toast) {
   const native = Capacitor.isNativePlatform();
-  const url = native
-    ? nativeShareLink(hash)
-    : `${location.origin}${location.pathname}${hash}`;
+  const desktop = globalThis.window?.mireaDesktop;
+  const url =
+    native || desktop
+      ? nativeShareLink(hash)
+      : `${location.origin}${location.pathname}${hash}`;
   const title = "МИРЭА · Вернадского, 78";
   try {
-    if (native) {
+    if (desktop?.shareLink) {
+      await desktop.shareLink(url);
+    } else if (native) {
       // The native plugin's url field supports http(s)/file, not our custom scheme.
       await Share.share({ title, text: url, dialogTitle: "Поделиться картой" });
     } else if (navigator.share) await navigator.share({ title, url });

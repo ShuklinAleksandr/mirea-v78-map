@@ -42,9 +42,11 @@ export async function exportGpsCalibrationJson(
     Blob: BlobClass = globalThis.Blob,
     schedule = globalThis.setTimeout,
     now = Date.now,
+    desktop = globalThis.window?.mireaDesktop,
   } = {},
 ) {
   validateJson(json);
+  if (desktop?.exportGpsJson) return desktop.exportGpsJson(json);
   if (native) {
     const file = await plugin.exportSurvey({ json });
     if (

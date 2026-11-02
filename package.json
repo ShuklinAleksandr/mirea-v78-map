@@ -14,6 +14,8 @@
     "format": "prettier --write src tests docs README.md package.json vite.config.js index.html scripts/serve.mjs",
     "format:check": "prettier --check src tests package.json vite.config.js index.html scripts/serve.mjs",
     "check": "npm run format:check && npm test && npm run build",
+    "desktop:mac": "node scripts/build-mac-app.mjs",
+    "desktop:mac:test": "swift test --package-path desktop/mac --scratch-path .native-build/mac-core-tests",
     "mobile:sync": "npm run build && node scripts/mobile-package.mjs && cap sync",
     "mobile:ios": "npm run mobile:sync && cap open ios",
     "mobile:android": "npm run mobile:sync && cap open android",

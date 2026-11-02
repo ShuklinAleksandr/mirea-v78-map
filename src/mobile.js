@@ -44,7 +44,8 @@ function rememberView() {
 /** Call before startApp so launch links are restored before the first data load. */
 export async function initMobileShell() {
   const platform = Capacitor.getPlatform();
-  document.documentElement.dataset.platform = platform;
+  document.documentElement.dataset.platform =
+    globalThis.window?.mireaDesktop?.platform || platform;
   if (!Capacitor.isNativePlatform()) return;
 
   const launch = await App.getLaunchUrl();
@@ -120,7 +121,8 @@ export async function initMobileShell() {
 }
 
 export async function getBundledMapPackage() {
-  if (!Capacitor.isNativePlatform()) return null;
+  if (!Capacitor.isNativePlatform() && !globalThis.window?.mireaDesktop)
+    return null;
   const response = await fetch("/mobile-package.json");
   return response.ok ? response.json() : null;
 }

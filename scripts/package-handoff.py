@@ -24,7 +24,7 @@ ROOT_FILES = {
     "XCODE_IPHONE.md", "ВОПРОСЫ_ПО_КАРТЕ.md",
 }
 OPTIONAL_ROOT_FILES = {".gitattributes", "CONTRIBUTING.md"}
-TREES = {".github", "src", "public", "scripts", "tests", "docs", "tools", "android", "ios"}
+TREES = {".github", "src", "public", "scripts", "tests", "docs", "tools", "android", "ios", "desktop"}
 SOURCE_METADATA_FILES = {
     "source/lidar/2026-10-26/README.md",
     "source/lidar/2026-10-26/sources.json",

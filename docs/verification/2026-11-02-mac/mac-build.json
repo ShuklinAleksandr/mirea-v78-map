@@ -1,0 +1,23 @@
+{
+  "builtAt": "2026-11-02T15:27:03.329Z",
+  "app": "/var/folders/n6/9rmwwntd30x2fpy6k_jqdxmh0000gn/T/mirea-mac-build-FWRg5h/Карта МИРЭА.app",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "minimumMacOS": "14.0",
+  "resourcesVerified": 93,
+  "signing": "ad-hoc; not Developer ID notarized",
+  "artifacts": [
+    {
+      "file": "MIREA-V78-Mac-universal.zip",
+      "bytes": 46596932,
+      "sha256": "b306408add38728eb93f9c0ee9928ca3a4bc32a5670ba0b2646c1a2de5ce68e7"
+    },
+    {
+      "file": "MIREA-V78-Mac-universal.dmg",
+      "bytes": 48388307,
+      "sha256": "540890411f1a780be070edcfafe4ac9502d5240a2fc49462ca061340e1f2f87a"
+    }
+  ]
+}

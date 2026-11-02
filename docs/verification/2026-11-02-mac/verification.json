@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-02",
+  "nodeTests": 562,
+  "swiftTests": 7,
+  "builtArchitectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "runtimeTestArchitecture": "arm64",
+  "minimumMacOS": "14.0",
+  "hostMacOS": "15.6.1",
+  "xcode": "26.0.1",
+  "installedApp": "/Users/aleksandrshuklin/Applications/Карта МИРЭА.app",
+  "installedBinaryMatchesPackaged": true,
+  "resourcesVerified": 93,
+  "zipPayloadsVerified": true,
+  "ui": [
+    "native launch",
+    "search Г-209 and room card",
+    "route Г-103-1 → Г-209",
+    "quit and reopen: same loopback origin and route restoration"
+  ],
+  "notTested": [
+    "Intel runtime",
+    "Windows executable",
+    "real geolocation accuracy",
+    "compass without hardware"
+  ],
+  "signing": "ad-hoc only; no Developer ID notarization",
+  "installedAppMatchesPackagedFiles": true,
+  "geolocation": "No fresh system fix received on this Mac; timeout message and manual fallback visible. Real accuracy not verified."
+}
