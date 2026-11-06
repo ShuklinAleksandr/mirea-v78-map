@@ -166,7 +166,7 @@ export async function run({ root, args = process.argv.slice(2) }) {
   parentTimer.unref();
 
   starting = (async () => {
-    const options = { host: "127.0.0.1", port, strictPort: false };
+    const options = { host: "0.0.0.0", port, strictPort: false };
     if (mode === "dev") {
       vite = await createServer({
         root,

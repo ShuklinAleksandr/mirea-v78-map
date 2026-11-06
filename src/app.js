@@ -295,9 +295,20 @@ function updateUI() {
     state.campus.id === "mp-1"
       ? "Условные единицы · не измерительные данные"
       : "Масштаб источника: метры · высоты приблизительны";
-  $("#mode-plan").classList.toggle("active", scene.plan);
-  $("#mode-plan").setAttribute("aria-pressed", scene.plan);
-  $("#mode-3d").setAttribute("aria-pressed", !scene.plan);
+ 
+  const modeToggle = $("#mode-toggle");
+  if (modeToggle) {
+    const is2D = scene.plan;
+    modeToggle.setAttribute("aria-pressed", is2D);
+    
+    // Меняем только текст, не трогая иконки (которых больше нет)
+    const label = modeToggle.querySelector(".mode-label");
+    if (label) {
+      label.textContent = is2D ? "2D" : "3D";
+    }
+  } 
+
+
   const touch = matchMedia("(pointer: coarse)").matches;
   $("#interaction-hint").textContent = touch
     ? scene.plan
@@ -306,7 +317,6 @@ function updateUI() {
     : scene.plan
       ? "Перетаскивание — перемещение · колесо — масштаб"
       : "Перетаскивание — вращение · ПКМ — перемещение · колесо — масштаб";
-  $("#mode-3d").classList.toggle("active", !scene.plan);
   renderFloors();
   const selectedLocation = placeLocation(state.selected, state.floor);
   const focusBuilding = selectedLocation.building || state.building;
@@ -711,14 +721,8 @@ $("#labels").onchange = () => {
   scene.labelsOn = $("#labels").checked;
   scene.invalidate();
 };
-$("#mode-plan").onclick = () => {
-  if (!scene.plan) scene.setProjection(true);
-  routes?.projectionChanged();
-  updateUI();
-  saveView();
-};
-$("#mode-3d").onclick = () => {
-  if (scene.plan) scene.setProjection(false);
+$("#mode-toggle").onclick = () => {
+  scene.setProjection(!scene.plan); // Переключаем текущее состояние
   routes?.projectionChanged();
   updateUI();
   saveView();
