@@ -3,6 +3,7 @@ import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
 import polygonClipping from "polygon-clipping";
 import { convexHull } from "../data/spatial.js";
 import { getFloorMarkers } from "../data/utils.js";
+import { stairScanDisplayTopology } from "./stair-scan-repair.js";
 import dBindings from "../data/stair-scan-bindings.json" with { type: "json" };
 import grandUpper from "../data/stair-scan-meshes/grand-upper.json" with { type: "json" };
 import standardCell from "../data/stair-scan-meshes/standard-cell.json" with { type: "json" };
@@ -195,16 +196,16 @@ function projection(
 // Clip actual observed triangles; no cap, missing surface, tread or wall is made.
 function clip(polygon, axis, boundary, keepLower) {
   if (!polygon.length) return [];
+  const limit = boundary + (keepLower ? epsilon : -epsilon);
+  const contains = (p) => (keepLower ? p[axis] <= limit : p[axis] >= limit);
+  if (polygon.every(contains)) return polygon;
+  if (!polygon.some(contains)) return [];
   const result = [];
   for (let i = 0; i < polygon.length; i++) {
     const a = polygon[i],
       b = polygon[(i + 1) % polygon.length];
-    const aIn = keepLower
-      ? a[axis] <= boundary + epsilon
-      : a[axis] >= boundary - epsilon;
-    const bIn = keepLower
-      ? b[axis] <= boundary + epsilon
-      : b[axis] >= boundary - epsilon;
+    const aIn = contains(a);
+    const bIn = contains(b);
     if (aIn) result.push(a);
     if (aIn !== bIn) {
       const t = (boundary - a[axis]) / (b[axis] - a[axis]);
@@ -260,13 +261,22 @@ function partsFor(layout, binding, context, stack) {
   ];
 }
 
-function clippedTriangles(layout, context, part) {
+function clippedTriangles(
+  layout,
+  context,
+  part,
+  indices = context.source.indices,
+) {
   const result = [];
-  const indices = context.source.indices;
+  const origin = new THREE.Vector3();
+  const ab = new THREE.Vector3();
+  const ac = new THREE.Vector3();
   for (let i = 0; i < indices.length; i += 3) {
-    let triangle = indices
-      .slice(i, i + 3)
-      .map((index) => context.vertices[index]);
+    let triangle = [
+      context.vertices[indices[i]],
+      context.vertices[indices[i + 1]],
+      context.vertices[indices[i + 2]],
+    ];
     triangle = clip(clip(triangle, 1, part.minY, false), 1, part.maxY, true);
     for (const [j, axis] of [0, 2].entries()) {
       triangle = clip(
@@ -283,7 +293,11 @@ function clippedTriangles(layout, context, part) {
         layout.frame.size[0] / 2,
         part.side === "left",
       );
-    for (let j = 1; j < triangle.length - 1; j++)
+    for (let j = 1; j < triangle.length - 1; j++) {
+      origin.fromArray(triangle[0]);
+      ab.fromArray(triangle[j]).sub(origin);
+      ac.fromArray(triangle[j + 1]).sub(origin);
+      if (ab.cross(ac).lengthSq() <= 1e-12) continue;
       result.push(
         [triangle[0], triangle[j], triangle[j + 1]].map((p) => [
           p[0],
@@ -291,6 +305,7 @@ function clippedTriangles(layout, context, part) {
           p[2],
         ]),
       );
+    }
   }
   return result;
 }
@@ -311,10 +326,27 @@ export function createStairScanVisual(layout, marker, options = {}) {
   if (!point(anchor)) throw new Error("Stair scan marker has no source anchor");
   const context = projection(layout, binding, options);
   const parts = partsFor(layout, binding, context, options.stack);
+  const repairs = stairScanDisplayTopology(context.source);
   const positions = [];
-  for (const part of parts)
-    for (const triangle of clippedTriangles(layout, context, part))
+  let repairedTriangles = 0;
+  for (const part of parts) {
+    for (const triangle of clippedTriangles(
+      layout,
+      context,
+      part,
+      repairs.observedIndices,
+    ))
       for (const p of triangle) positions.push(...toWorld(layout, p, anchor));
+    const patches = clippedTriangles(
+      layout,
+      context,
+      part,
+      repairs.patchIndices,
+    );
+    repairedTriangles += patches.length;
+    for (const triangle of patches)
+      for (const p of triangle) positions.push(...toWorld(layout, p, anchor));
+  }
   if (!positions.length)
     throw new Error(`No observed scan geometry for ${layout.id}`);
   const geometry = new THREE.BufferGeometry();
@@ -328,12 +360,12 @@ export function createStairScanVisual(layout, marker, options = {}) {
   const normals = geometry.getAttribute("normal");
   const colors = new Float32Array(normals.count * 3);
   const stone = new THREE.Color(0xd7e0e5),
-    riser = new THREE.Color(0x9eacb6),
+    riser = new THREE.Color(0xb9c7d1),
     tone = new THREE.Color();
   for (let i = 0; i < normals.count; i++) {
     // Display tones derive only from the final smoothed surface orientation;
     // source RGB is never read. Linear-space interpolation avoids hard bands.
-    const up = THREE.MathUtils.smoothstep(normals.getY(i), 0.5, 0.9);
+    const up = THREE.MathUtils.smoothstep(Math.abs(normals.getY(i)), 0.5, 0.9);
     tone
       .copy(riser)
       .lerp(stone, up)
@@ -347,11 +379,16 @@ export function createStairScanVisual(layout, marker, options = {}) {
     roughness: 0.9,
     metalness: 0,
     side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = `${layout.label} · observed scan surface`;
   mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  // The open sheets from point clouds can shadow themselves at near-contact
+  // points, creating dark chunks across otherwise intact treads.
+  mesh.receiveShadow = false;
   mesh.userData = {
     room: marker,
     layoutId: layout.id,
@@ -379,12 +416,18 @@ export function createStairScanVisual(layout, marker, options = {}) {
     rawTriangles: context.source.indices.length / 3,
     displayedTriangles: positions.length / 9,
     textures: false,
-    synthesizedSurfaces: false,
+    synthesizedSurfaces: repairedTriangles > 0,
+    displayRepairs: {
+      method: "small-closed-boundary-tread-interpolation",
+      sourceHoles: repairs.holes,
+      displayedTriangles: repairedTriangles,
+      isolatedSourceTrianglesHidden: repairs.isolatedTriangles,
+    },
     normalSmoothing: { creaseDegrees: 20, positionsChanged: false },
     displayColor: {
-      method: "procedural-smoothed-up-normal-smoothstep",
+      method: "procedural-smoothed-absolute-normal-smoothstep",
       stone: "#d7e0e5",
-      riser: "#9eacb6",
+      riser: "#b9c7d1",
       normalYRange: [0.5, 0.9],
       sourceColors: false,
     },

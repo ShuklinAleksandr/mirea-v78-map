@@ -12,6 +12,7 @@ import {
 } from "./location-view.js";
 import { getHallAdjacencyView } from "./hall-adjacency.js";
 import { getStairPartitionView } from "./stair-partitions.js";
+import { createStairOpeningPlan } from "./stair-opening-view.js";
 import hallAdjacency from "../data/hall-adjacency.json" with { type: "json" };
 import { getIndoorDisplayGeometry } from "./indoor-overrides.js";
 import {
@@ -58,6 +59,8 @@ const COLORS = {
 const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
 const HEADING_DEADBAND = (2 * Math.PI) / 180;
+const LABEL_OBSTACLES =
+  ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit";
 const shapes = (polygon) => {
   if (!polygon.points || polygon.points.length < 3) return null;
   const s = new THREE.Shape(
@@ -149,6 +152,7 @@ export class AtlasScene {
     this.planCamera.up.set(0, 0, -1);
     this.camera = this.perspectiveCamera;
     this.dirty = true;
+    this.frameRateLimit = 60;
     this.quality = "auto";
     this.deviceQuality = {
       touch: window.matchMedia("(pointer: coarse)").matches,
@@ -194,7 +198,7 @@ export class AtlasScene {
       this.callbacks.onMapInteraction?.();
     });
     this.controls.addEventListener("change", () => {
-      this.dirty = true;
+      this.invalidate();
       this.updateLocationPickPreview();
     });
     this.hemisphere = new THREE.HemisphereLight(0xf8fbff, 0xa7adb5, 1.9);
@@ -202,7 +206,8 @@ export class AtlasScene {
     this.sun = new THREE.DirectionalLight(0xfff7ed, 2.2);
     this.sun.position.set(-150, 240, 130);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    const shadowSize = this.qualityProfile.shadowSize || 1024;
+    this.sun.shadow.mapSize.set(shadowSize, shadowSize);
     this.sun.shadow.bias = -0.0003;
     this.sun.shadow.normalBias = 0.12;
     this.scene.add(this.sun, this.sun.target);
@@ -250,23 +255,37 @@ export class AtlasScene {
     );
     this.renderer.domElement.addEventListener("pointermove", (e) => {
       tap.move(e);
-      if (this.cleanMap || e.buttons || e.pointerType === "touch") return;
+      if (
+        this.cleanMap ||
+        this.locationPicking ||
+        e.buttons ||
+        e.pointerType === "touch"
+      )
+        return;
       this.mouseEvent = e;
+      this.renderLifecycle?.requestFrame();
     });
     this.renderer.domElement.addEventListener("pointerleave", () => {
       this.mouseEvent = null;
       this.showHover(null);
     });
-    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.labelObstacles = [...document.querySelectorAll(LABEL_OBSTACLES)];
+    this.resizeObserver = new ResizeObserver((entries) => {
+      if (entries.some(({ target }) => target === host)) this.resize();
+      else this.invalidate();
+    });
     this.resizeObserver.observe(host);
+    for (const element of this.labelObstacles)
+      this.resizeObserver.observe(element);
     this.startRendering();
   }
   startRendering(options = {}) {
     this.renderLifecycle?.dispose();
     this.renderPausedAt ??= performance.now();
     this.renderLifecycle = createRenderLifecycle({
+      frameRate: this.frameRateLimit,
       ...options,
-      render: () => this.animate(),
+      render: (time) => this.animate(time),
       onPause: () => {
         this.renderPausedAt = performance.now();
         this.mouseEvent = null;
@@ -287,6 +306,14 @@ export class AtlasScene {
   invalidate(shadows = false) {
     this.dirty = true;
     if (shadows) this.renderer.shadowMap.needsUpdate = true;
+    this.renderLifecycle?.requestFrame();
+  }
+  setFrameRate(fps) {
+    if (!Number.isFinite(fps) || fps < 1 || fps > 240) fps = 60;
+    if (fps === this.frameRateLimit) return;
+    this.frameRateLimit = fps;
+    this.renderLifecycle?.setFrameRate(fps);
+    this.invalidate();
   }
   setCleanMap(enabled) {
     const cleanMap = Boolean(enabled);
@@ -422,6 +449,7 @@ export class AtlasScene {
     }
   }
   setCampus(campus, floors) {
+    this.floorDisplay = null;
     this.clearRoute({ rebuild: false });
     this.campus = campus;
     this.floors = floors;
@@ -516,7 +544,10 @@ export class AtlasScene {
     this.lastHeadingFrame = time;
     const difference = this.navigationBearing - current;
     const shortest = Math.atan2(Math.sin(difference), Math.cos(difference));
-    if (Math.abs(shortest) < HEADING_DEADBAND) return;
+    if (Math.abs(shortest) < HEADING_DEADBAND) {
+      this.lastHeadingFrame = null;
+      return;
+    }
     const turn = this.reducedMotion
       ? shortest
       : shortest * -Math.expm1(-elapsed / 190);
@@ -539,6 +570,7 @@ export class AtlasScene {
     }
     if (this.plan) this.camera.up.applyAxisAngle(UP_AXIS, turn);
     this.invalidate();
+    return true;
   }
   updateUserHeading() {
     const layer = this.userLocationLayer;
@@ -894,7 +926,10 @@ export class AtlasScene {
     this.configureLocationPickingControls();
     if (this.host.dataset) this.host.dataset.locationPicking = String(enabled);
     if (this.labelLayer) this.labelLayer.inert = enabled;
-    if (enabled) this.showHover(null);
+    if (enabled) {
+      this.mouseEvent = null;
+      this.showHover(null);
+    }
     this.host.style.cursor = "grab";
     this.lastLocationPickPreviewAt = null;
     if (enabled) this.updateLocationPickPreview({ force: true });
@@ -986,6 +1021,14 @@ export class AtlasScene {
     if (this.renderer.getPixelRatio() !== this.qualityProfile.pixelRatio)
       this.renderer.setPixelRatio(this.qualityProfile.pixelRatio);
     this.renderer.shadowMap.enabled = this.qualityProfile.shadows;
+    const shadow = this.sun.shadow;
+    const size = this.qualityProfile.shadowSize;
+    if (!size || shadow.mapSize.x !== size) {
+      shadow.map?.dispose();
+      shadow.map = null;
+      if (size) shadow.mapSize.set(size, size);
+    }
+    if (this.hallDetails) this.hallDetails.visible = this.qualityProfile.detail;
     this.renderer.toneMapping = this.plan
       ? THREE.NoToneMapping
       : THREE.ACESFilmicToneMapping;
@@ -1003,12 +1046,12 @@ export class AtlasScene {
     this.applyProjectionStyle();
     if (
       this.campus &&
-      !this.plan &&
       this.mode === "overview" &&
       hadDetail !== this.qualityProfile.detail
     )
       this.setOverview(this.building, { fit: false });
     this.invalidate(true);
+    return this.qualityProfile;
   }
   applyTheme() {
     if (!this.materialColors) this.materialColors = new WeakMap();
@@ -1529,6 +1572,7 @@ export class AtlasScene {
       });
     }
     cleanup(this.model);
+    this.hallDetails = null;
     for (const stage of stages) this.model.add(stage.group);
     this.roomLabels = labels;
     this.labelLayer.replaceChildren(...labels.map((label) => label.el));
@@ -1811,27 +1855,63 @@ export class AtlasScene {
     this.model.add(planOutline(vertices));
     return true;
   }
+  prepareFloorDisplay(floor, scopedBuilding) {
+    const cached = this.floorDisplay;
+    if (cached?.floor === floor && cached.scopedBuilding === scopedBuilding)
+      return cached;
+    const hallFloor = getHallAdjacencyView(floor);
+    const renderFloor = scopedBuilding
+      ? getBuildingFloorView(hallFloor, scopedBuilding)
+      : hallFloor;
+    const stairCutouts = getStairDisplayCutouts(renderFloor);
+    const openings = new Set();
+    const cut = (polygon) =>
+      withStairDisplayCutouts(polygon, stairCutouts, openings);
+    const slabs = (renderFloor.footprints || []).map(cut);
+    const rooms = (renderFloor.polygons || []).map(cut);
+    const display = getIndoorDisplayGeometry(renderFloor);
+    const stairPartitions = getStairPartitionView({
+      ...renderFloor,
+      walls: display.walls,
+    });
+    // The cut contours, openings and wall layout are shared by both
+    // projections. Cache only the most recent floor, and rebuild GPU meshes.
+    return (this.floorDisplay = {
+      floor,
+      scopedBuilding,
+      renderFloor,
+      stairCutouts,
+      openings,
+      slabs,
+      rooms,
+      display,
+      stairPartitions,
+    });
+  }
   setFloor(floor, building = null, { fit = true } = {}) {
     const keepPicking = Boolean(this.locationPicking);
     this.clear();
     this.mode = "floor";
     this.floor = floor;
     this.building = building;
-    const hallFloor = getHallAdjacencyView(floor);
-    const renderFloor =
-      building && !this.neighborsOn && !this.route
-        ? getBuildingFloorView(hallFloor, building)
-        : hallFloor;
+    const scopedBuilding = !this.neighborsOn && !this.route ? building : null;
+    const {
+      renderFloor,
+      stairCutouts,
+      openings,
+      slabs: slabShapes,
+      rooms: roomShapes,
+      display,
+      stairPartitions,
+    } = this.prepareFloorDisplay(floor, scopedBuilding);
     this.locationFloor = renderFloor;
-    const stairCutouts = getStairDisplayCutouts(renderFloor);
     this.locationCutouts = stairCutouts;
     if (this.ground)
       this.ground.position.y = stairCutouts.length
         ? -this.floorHeight - 0.5
         : -0.28;
     const slabs = [];
-    for (const p of renderFloor.footprints || []) {
-      const shape = withStairDisplayCutouts(p, stairCutouts);
+    for (const shape of slabShapes) {
       const g = this.plan
         ? flatGeometry(shape, 0)
         : solidGeometry(shape, 0.3, -0.3);
@@ -1852,8 +1932,9 @@ export class AtlasScene {
     }
     const fillGeoms = [],
       faceRooms = [];
-    for (const p of renderFloor.polygons || []) {
-      const indexed = flatGeometry(withStairDisplayCutouts(p, stairCutouts));
+    for (const [index, shape] of roomShapes.entries()) {
+      const p = renderFloor.polygons[index];
+      const indexed = flatGeometry(shape);
       if (!indexed) continue;
       const g = indexed.toNonIndexed();
       indexed.dispose();
@@ -1905,17 +1986,15 @@ export class AtlasScene {
       this.model.add(mesh);
       this.pickables.push(mesh);
     }
-    const display = getIndoorDisplayGeometry(renderFloor);
     this.openCorridorPartitions = display.appliedOverrides.length;
-    const stairPartitions = getStairPartitionView({
-      ...renderFloor,
-      walls: display.walls,
-    });
     this.locationFloor = { ...renderFloor, walls: stairPartitions.walls };
     this.stairPartitions = stairPartitions.partitions;
     this.addWalls(stairPartitions.walls);
-    if (!this.plan)
-      this.model.add(createIndoorHallDetails(renderFloor, display));
+    if (!this.plan) {
+      this.hallDetails = createIndoorHallDetails(renderFloor, display);
+      this.hallDetails.visible = this.qualityProfile?.detail !== false;
+      this.model.add(this.hallDetails);
+    }
     // Source doors plus explicit user-confirmed open corridor corrections.
     const doorGeoms = [];
     for (const d of display.doors) {
@@ -1939,6 +2018,8 @@ export class AtlasScene {
       );
     }
     this.addConnections(renderFloor);
+    if (this.plan && openings.size)
+      this.model.add(createStairOpeningPlan(openings));
     this.addUncertainty(renderFloor.uncertaintyRegions || []);
     if (building && !this.neighborsOn && !this.route) {
       const b = this.boundsForBuilding(building, floor);
@@ -2170,12 +2251,14 @@ export class AtlasScene {
         if (!o.isMesh) return;
         // Scan display tones add a color attribute. Keep their material apart
         // from uncolored procedural stairs, even when the base color matches.
-        const key = `${o.material.color.getHex()}:${!!o.material.vertexColors}`;
+        const key = `${o.material.color.getHex()}:${!!o.material.vertexColors}:${o.castShadow}:${o.receiveShadow}`;
         if (!batches.has(key))
           batches.set(key, {
             geometries: [],
             rooms: [],
             material: o.material.clone(),
+            castShadow: o.castShadow,
+            receiveShadow: o.receiveShadow,
           });
         const batch = batches.get(key);
         let g = o.geometry.clone().applyMatrix4(o.matrixWorld);
@@ -2190,14 +2273,20 @@ export class AtlasScene {
       });
       cleanup(stair);
     }
-    for (const { geometries, rooms, material } of batches.values()) {
+    for (const {
+      geometries,
+      rooms,
+      material,
+      castShadow = false,
+      receiveShadow = false,
+    } of batches.values()) {
       const geo = mergeGeometries(geometries);
       geometries.forEach((g) => g.dispose());
       const mesh = new THREE.Mesh(geo, material);
       mesh.name = this.plan ? "Stair symbols" : "Approximate stair flights";
       mesh.userData.faceRooms = rooms;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
+      mesh.castShadow = castShadow;
+      mesh.receiveShadow = receiveShadow;
       this.model.add(mesh);
       this.pickables.push(mesh);
     }
@@ -2512,7 +2601,10 @@ export class AtlasScene {
     if (polygon.points) {
       const g = flatGeometry(
         this.floor
-          ? withStairDisplayCutouts(polygon, getStairDisplayCutouts(this.floor))
+          ? withStairDisplayCutouts(
+              polygon,
+              this.locationCutouts ?? getStairDisplayCutouts(this.floor),
+            )
           : polygon,
         0.19,
       );
@@ -2612,7 +2704,10 @@ export class AtlasScene {
     if (room?.points) {
       const g = flatGeometry(
         this.floor
-          ? withStairDisplayCutouts(room, getStairDisplayCutouts(this.floor))
+          ? withStairDisplayCutouts(
+              room,
+              this.locationCutouts ?? getStairDisplayCutouts(this.floor),
+            )
           : room,
         0.17,
       );
@@ -2697,12 +2792,10 @@ export class AtlasScene {
     const currentPosition = this.updateUserLocationOverlay();
     const occupied = [currentPosition].filter(Boolean);
     const hostRect = this.host.getBoundingClientRect();
-    const obstacles = [
-      ...document.querySelectorAll(
-        ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock:not([hidden]),.location-pick-banner:not([hidden]),#clean-map-exit:not([hidden])",
-      ),
-    ]
-      .map((el) => el.getBoundingClientRect())
+    const obstacles = Array.from(
+      this.labelObstacles ?? document.querySelectorAll(LABEL_OBSTACLES),
+      (el) => el.getBoundingClientRect(),
+    )
       .filter((rect) => rect.width > 0 && rect.height > 0)
       .map((rect) => ({
         x: rect.x - hostRect.x,
@@ -2710,17 +2803,31 @@ export class AtlasScene {
         w: rect.width,
         h: rect.height,
       }));
-    const ordered = [...this.roomLabels].sort(
-      (a, b) =>
-        Number(Boolean(b.activeFloor)) - Number(Boolean(a.activeFloor)) ||
-        String(b.id).startsWith("level-") - String(a.id).startsWith("level-") ||
-        (b.kind === "route") - (a.kind === "route") ||
-        (b.id === this.selectedId) - (a.id === this.selectedId) ||
-        (a.kind === "building" || a.kind === "stairs" ? 0 : 1) -
-          (b.kind === "building" || b.kind === "stairs" ? 0 : 1),
-    );
+    const previous = this.labelOrder;
+    if (
+      previous?.source !== this.roomLabels ||
+      previous.count !== this.roomLabels.length ||
+      previous.selectedId !== this.selectedId
+    ) {
+      this.labelOrder = {
+        source: this.roomLabels,
+        count: this.roomLabels.length,
+        selectedId: this.selectedId,
+        labels: [...this.roomLabels].sort(
+          (a, b) =>
+            Number(Boolean(b.activeFloor)) - Number(Boolean(a.activeFloor)) ||
+            String(b.id).startsWith("level-") -
+              String(a.id).startsWith("level-") ||
+            (b.kind === "route") - (a.kind === "route") ||
+            (b.id === this.selectedId) - (a.id === this.selectedId) ||
+            (a.kind === "building" || a.kind === "stairs" ? 0 : 1) -
+              (b.kind === "building" || b.kind === "stairs" ? 0 : 1),
+        ),
+      };
+    }
     let contextCount = 0;
-    for (const label of ordered) {
+    const p = new THREE.Vector3();
+    for (const label of this.labelOrder.labels) {
       const routeLabel = label.kind === "route";
       const selected = label.id != null && label.id === this.selectedId;
       const countsTowardLimit =
@@ -2730,10 +2837,10 @@ export class AtlasScene {
         (routeLabel && this.cleanMap && this.buildingOverview) ||
         (countsTowardLimit && contextCount >= contextLimit)
       ) {
-        label.el.style.display = "none";
+        if (label.el.style.display !== "none") label.el.style.display = "none";
         continue;
       }
-      const p = label.position.clone().project(this.camera);
+      p.copy(label.position).project(this.camera);
       let x = (p.x * 0.5 + 0.5) * width,
         y = (-p.y * 0.5 + 0.5) * height;
       const w =
@@ -2815,7 +2922,8 @@ export class AtlasScene {
         )
       )
         visible = false;
-      label.el.style.display = visible ? "block" : "none";
+      const display = visible ? "block" : "none";
+      if (label.el.style.display !== display) label.el.style.display = display;
       if (visible) {
         occupied.push({ x, y, w, h });
         if (countsTowardLimit) contextCount++;
@@ -2824,9 +2932,13 @@ export class AtlasScene {
       }
     }
   }
-  animate() {
+  animate(time = performance.now()) {
     if (this.transition) {
-      const t = Math.min(1, (performance.now() - this.transition.start) / 650),
+      const t = THREE.MathUtils.clamp(
+          (time - this.transition.start) / 650,
+          0,
+          1,
+        ),
         k = 1 - Math.pow(1 - t, 3);
       this.camera.position.lerpVectors(
         this.transition.from,
@@ -2841,18 +2953,20 @@ export class AtlasScene {
       this.dirty = true;
       if (t === 1) this.transition = null;
     }
-    this.updateNavigationHeading(performance.now());
-    this.controls.update();
+    const headingMoved = this.updateNavigationHeading(time);
+    const controlsMoved = this.controls.update();
     if (
       !this.locationPicking &&
       this.mouseEvent &&
-      performance.now() - (this.lastHover || 0) > 75
+      time - (this.lastHover ?? -Infinity) > 75
     ) {
       this.showHover(this.hit(this.mouseEvent)?.room);
-      this.lastHover = performance.now();
+      this.lastHover = time;
       this.mouseEvent = null;
     }
     if (this.dirty) {
+      this.dirty = false;
+      this.camera.updateMatrixWorld();
       this.updateRoute();
       this.updateLabels();
       this.updateUserLocationScale();
@@ -2863,9 +2977,6 @@ export class AtlasScene {
         this.camera,
         this.controls.target,
       );
-      this.dirty = false;
-    }
-    if (this.lastPublishedFrame !== this.renderedFrames) {
       this.host.dataset.stats = JSON.stringify(this.stats());
       this.host.dataset.camera = JSON.stringify({
         projection: this.plan ? "orthographic" : "perspective",
@@ -2874,8 +2985,16 @@ export class AtlasScene {
         zoom: this.camera.zoom,
         bounds: this.lastBounds,
       });
-      this.lastPublishedFrame = this.renderedFrames;
     }
+    // Momentum, compass easing and camera transitions may continue after the
+    // event that woke the scene. A static frame doesn't keep the loop alive.
+    return Boolean(
+      this.transition ||
+        headingMoved ||
+        controlsMoved === true ||
+        (!this.locationPicking && this.mouseEvent) ||
+        this.dirty,
+    );
   }
   stats() {
     return {
@@ -2883,6 +3002,10 @@ export class AtlasScene {
       campus: this.campus?.id,
       floor: this.floor?.id || null,
       projection: this.plan ? "2d" : "3d",
+      frameRateLimit: this.frameRateLimit ?? 60,
+      pixelRatio: this.renderer.getPixelRatio?.() ?? 1,
+      shadows: Boolean(this.renderer.shadowMap.enabled),
+      shadowSize: this.qualityProfile?.shadowSize ?? 0,
       renderedFrames: this.renderedFrames,
       drawCalls: this.renderer.info.render.calls,
       triangles: this.renderer.info.render.triangles,

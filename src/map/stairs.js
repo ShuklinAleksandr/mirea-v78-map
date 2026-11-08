@@ -403,7 +403,7 @@ export function getStairDisplayCutouts(floor) {
     });
 }
 
-export function withStairDisplayCutouts(polygon, cutouts) {
+export function withStairDisplayCutouts(polygon, cutouts, applied) {
   const holes = cutouts.filter(
     (cutout) =>
       cutout.points.every((point) => inRing(point, polygon.points)) &&
@@ -412,6 +412,7 @@ export function withStairDisplayCutouts(polygon, cutouts) {
   if (!holes.length) return polygon;
   const mergedHoles = [...(polygon.holes || [])];
   for (const cutout of holes) {
+    applied?.add(cutout);
     let ring = cutout.points;
     for (let i = 0; i < mergedHoles.length; ) {
       const union = polygonClipping.union([ring], [mergedHoles[i]]);

@@ -226,13 +226,28 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   const settings = readSaved("settings", {
     theme: "system",
     quality: "auto",
+    frameRate: "auto",
     motion: motionQuery.matches,
     headingFollow: true,
   });
   if (!["system", "light", "dark"].includes(settings.theme))
     settings.theme = "system";
-  if (!["auto", "low", "high"].includes(settings.quality))
+  if (!["auto", "low", "balanced", "high"].includes(settings.quality))
     settings.quality = "auto";
+  if (!["auto", "30", "60"].includes(settings.frameRate))
+    settings.frameRate = "auto";
+  let autoFrameRate = 60;
+  function applyFrameRate() {
+    scene.setFrameRate?.(
+      settings.frameRate === "auto"
+        ? autoFrameRate
+        : Number(settings.frameRate),
+    );
+  }
+  function applyGraphics() {
+    autoFrameRate = scene.setQuality(settings.quality)?.autoFrameRate ?? 60;
+    applyFrameRate();
+  }
   function applySettings() {
     const dark =
       settings.theme === "dark" ||
@@ -241,12 +256,12 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     document.documentElement.dataset.reducedMotion = String(settings.motion);
     scene.setTheme(dark ? "dark" : "light");
     scene.setReducedMotion(settings.motion);
-    scene.setQuality(settings.quality);
     scene.setHeadingFollow?.(settings.headingFollow);
     writeSaved("settings", settings);
   }
   $("#theme-setting").value = settings.theme;
   $("#quality-setting").value = settings.quality;
+  $("#frame-rate-setting").value = settings.frameRate;
   $("#motion-setting").checked = settings.motion;
   $("#heading-follow-setting").checked = settings.headingFollow;
   $("#theme-setting").onchange = (e) => {
@@ -255,7 +270,13 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   };
   $("#quality-setting").onchange = (e) => {
     settings.quality = e.target.value;
-    applySettings();
+    applyGraphics();
+    writeSaved("settings", settings);
+  };
+  $("#frame-rate-setting").onchange = (e) => {
+    settings.frameRate = e.target.value;
+    applyFrameRate();
+    writeSaved("settings", settings);
   };
   $("#motion-setting").onchange = (e) => {
     settings.motion = e.target.checked;
@@ -267,6 +288,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     writeSaved("settings", settings);
   };
   themeQuery.addEventListener("change", applySettings);
+  applyGraphics();
   applySettings();
   $("#settings-open").onclick = () => $("#settings-dialog").showModal();
   $("#settings-close").onclick = () => $("#settings-dialog").close();

@@ -452,6 +452,7 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
   assert.deepEqual(settings, {
     theme: "system",
     quality: "auto",
+    frameRate: "auto",
     motion: false,
     headingFollow: true,
   });

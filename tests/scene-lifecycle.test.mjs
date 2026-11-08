@@ -48,11 +48,11 @@ function sceneHarness({ hidden = false, nativeActive = true } = {}) {
     counts,
     pending,
     options,
-    frame() {
+    frame(time = performance.now()) {
       assert.equal(pending.size, 1, "only one frame may be pending");
       const [id, callback] = pending.entries().next().value;
       pending.delete(id);
-      callback(performance.now());
+      callback(time);
     },
     app(isActive) {
       windowTarget.dispatchEvent(
@@ -99,13 +99,13 @@ test("native background stops scene updates; foreground resizes and repaints onc
   assert.equal(h.view.renderer.shadowMap.needsUpdate, true);
   h.frame();
   assert.equal(h.counts.renders, 2, "resume repaints even a clean scene");
-  h.frame();
-  assert.equal(h.counts.controls, 3);
-  assert.equal(
-    h.counts.renders,
-    2,
-    "idle frames keep the existing dirty check",
-  );
+  assert.equal(h.counts.controls, 2);
+  assert.equal(h.pending.size, 0, "a static scene sleeps after repaint");
+  h.view.invalidate();
+  h.view.invalidate();
+  h.frame(performance.now() + 20);
+  assert.equal(h.counts.renders, 3, "changes coalesce into one repaint");
+  assert.equal(h.pending.size, 0);
 });
 
 test("visibility and page lifecycle cannot override a still-inactive native app", (t) => {
@@ -163,7 +163,7 @@ test("cancelled callbacks arriving after resume cannot duplicate the frame loop"
   assert.equal(h.pending.size, 1);
   h.frame();
   assert.equal(h.counts.controls, 1);
-  assert.equal(h.pending.size, 1);
+  assert.equal(h.pending.size, 0);
 
   h.view.startRendering(h.options);
   assert.equal(h.pending.size, 1, "replacing lifecycle cancels the old loop");
@@ -226,4 +226,53 @@ test("a camera transition created while hidden starts on the first visible frame
   h.frame();
   assert.deepEqual(h.view.camera.position.toArray(), [0, 0, 0]);
   assert.equal(h.view.transition.start, 5100);
+});
+
+test("frame rate settings limit draw and control updates on a 120 Hz display", (t) => {
+  const h = sceneHarness();
+  t.after(h.dispose);
+  h.view.setFrameRate(30);
+  for (let i = 0; i < 120; i++) {
+    h.view.invalidate();
+    h.frame((i * 1000) / 120);
+  }
+  assert.equal(h.counts.renders, 30);
+  assert.equal(h.counts.controls, 30);
+  assert.equal(JSON.parse(h.view.host.dataset.stats).frameRateLimit, 30);
+
+  h.view.plan = true;
+  h.view.setFrameRate(60);
+  for (let i = 120; i < 240; i++) {
+    h.view.invalidate();
+    h.frame((i * 1000) / 120);
+  }
+  assert.equal(h.counts.renders, 90);
+  assert.equal(h.counts.controls, 90);
+  assert.equal(JSON.parse(h.view.host.dataset.stats).frameRateLimit, 60);
+  assert.equal(h.pending.size, 1, "a capped but unpainted change stays queued");
+  h.frame(2000);
+  assert.equal(h.pending.size, 0, "the queued change paints and then sleeps");
+});
+
+test("a requested heading eases to the bearing and then lets the scene sleep", (t) => {
+  const h = sceneHarness();
+  t.after(h.dispose);
+  h.view.mode = "floor";
+  h.view.camera.position.set(0, 5, 10);
+  h.view.headingFollowEnabled = true;
+  h.view.navigationBearing = Math.PI / 2;
+  h.view.userHeading = { timestamp: Date.now() };
+  h.view.callbacks.shouldFollowHeading = () => true;
+  for (let frame = 0; frame < 120 && h.pending.size; frame++)
+    h.frame((frame * 1000) / 60);
+
+  assert.ok(h.counts.renders > 10, "the turn eases over multiple frames");
+  assert.ok(
+    Math.abs(
+      Math.PI / 2 -
+        Math.atan2(h.view.camera.position.x, h.view.camera.position.z),
+    ) <
+      Math.PI / 90,
+  );
+  assert.equal(h.pending.size, 0);
 });

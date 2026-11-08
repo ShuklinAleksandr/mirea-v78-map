@@ -1,6 +1,7 @@
-/** Keep one frame loop alive only while both the page and native app are visible. */
+/** Schedule requested frames only while both the page and native app are visible. */
 export function createRenderLifecycle({
   render,
+  frameRate = 60,
   onPause = () => {},
   onResume = () => {},
   windowTarget = window,
@@ -13,17 +14,37 @@ export function createRenderLifecycle({
   let disposed = false;
   let frame = null;
   let generation = 0;
+  let interval = 1000 / frameRate;
+  let nextFrameAt = -Infinity;
+  let rendering = false;
 
   function schedule() {
-    if (!running || frame !== null) return;
+    if (!running || frame !== null || rendering) return;
     const scheduledGeneration = generation;
     frame = windowTarget.requestAnimationFrame((time) => {
       // A callback already queued when cancelled may arrive after a resume.
       // It must neither render nor clear the new loop's pending frame.
       if (!running || scheduledGeneration !== generation) return;
       frame = null;
-      render(time);
-      schedule();
+      // RAF timestamps can be slightly early on a nominal 60/120 Hz panel.
+      // Keep the cadence's phase between frames instead of dropping a whole
+      // refresh when timing fluctuates or accumulating a catch-up burst.
+      if (time + 0.75 < nextFrameAt) {
+        schedule();
+        return;
+      }
+      nextFrameAt =
+        time - nextFrameAt >= interval
+          ? time + interval
+          : nextFrameAt + interval;
+      rendering = true;
+      let more;
+      try {
+        more = render(time);
+      } finally {
+        rendering = false;
+      }
+      if (more || scheduledGeneration !== generation) schedule();
     });
   }
 
@@ -45,6 +66,7 @@ export function createRenderLifecycle({
     if (running) return;
     running = true;
     generation++;
+    nextFrameAt = -Infinity;
     onResume();
     schedule();
   }
@@ -69,6 +91,11 @@ export function createRenderLifecycle({
   sync();
 
   return {
+    requestFrame: schedule,
+    setFrameRate(value) {
+      interval = 1000 / value;
+      nextFrameAt = -Infinity;
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

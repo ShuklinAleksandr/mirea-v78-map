@@ -34,7 +34,11 @@ function assertObservedLowerScan(group, sourceFloorRange, top) {
   assert.equal(evidence.sourceSha256, lowerScan.sourceSha256);
   assert.deepEqual(evidence.sourceFloorRange, sourceFloorRange);
   assert.equal(evidence.reconstruction.fillHoles, false);
-  assert.equal(evidence.synthesizedSurfaces, false);
+  assert.equal(
+    evidence.displayRepairs.method,
+    "small-closed-boundary-tread-interpolation",
+  );
+  assert.ok(evidence.displayRepairs.displayedTriangles <= 24);
   assert.equal(evidence.rawTriangles, lowerScan.indices.length / 3);
   assert.deepEqual(group.userData.visualStepCounts, []);
   assert.equal(group.children.length, 1, "no extra procedural walls or stairs");
@@ -937,7 +941,9 @@ test("all photographed stairs produce finite batched geometry and unknown points
       );
       if (group.userData.scanVisual) {
         assert.deepEqual(group.userData.visualStepCounts, []);
-        assert.equal(group.userData.scanVisual.synthesizedSurfaces, false);
+        assert.ok(
+          group.userData.scanVisual.displayRepairs.displayedTriangles <= 24,
+        );
         assert.ok(group.userData.scanVisual.displayedTriangles > 0);
         assert.equal(
           group.children[0].geometry.attributes.position.count,

@@ -46,14 +46,24 @@ test("the 2D floor uses unlit room fills and pickable flat stair symbols", () =>
 test("weak-device automatic quality lowers pixel density and shadows", () => {
   const weak = { pixelRatio: 3, touch: true, cores: 4 };
   assert.deepEqual(mapQuality("auto", weak), {
-    pixelRatio: 1,
+    pixelRatio: 0.8,
     shadows: false,
+    shadowSize: 0,
     detail: false,
+    autoFrameRate: 30,
   });
-  assert.deepEqual(mapQuality("high", weak), {
-    pixelRatio: 2,
-    shadows: true,
-    detail: true,
-  });
-  assert.equal(mapQuality("high", { ...weak, plan: true }).shadows, false);
+  assert.equal(mapQuality("high", weak).shadowSize, 2048);
+  assert.equal(mapQuality("balanced", weak).autoFrameRate, 60);
+});
+
+test("quality options change 2D pixel density even on a standard display", () => {
+  const screen = { pixelRatio: 1, plan: true };
+  const profiles = ["low", "balanced", "high"].map((mode) =>
+    mapQuality(mode, screen),
+  );
+  assert.deepEqual(
+    profiles.map(({ pixelRatio }) => pixelRatio),
+    [0.8, 1, 1.5],
+  );
+  assert.ok(profiles.every(({ shadowSize }) => shadowSize === 0));
 });
