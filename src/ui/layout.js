@@ -1,8 +1,7 @@
 import { icon } from "./icons.js";
 export const layout = `
 <header class="topbar">
-  <a href="#" class="brand" aria-label="МИРЭА, Вернадского 78 — общий вид"><span class="brand-mark">${icon("cube", 27)}</span><span><strong>Карта МИРЭА</strong><small>ВЕРНАДСКОГО, 78</small></span></a>
-  
+  <a href="#" class="brand" style="display: none;" aria-label="..."></a>
 
 <button class="icon-button" id="settings-open" aria-label="Настройки">${icon("settings")}</button></header>
 <aside class="sidebar" aria-label="Поиск и навигация"><button class="sheet-handle" id="sheet-toggle" aria-controls="sheet-content" aria-label="Развернуть панель" aria-expanded="false"><span class="sheet-grip"></span><span class="sheet-collapsed-title">Поиск и маршрут</span></button>
@@ -29,7 +28,17 @@ export const layout = `
 </aside>
 <main class="map-shell">
   <div id="viewport"><div id="location-crosshair" class="location-crosshair" aria-hidden="true" hidden><span></span></div></div>
-  <div class="map-top"><div class="breadcrumb" id="breadcrumb">Вернадского, 78 <span>/</span> Общий вид</div><div class="mode-switch"><button id="nav-outside" class="active">Снаружи</button><button id="nav-inside">Внутри</button><button id="nav-stack" aria-label="Показать все этажи корпуса в 3D" hidden>Все этажи</button></div><div class="view-segment" role="group" aria-label="Проекция карты"><button class="active" id="mode-3d" aria-label="3D режим" aria-pressed="true">${icon("cube", 16)}3D</button><button id="mode-plan" aria-label="2D режим" aria-pressed="false">${icon("layers", 16)}2D</button></div></div>
+  <div class="map-top">
+    <div class="breadcrumb" id="breadcrumb">Вернадского, 78 <span>/</span> Общий вид</div>
+    <div class="mode-switch">
+      <button id="nav-outside" class="active">Снаружи</button>
+      <button id="nav-inside">Внутри</button>
+      <button id="nav-stack" aria-label="Показать все этажи корпуса в 3D" hidden>Все этажи</button>
+    </div>
+    <div class="view-segment" role="group" aria-label="Проекция карты">
+      <button id="mode-toggle" class="mode-toggle" type="button" aria-label="Переключить проекцию" aria-pressed="false">3D</button>
+    </div>
+  </div>
   <div id="focus-floor-status" class="focus-floor-status" aria-live="polite"></div>
   <div class="map-title"><div class="eyebrow" id="view-eyebrow">ПРОСТРАНСТВО УНИВЕРСИТЕТА</div><h1 id="view-title">Весь кампус.<br><span>Каждый поворот.</span></h1><p id="view-description">Выберите корпус, чтобы заглянуть внутрь</p><div class="exterior-actions" id="exterior-actions"><button id="street-view">${icon("pin", 14)} Вид с улицы</button><button id="open-interior">${icon("layers", 14)} Открыть этаж</button><button id="aerial-view">${icon("cube", 14)} С высоты</button></div></div>
   <div id="floor-rail" class="floor-rail" role="group" aria-label="Переключение этажей"></div>
