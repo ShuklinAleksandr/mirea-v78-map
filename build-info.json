@@ -1,6 +1,6 @@
 {
-  "version": "0.5.2",
-  "sourceCommit": "8dd88406d913032b1a0c9fca0348ced78d669759",
+  "version": "0.5.3",
+  "sourceCommit": "a1845aada86961c7dd7d791a60d258ed95edbd39",
   "base": "/mirea-v78-map/",
-  "scope": "V78; simultaneous pan/pinch/twist; full floor on entry"
+  "scope": "V78; third physical floor or highest available on building selection"
 }
