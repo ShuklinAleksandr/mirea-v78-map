@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import vm from "node:vm";
 import {
   resolveInterfaceVariant,
   getInterfaceStorage,
@@ -50,4 +52,47 @@ test("Next settings and saved view cannot overwrite or erase Classic records", (
   next.setItem("mirea:last-native-view:v1", "#room=b");
   assert.equal(classic.getItem("mirea:last-native-view:v1"), null);
   assert.equal(getInterfaceStorage(null), null);
+});
+
+test("Settings switches both interface variants without a top badge", () => {
+  const source = readFileSync(
+    new URL("../src/ui/interface-controls.js", import.meta.url),
+    "utf8",
+  )
+    .replace(/^import[\s\S]*?;\n/gm, "")
+    .replace(/export /g, "");
+  for (const current of ["classic", "next"]) {
+    const switches = [];
+    const elements = new Map(
+      ["classic", "next", "current"].map((name) => [
+        `#interface-${name}`,
+        {
+          attributes: {},
+          setAttribute(key, value) {
+            this.attributes[key] = value;
+          },
+        },
+      ]),
+    );
+    const bind = vm.runInNewContext(`${source}; bindInterfaceControls`, {
+      $: (selector) => elements.get(selector) ?? null,
+      getInterfaceVariant: () => current,
+      INTERFACE_NAMES: { classic: "Классика", next: "Новая" },
+      switchInterface: (variant) => switches.push(variant),
+    });
+    bind();
+    for (const variant of ["classic", "next"]) {
+      const button = elements.get(`#interface-${variant}`);
+      assert.equal(
+        button.attributes["aria-pressed"],
+        String(variant === current),
+      );
+      button.onclick();
+    }
+    assert.deepEqual(switches, ["classic", "next"]);
+    assert.match(
+      elements.get("#interface-current").textContent,
+      /сборка для сравнения/u,
+    );
+  }
 });

@@ -28,6 +28,12 @@ import {
 
 const project = fileURLToPath(new URL("../", import.meta.url));
 const json = (data) => JSON.stringify(data);
+const sourcePhoto = await readFile(
+  path.join(project, "public/data/photos/IMG_3150.jpg"),
+);
+const differentPhoto = await readFile(
+  path.join(project, "public/data/photos/IMG_3151.jpg"),
+);
 const readJSON = async (filename) =>
   JSON.parse(await readFile(filename, "utf8"));
 
@@ -111,8 +117,8 @@ async function fixture(t) {
       `public/data/plans/${id}/${id}-floor0.svg`,
       `<svg id="${id}"/>`,
     );
-  await put(root, "public/data/photos/selected.jpg", "selected photo");
-  await put(root, "public/data/photos/other.jpg", "other photo");
+  await put(root, "public/data/photos/selected.jpg", sourcePhoto);
+  await put(root, "public/data/photos/other.jpg", differentPhoto);
   await put(root, "public/data/unreviewed-campus.json", json(other));
   await put(
     root,
@@ -251,7 +257,7 @@ test("mobile descriptor verifies projected source changes, missing files, and ch
   sourceSearch.push({ ...f.other, id: "another-excluded-room" });
   await put(f.root, "public/data/search-index.json", json(sourceSearch));
   assert.deepEqual(await checkMobilePackage(f.root, f.output), descriptor);
-  await put(f.root, "public/data/photos/selected.jpg", "updated source photo");
+  await put(f.root, "public/data/photos/selected.jpg", differentPhoto);
   await assert.rejects(
     checkMobilePackage(f.root, f.output),
     /stale or out of scope/,

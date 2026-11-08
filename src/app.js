@@ -288,6 +288,7 @@ function updateUI() {
   $("#breadcrumb").innerHTML =
     `${escape(state.campus.title)} <span>/</span> ${escape(building)}${state.mode === "floor" ? ` <span>/</span> ${floorName(state.floor)}` : ""}`;
   $("#overview").classList.toggle("active", state.mode === "overview");
+  $("#campus-overview").hidden = !state.building && state.mode !== "floor";
   $("#facades").closest("label").hidden = state.mode !== "overview";
   $("#context").closest("label").hidden = state.mode !== "overview";
   $("#neighbors").closest("label").hidden =
@@ -762,6 +763,7 @@ async function navigateRoom(r) {
 }
 
 $("#overview").onclick = overview;
+$("#campus-overview").onclick = overview;
 $("#next-floor-open").onclick = () => $("#next-floor-dialog").showModal();
 $("#next-floor-close").onclick = () => $("#next-floor-dialog").close();
 $("#next-floor-dialog").addEventListener("click", (event) => {

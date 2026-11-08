@@ -60,3 +60,13 @@ test("both interfaces expose single-floor controls without an all-floors entry",
   const app = await read("src/app.js");
   assert.doesNotMatch(app, /nav-stack|focusStackFloor|setBuildingOverview/u);
 });
+
+test("top corner provides campus return while interface choice stays in Settings", () => {
+  const header = layout.split("</header>")[0];
+  assert.doesNotMatch(header, /interface-badge|Классика|Новая/u);
+  assert.match(header, /id="campus-overview"[^>]*hidden/u);
+  assert.match(header, /Все корпуса/u);
+  const settings = layout.split('<dialog id="settings-dialog">')[1];
+  assert.match(settings, /id="interface-classic"/u);
+  assert.match(settings, /id="interface-next"/u);
+});

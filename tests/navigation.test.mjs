@@ -265,6 +265,10 @@ function harness({
     },
   });
   vm.runInContext(controller, context);
+  vm.runInContext(
+    section('$("#overview").onclick', '$("#next-floor-open").onclick'),
+    context,
+  );
   if (actualUI)
     vm.runInContext(
       section("function updateUI(", "function cancelPendingNavigation(") +
@@ -881,4 +885,51 @@ test("actual floor selection reuses the same merged plan after leaving and retur
   h.overview();
   h.choose("a");
   assert.strictEqual(h.state.floor, first);
+});
+
+test("top All buildings returns to the whole campus without opening the sheet in either interface", () => {
+  for (const nextInterface of [false, true]) {
+    const h = harness({ nextInterface, actualUI: true, withExperience: true });
+    const button = h.$("#campus-overview");
+    h.overview();
+    assert.equal(
+      button.hidden,
+      true,
+      "no redundant back action at whole-campus view",
+    );
+    h.chooseBuilding("a");
+    assert.equal(
+      button.hidden,
+      false,
+      "available at a focused exterior building",
+    );
+    h.calls.length = 0;
+    button.onclick();
+    assert.deepEqual(h.calls, [
+      ["minimize"],
+      ["room", undefined],
+      ["overview", undefined],
+    ]);
+    assert.equal(button.hidden, true);
+    assert.equal(h.state.building, null);
+    h.choose("a");
+    assert.equal(h.state.building, null);
+    assert.equal(
+      button.hidden,
+      false,
+      "available on a floor even without a building filter",
+    );
+    h.state.selected = h.roomFor("a");
+    h.calls.length = 0;
+    button.onclick();
+    assert.deepEqual(h.calls, [
+      ["minimize"],
+      ["room", undefined],
+      ["overview", undefined],
+    ]);
+    assert.equal(h.state.mode, "overview");
+    assert.equal(h.state.floor, null);
+    assert.equal(h.state.selected, null);
+    assert.equal(button.hidden, true);
+  }
 });

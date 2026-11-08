@@ -1,4 +1,7 @@
-#interface-badge {
+#campus-overview:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   pointer-events: auto;
   background: var(--paper);
   color: var(--ink);
@@ -45,8 +48,8 @@
   border-color: var(--green);
   box-shadow: inset 0 0 0 1px var(--green);
 }
-[data-interface="next"] #interface-badge {
-  color: var(--green);
+#campus-overview svg {
+  transform: rotate(180deg);
 }
 #next-floor-open,
 #next-floor-dialog {
