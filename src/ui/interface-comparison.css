@@ -169,13 +169,39 @@
   }
 }
 @media (min-width: 520px) and (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
-  [data-interface="next"] #next-floor-open:not([hidden]) {
-    left: calc(12px + var(--safe-left) + var(--landscape-panel) + 12px);
-    top: calc(66px + var(--safe-top));
-    max-width: calc(
-      100% - var(--landscape-panel) - 100px - var(--safe-left) -
-        var(--safe-right)
-    );
+  .topbar #campus-overview:not([hidden]) {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  #campus-overview > span {
+    display: none;
+  }
+  [data-interface="next"] #next-floor-open:not([hidden]),
+  [data-interface="next"]
+    [data-route-navigation="true"]
+    #next-floor-open:not([hidden]) {
+    left: auto;
+    right: calc(var(--landscape-right) + 52px);
+    top: var(--landscape-top);
+    max-width: calc(100% - 280px - var(--safe-left) - var(--safe-right));
+    min-height: 44px;
+    gap: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  [data-interface="next"] #next-floor-open > span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  [data-interface="next"] #next-floor-open > svg {
+    flex-shrink: 0;
+  }
+  [data-interface="next"] .map-tools {
+    right: var(--landscape-right);
   }
   [data-interface="next"] [data-route-available="true"] .sidebar.minimized {
     visibility: hidden;

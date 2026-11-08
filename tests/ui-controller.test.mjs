@@ -14,6 +14,7 @@ import {
 import placeLandmarks from "../src/data/place-landmarks.json" with { type: "json" };
 import { nextRouteReadout } from "../src/ui/next-route.js";
 import { variantStorageKey } from "../src/ui/variant.js";
+import { isCompactLandscape } from "../src/ui/map-viewport.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -94,6 +95,8 @@ function harness(file, exports, saved = {}, options = {}) {
   }
   const workerMessages = [];
   const animationFrames = new Map();
+  const timers = new Map();
+  let nextTimer = 0;
   const resizeObservers = [];
   let nextAnimationFrame = 0;
   let currentWorker;
@@ -149,10 +152,18 @@ function harness(file, exports, saved = {}, options = {}) {
         return clock ?? Date.now();
       }
     },
-    innerWidth: 390,
-    innerHeight: 844,
-    isCompactLandscape: () => false,
+    innerWidth: options.width ?? 390,
+    innerHeight: options.height ?? 844,
+    isCompactLandscape,
     location: { hash: "" },
+    setTimeout(callback) {
+      const id = ++nextTimer;
+      timers.set(id, callback);
+      return id;
+    },
+    clearTimeout(id) {
+      timers.delete(id);
+    },
     requestAnimationFrame(callback) {
       const id = ++nextAnimationFrame;
       animationFrames.set(id, callback);
@@ -188,6 +199,12 @@ function harness(file, exports, saved = {}, options = {}) {
     setNow(value) {
       clock = value;
     },
+    setViewport(width, height) {
+      sandbox.innerWidth = width;
+      sandbox.innerHeight = height;
+      sandbox.document.documentElement.clientHeight = height;
+      sandbox.window.dispatchEvent(new Event("resize"));
+    },
     tick(timestamp) {
       const next = animationFrames.entries().next().value;
       if (!next) return false;
@@ -196,6 +213,11 @@ function harness(file, exports, saved = {}, options = {}) {
       return true;
     },
     animationFrames,
+    flushTimers() {
+      const pending = [...timers.values()];
+      timers.clear();
+      for (const callback of pending) callback();
+    },
     resize() {
       for (const { target, callback } of resizeObservers)
         callback([{ target }]);
@@ -1725,5 +1747,333 @@ test("both route interfaces keep individual floors and transitions without an al
       h.overviewCalls.every((value) => value === false),
       "no route action enables a stacked view",
     );
+  }
+});
+
+test("search and route inputs keep suggestions within the visual viewport in both mobile orientations and variants", () => {
+  for (const nextInterface of [false, true]) {
+    for (const [width, height, keyboardHeight] of [
+      [390, 844, 344],
+      [844, 390, 190],
+    ]) {
+      for (const selector of ["#search", "#route-from", "#route-to"]) {
+        const viewport = Object.assign(new EventTarget(), {
+          scale: 1,
+          height,
+          offsetTop: 0,
+        });
+        const h = experienceHarness(undefined, viewport, {
+          nextInterface,
+          width,
+          height,
+        });
+        const sidebar = h.element(".sidebar");
+        const content = h.element(".sidebar-scroll");
+        content.scrollTop = 240;
+        h.minimize();
+        h.element(selector).dispatch("focus");
+        assert.equal(h.getSheetState(), "expanded");
+        assert.equal(
+          content.scrollTop,
+          0,
+          "sheet-local scroll reveals field and list",
+        );
+        assert.equal(sidebar.dataset.inputEditing, "true");
+        viewport.height = height - keyboardHeight;
+        viewport.offsetTop = 12;
+        viewport.dispatchEvent(new Event("resize"));
+        assert.equal(sidebar.style.values.get("--sheet-viewport-top"), "12px");
+        assert.equal(
+          sidebar.style.values.get("--sheet-viewport-bottom"),
+          `${keyboardHeight - 12}px`,
+        );
+        assert.equal(
+          sidebar.style.values.get("--sheet-viewport-height"),
+          `${height - keyboardHeight}px`,
+        );
+        assert.equal(sidebar.dataset.keyboardOpen, "true");
+        viewport.scale = 1.5;
+        viewport.dispatchEvent(new Event("resize"));
+        assert.equal(
+          sidebar.dataset.keyboardOpen,
+          "false",
+          "pinch zoom is not a keyboard",
+        );
+        assert.equal(
+          sidebar.style.values.has("--sheet-viewport-bottom"),
+          false,
+        );
+        viewport.scale = 1;
+        viewport.height = height;
+        viewport.offsetTop = 0;
+        h.element(selector).dispatch("blur");
+        viewport.dispatchEvent(new Event("resize"));
+        assert.equal(sidebar.dataset.inputEditing, "false");
+        assert.equal(sidebar.dataset.keyboardOpen, "false");
+        assert.equal(
+          sidebar.style.values.get("--sheet-viewport-bottom"),
+          "0px",
+        );
+        h.minimize();
+        assert.equal(
+          sidebar.style.values.has("--sheet-viewport-height"),
+          false,
+        );
+      }
+    }
+  }
+});
+
+test("native layout resize reserves the remaining input area without double-counting the keyboard", () => {
+  const h = experienceHarness(undefined, undefined);
+  const sidebar = h.element(".sidebar");
+  h.element("#search").dispatch("focus");
+  h.setViewport(390, 440);
+  assert.equal(h.getSheetState(), "expanded");
+  assert.equal(sidebar.dataset.keyboardOpen, "true");
+  assert.equal(sidebar.style.values.get("--sheet-viewport-bottom"), "0px");
+  assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "440px");
+  h.element("#search").dispatch("blur");
+  h.setViewport(844, 390);
+  h.element("#route-to").dispatch("focus");
+  assert.equal(sidebar.dataset.inputEditing, "true");
+  assert.equal(
+    sidebar.dataset.keyboardOpen,
+    "false",
+    "rotation alone is not a keyboard",
+  );
+  h.setViewport(844, 180);
+  assert.equal(sidebar.dataset.keyboardOpen, "true");
+  assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "180px");
+});
+
+test("keyboard suggestion navigation retains only its active field until leaving or choosing a result", () => {
+  for (const nextInterface of [false, true]) {
+    for (const field of ["search", "route-from", "route-to"]) {
+      const h = experienceHarness(undefined, undefined, {
+        nextInterface,
+        width: 844,
+        height: 390,
+      });
+      const input = h.element(`#${field}`);
+      const list = h.element(
+        field === "search" ? "#results" : "#route-results",
+      );
+      const firstResult = {};
+      list.contains = (node) => node === firstResult;
+      input.dispatch("focus");
+      input.dispatch("blur", { relatedTarget: firstResult });
+      const sidebar = h.element(".sidebar");
+      assert.equal(sidebar.dataset.inputEditing, "true");
+      assert.equal(sidebar.dataset.editingField, field);
+      list.dispatch("focusout", { relatedTarget: {} });
+      assert.equal(sidebar.dataset.inputEditing, "false");
+      assert.equal(sidebar.dataset.editingField, "");
+      input.dispatch("focus");
+      input.dispatch("blur", { relatedTarget: firstResult });
+      h.expand(false);
+      assert.equal(
+        sidebar.dataset.inputEditing,
+        "false",
+        "choosing a removed result cannot leave an editing layout behind",
+      );
+      assert.equal(sidebar.dataset.editingField, "");
+    }
+  }
+});
+
+test("a very short Safari keyboard viewport keeps its active field through rotation and clears compact editing on blur", () => {
+  for (const nextInterface of [false, true]) {
+    const viewport = Object.assign(new EventTarget(), {
+      scale: 1,
+      height: 844,
+      offsetTop: 0,
+    });
+    const h = experienceHarness(undefined, viewport, { nextInterface });
+    const sidebar = h.element(".sidebar");
+    h.element("#route-to").dispatch("focus");
+    viewport.height = 52;
+    h.setViewport(844, 390);
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(h.getSheetState(), "expanded");
+    assert.equal(sidebar.dataset.editingField, "route-to");
+    assert.equal(sidebar.dataset.shortViewport, "true");
+    assert.equal(sidebar.dataset.keyboardOpen, "true");
+    assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "52px");
+    viewport.scale = 1.5;
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(
+      sidebar.dataset.shortViewport,
+      "false",
+      "pinch zoom must not activate the tiny-keyboard layout",
+    );
+    viewport.scale = 1;
+    viewport.height = 180;
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(sidebar.dataset.shortViewport, "false");
+    viewport.height = 52;
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(sidebar.dataset.shortViewport, "true");
+    h.element("#route-to").dispatch("blur");
+    assert.equal(sidebar.dataset.shortViewport, "false");
+    assert.equal(sidebar.dataset.inputEditing, "false");
+  }
+});
+
+test("Safari null-target blur cannot move a touched suggestion before its click in either interface", () => {
+  for (const nextInterface of [false, true]) {
+    for (const field of ["search", "route-from", "route-to"]) {
+      const viewport = Object.assign(new EventTarget(), {
+        scale: 1,
+        height: 52,
+        offsetTop: 0,
+      });
+      const h = experienceHarness(undefined, viewport, {
+        nextInterface,
+        width: 844,
+        height: 390,
+      });
+      const sidebar = h.element(".sidebar");
+      const input = h.element(`#${field}`);
+      const list = h.element(
+        field === "search" ? "#results" : "#route-results",
+      );
+      input.dispatch("focus");
+      let prevented = false;
+      list.scrollTop = 75;
+      list.dispatch("pointerdown", {
+        pointerId: 7,
+        preventDefault() {
+          prevented = true;
+        },
+      });
+      input.dispatch("blur", { relatedTarget: null });
+      viewport.height = 390;
+      viewport.dispatchEvent(new Event("resize"));
+      assert.equal(sidebar.dataset.inputEditing, "true");
+      assert.equal(sidebar.dataset.shortViewport, "true");
+      assert.equal(
+        sidebar.style.values.get("--sheet-viewport-height"),
+        "52px",
+        "keyboard dismissal must not move the tapped row",
+      );
+      assert.equal(list.scrollTop, 75);
+      assert.equal(
+        prevented,
+        false,
+        "native vertical scrolling is never prevented",
+      );
+      h.window.dispatchEvent(
+        Object.assign(new Event("pointerup"), { pointerId: 7 }),
+      );
+      assert.equal(
+        sidebar.dataset.editingField,
+        field,
+        "pointerup precedes the native click",
+      );
+      let clicked = false;
+      list.onclick = () => {
+        clicked = true;
+        h.expand(false);
+      };
+      list.dispatch("click");
+      h.flushTimers();
+      assert.equal(clicked, true);
+      assert.equal(sidebar.dataset.inputEditing, "false");
+      assert.equal(sidebar.dataset.shortViewport, "false");
+    }
+  }
+});
+
+test("suggestion pointer cleanup preserves route handoff and canceled native scrolling", () => {
+  const h = experienceHarness(undefined, undefined, {
+    width: 844,
+    height: 390,
+  });
+  const from = h.element("#route-from"),
+    to = h.element("#route-to");
+  const list = h.element("#route-results"),
+    sidebar = h.element(".sidebar");
+  from.dispatch("focus");
+  list.dispatch("pointerdown", { pointerId: 1 });
+  from.dispatch("blur", { relatedTarget: null });
+  h.window.dispatchEvent(
+    Object.assign(new Event("pointerup"), { pointerId: 1 }),
+  );
+  to.dispatch("focus");
+  h.document.activeElement = to;
+  h.flushTimers();
+  assert.equal(
+    sidebar.dataset.editingField,
+    "route-to",
+    "late cleanup cannot clear the next endpoint field",
+  );
+  list.scrollTop = 140;
+  list.dispatch("pointerdown", { pointerId: 2 });
+  h.window.dispatchEvent(
+    Object.assign(new Event("pointercancel"), { pointerId: 2 }),
+  );
+  h.flushTimers();
+  assert.equal(
+    sidebar.dataset.editingField,
+    "route-to",
+    "scroll cancellation leaves the focused input active",
+  );
+  assert.equal(list.scrollTop, 140);
+  list.dispatch("pointerdown", { pointerId: 3 });
+  to.dispatch("blur", { relatedTarget: null });
+  h.document.activeElement = null;
+  h.window.dispatchEvent(
+    Object.assign(new Event("pointercancel"), { pointerId: 3 }),
+  );
+  h.flushTimers();
+  assert.equal(
+    sidebar.dataset.inputEditing,
+    "false",
+    "an abandoned touch must not leave frozen editing state",
+  );
+});
+
+test("suggestion compatibility mousedown preserves input focus but leaves touch scrolling and other mouse buttons alone", () => {
+  for (const nextInterface of [false, true]) {
+    const h = experienceHarness(undefined, undefined, { nextInterface });
+    for (const selector of ["#results", "#route-results"]) {
+      const list = h.element(selector);
+      const button = {};
+      list.contains = (node) => node === button;
+      const target = { closest: (tag) => (tag === "button" ? button : null) };
+      let prevented = 0;
+      const preventDefault = () => prevented++;
+      list.dispatch("mousedown", { button: 0, target, preventDefault });
+      assert.equal(
+        prevented,
+        1,
+        "primary completed tap keeps the text input focused until click",
+      );
+      list.dispatch("mousedown", { button: 2, target, preventDefault });
+      list.dispatch("mousedown", {
+        button: 0,
+        target: { closest: () => null },
+        preventDefault,
+      });
+      list.dispatch("pointerdown", {
+        button: 0,
+        pointerId: 1,
+        target,
+        preventDefault,
+      });
+      list.dispatch("touchstart", { target, preventDefault });
+      assert.equal(
+        prevented,
+        1,
+        "right click, empty space and scroll initiation remain native",
+      );
+      let clicked = false;
+      list.onclick = () => {
+        clicked = true;
+      };
+      list.dispatch("click", { target });
+      assert.equal(clicked, true);
+    }
   }
 });

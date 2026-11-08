@@ -83,31 +83,80 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     sidebar.style.removeProperty("--sheet-drag");
   };
   const visualViewport = window.visualViewport;
+  let editingInput = null;
+  let editingField = "";
+  let resultPointer = null;
+  let resultReleaseTimer = null;
+  const clearResultPointer = () => {
+    resultPointer = null;
+    if (resultReleaseTimer != null) clearTimeout(resultReleaseTimer);
+    resultReleaseTimer = null;
+  };
+  const editingResults = () =>
+    $(editingField === "search" ? "#results" : "#route-results");
+  let restingWidth = innerWidth;
+  let restingHeight = Math.max(
+    innerHeight,
+    document.documentElement.clientHeight || 0,
+  );
   const updateVisibleBounds = () => {
-    // On browsers with an overlay keyboard, fixed elements still use the
-    // layout viewport. The visual viewport gives the area left for results.
-    if (
-      sheetState !== "expanded" ||
-      !mobile() ||
-      landscape() ||
-      !visualViewport ||
-      visualViewport.scale !== 1
-    ) {
+    // Safari can blur an input with relatedTarget=null and dismiss its keyboard
+    // between pointerdown and click. Keep the hit target in place until click;
+    // this also holds the short-viewport grid during the keyboard animation.
+    if (resultPointer && sheetState === "expanded") return;
+    const layoutHeight = Math.max(
+      innerHeight,
+      document.documentElement.clientHeight || 0,
+    );
+    // Android adjustResize shrinks the layout viewport as well as the visual
+    // viewport. Keep the pre-keyboard height, but never compare portrait and
+    // landscape heights. Input editing itself remains a reliable CSS signal
+    // even when an orientation change happens with the keyboard already open.
+    if (Math.abs(innerWidth - restingWidth) > 80) {
+      restingWidth = innerWidth;
+      restingHeight = layoutHeight;
+    } else if (!editingInput) {
+      restingHeight = Math.max(restingHeight, layoutHeight);
+    }
+    const editing = Boolean(editingInput) && mobile();
+    sidebar.dataset.inputEditing = String(editing);
+    sidebar.dataset.editingField = editing ? editingField : "";
+    const unzoomed = !visualViewport || visualViewport.scale === 1;
+    const visibleHeight = visualViewport?.height ?? layoutHeight;
+    sidebar.dataset.shortViewport = String(
+      editing && unzoomed && visibleHeight < 180,
+    );
+    sidebar.dataset.keyboardOpen = String(
+      editing && unzoomed && restingHeight - visibleHeight > 80,
+    );
+    // Safari's overlay keyboard leaves fixed elements in the layout viewport.
+    // Apply visual bounds in BOTH orientations; native adjustResize naturally
+    // gives a zero bottom inset with the smaller available height.
+    if (sheetState !== "expanded" || !mobile() || !unzoomed) {
       sidebar.style.removeProperty("--sheet-viewport-top");
       sidebar.style.removeProperty("--sheet-viewport-bottom");
+      sidebar.style.removeProperty("--sheet-viewport-height");
       return;
     }
-    const top = Math.max(0, visualViewport.offsetTop);
-    const layoutHeight = document.documentElement.clientHeight || innerHeight;
-    const bottom = Math.max(0, layoutHeight - visualViewport.height - top);
+    const top = Math.max(0, visualViewport?.offsetTop ?? 0);
+    const bottom = Math.max(0, layoutHeight - visibleHeight - top);
     sidebar.style.setProperty("--sheet-viewport-top", `${Math.round(top)}px`);
     sidebar.style.setProperty(
       "--sheet-viewport-bottom",
       `${Math.round(bottom)}px`,
     );
+    sidebar.style.setProperty(
+      "--sheet-viewport-height",
+      `${Math.round(visibleHeight)}px`,
+    );
   };
   const setSheetState = (next) => {
     sheetState = next;
+    if (next !== "expanded") {
+      clearResultPointer();
+      editingInput = null;
+      editingField = "";
+    }
     clearDrag();
     const minimized = next === "minimized" && mobile();
     sidebar.classList.toggle("expanded", next === "expanded");
@@ -225,6 +274,93 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       !mobile() && sheetState === "minimized" ? "peek" : sheetState,
     );
   });
+  for (const selector of ["#search", "#route-from", "#route-to"]) {
+    const input = $(selector);
+    input.addEventListener("focus", () => {
+      clearResultPointer();
+      editingInput = input;
+      editingField = selector.slice(1);
+      if (mobile()) {
+        // A previously scrolled sheet must not leave its input/results above
+        // the keyboard. This scrolls only the sheet, never the map or page.
+        content.scrollTop = 0;
+        setSheetState("expanded");
+      } else updateVisibleBounds();
+    });
+    input.addEventListener("blur", (event) => {
+      if (
+        editingInput === input &&
+        !resultPointer &&
+        !editingResults().contains(event.relatedTarget)
+      ) {
+        editingInput = null;
+        editingField = "";
+      }
+      updateVisibleBounds();
+    });
+  }
+  for (const selector of ["#results", "#route-results"]) {
+    const results = $(selector);
+    results.addEventListener("mousedown", (event) => {
+      const button = event.target?.closest?.("button");
+      if (event.button === 0 && button && results.contains(button))
+        // A completed touch tap can generate this compatibility mouse event
+        // in Safari. Keep the input focused until the result's real click.
+        // Do not cancel pointerdown/touchstart: native list scrolling must work.
+        event.preventDefault();
+    });
+    results.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (
+          !editingInput ||
+          results !== editingResults() ||
+          event.isPrimary === false ||
+          (event.button != null && event.button !== 0)
+        )
+          return;
+        clearResultPointer();
+        resultPointer = { id: event.pointerId, input: editingInput };
+      },
+      { passive: true },
+    );
+    results.addEventListener("focusout", (event) => {
+      if (
+        editingInput &&
+        !resultPointer &&
+        event.relatedTarget !== editingInput &&
+        !editingResults().contains(event.relatedTarget)
+      ) {
+        editingInput = null;
+        editingField = "";
+        updateVisibleBounds();
+      }
+    });
+  }
+  const releaseResultPointer = (event) => {
+    if (!resultPointer || event.pointerId !== resultPointer.id) return;
+    const pending = resultPointer;
+    if (resultReleaseTimer != null) clearTimeout(resultReleaseTimer);
+    // Native click follows pointerup in the same event task. No preventDefault,
+    // pointer capture or synthetic click: vertical result scrolling stays native.
+    resultReleaseTimer = setTimeout(() => {
+      if (resultPointer !== pending) return;
+      resultPointer = null;
+      resultReleaseTimer = null;
+      const active = document.activeElement;
+      if (
+        editingInput === pending.input &&
+        active !== editingInput &&
+        !editingResults().contains(active)
+      ) {
+        editingInput = null;
+        editingField = "";
+      }
+      updateVisibleBounds();
+    }, 0);
+  };
+  window.addEventListener("pointerup", releaseResultPointer, true);
+  window.addEventListener("pointercancel", releaseResultPointer, true);
   visualViewport?.addEventListener("resize", updateVisibleBounds);
   visualViewport?.addEventListener("scroll", updateVisibleBounds);
   setSheetState("peek");

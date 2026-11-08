@@ -2288,6 +2288,12 @@ dialog::backdrop {
   font-size: 13px;
 }
 
+.landscape-button-icon,
+.sheet-search-icon,
+.sheet-close-icon {
+  display: none;
+}
+
 /* In phone landscape, the search and route panels share one side of the map. */
 @media (min-width: 520px) and (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
   :root {
@@ -2295,7 +2301,8 @@ dialog::backdrop {
     --landscape-bottom: calc(8px + var(--safe-bottom));
     --landscape-left: calc(8px + var(--safe-left));
     --landscape-right: calc(8px + var(--safe-right));
-    --landscape-panel: clamp(196px, 30vw, 276px);
+    --landscape-panel: clamp(232px, 31vw, 300px);
+    --landscape-content-top: calc(60px + var(--safe-top));
     --landscape-map-left: calc(
       var(--landscape-left) + var(--landscape-panel) + 10px
     );
@@ -2309,12 +2316,12 @@ dialog::backdrop {
   .sidebar,
   .sidebar.expanded {
     z-index: 10;
-    top: auto;
+    top: var(--landscape-content-top);
     left: var(--landscape-left);
     right: auto;
     bottom: var(--landscape-bottom);
     width: var(--landscape-panel);
-    max-height: calc(100dvh - var(--landscape-top) - var(--landscape-bottom));
+    max-height: none;
     padding-bottom: 0;
     border-radius: 18px;
   }
@@ -2329,18 +2336,28 @@ dialog::backdrop {
     transform: translateY(var(--sheet-drag, 0px));
     transition: none;
   }
-  .sidebar.minimized .sidebar-scroll {
+  .sidebar.minimized {
+    width: 44px;
+    height: 44px;
+    bottom: auto;
+    border-radius: 14px;
+  }
+  .sidebar.minimized .sidebar-scroll,
+  .sidebar.minimized .sheet-grip,
+  .sidebar.minimized .sheet-collapsed-title {
     display: none;
   }
-  .sidebar.minimized .sheet-collapsed-title {
-    display: inline;
-    font-size: 12px;
-    color: var(--muted);
+  .sidebar.minimized .sheet-search-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
+
   .sidebar .sidebar-scroll,
   .sidebar:not(.expanded)[data-place="true"] .sidebar-scroll {
     max-height: none;
-    padding: 0 12px 12px;
+    padding: 0 10px 10px;
+    flex: 1;
     overscroll-behavior: contain;
   }
   .sidebar:not(.expanded) .explore-details,
@@ -2348,59 +2365,105 @@ dialog::backdrop {
   .sidebar:not(.expanded) .route-inputs {
     display: block;
   }
-  .sidebar .address {
+  .sidebar .address,
+  .sidebar .campus-heading {
     display: none;
+  }
+  .sidebar .panel-tabs {
+    margin-bottom: 8px;
+  }
+  .sidebar .search-box input,
+  .sidebar .route-inputs input {
+    font-size: 16px;
   }
   .map-top {
     top: var(--landscape-top);
-    left: var(--landscape-map-left);
-    right: calc(var(--landscape-right) + 54px);
+    left: calc(var(--landscape-left) + 52px);
+    right: auto;
     gap: 6px;
   }
   .map-top .mode-switch {
     display: flex;
   }
+  .map-top .mode-switch,
+  .map-top .view-segment {
+    padding: 0;
+    margin: 0;
+  }
   .map-top button {
-    min-height: 36px;
-    padding: 6px 8px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
     white-space: nowrap;
   }
-  .focus-floor-status {
-    top: calc(var(--landscape-top) + 52px);
-    left: var(--landscape-map-left);
-    max-width: calc(
-      100% - var(--landscape-map-left) - var(--landscape-right) - 54px
-    );
-    padding: 5px 8px;
+  .map-top .landscape-button-icon {
+    display: inline-flex;
   }
-  .focus-floor-status small {
+  .map-top .mode-switch button > span:not(.landscape-button-icon) {
+    display: none;
+  }
+  .topbar .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .focus-floor-status {
+    top: var(--landscape-top);
+    left: auto;
+    right: calc(var(--landscape-right) + 104px);
+    max-width: calc(100% - 280px - var(--safe-left) - var(--safe-right));
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .map-shell .focus-floor-status:has(#building-rooms-open:not([hidden])) {
+    padding: 0;
+  }
+  .focus-floor-status #focus-floor-status {
+    display: none;
+  }
+  .focus-floor-status #building-rooms-open {
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 8px;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+  }
+  .focus-floor-status .landscape-button-icon {
+    display: inline-flex;
+  }
+  .focus-floor-status #building-rooms-open > span:not(.landscape-button-icon) {
     display: none;
   }
   .floor-rail {
-    top: calc(var(--landscape-top) + 102px);
-    left: var(--landscape-map-left);
-    right: auto;
-    max-height: none;
-    max-width: calc(
-      100% - var(--landscape-map-left) - var(--landscape-right) - 54px
+    top: var(--landscape-content-top);
+    left: auto;
+    right: calc(var(--landscape-right) + 52px);
+    width: 52px;
+    max-height: calc(
+      100dvh - var(--landscape-content-top) - var(--landscape-bottom)
     );
-    flex-direction: row;
+    max-width: none;
+    flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
     padding: 4px;
   }
   .floor-rail > span {
-    padding: 0 3px;
+    padding: 0;
+    font-size: 9px;
   }
   .floor-rail button {
-    min-width: 36px;
-    min-height: 38px;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
   }
   .map-tools {
-    top: calc(var(--landscape-top) + 54px);
+    top: var(--landscape-content-top);
     right: var(--landscape-right);
     max-height: calc(
-      100dvh - var(--landscape-top) - var(--landscape-bottom) - 54px
+      100dvh - var(--landscape-content-top) - var(--landscape-bottom)
     );
     overflow: auto;
     scrollbar-width: none;
@@ -2408,6 +2471,10 @@ dialog::backdrop {
   }
   .map-tools > * {
     flex-shrink: 0;
+  }
+  .map-tools button {
+    width: 44px;
+    height: 44px;
   }
   .map-bottom,
   .map-status {
@@ -2451,6 +2518,204 @@ dialog::backdrop {
     left: var(--landscape-map-left);
     right: calc(var(--landscape-right) + 54px);
     bottom: var(--landscape-bottom);
+  }
+  /* Keep the active field and a separately scrollable result list above the
+     keyboard. JS supplies visualViewport insets for overlay keyboards too. */
+  .sidebar[data-input-editing="true"] {
+    z-index: 14;
+    top: calc(8px + max(var(--safe-top), var(--sheet-viewport-top, 0px)));
+    bottom: auto;
+    height: calc(
+      var(--sheet-viewport-height, 100dvh) - 16px -
+        max(0px, calc(var(--safe-top) - var(--sheet-viewport-top, 0px)))
+    );
+    max-height: none;
+  }
+  .sidebar[data-input-editing="true"] .sheet-handle {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 44px;
+    height: 44px;
+    z-index: 3;
+    border-radius: 10px;
+  }
+  .sidebar[data-input-editing="true"] .sheet-close-icon {
+    display: inline-flex;
+  }
+  .sidebar[data-input-editing="true"]
+    :is(.sheet-grip, .sheet-search-icon, .sheet-collapsed-title) {
+    display: none;
+  }
+  .sidebar[data-input-editing="true"] .sidebar-scroll,
+  .sidebar[data-input-editing="true"] #explore-panel:not([hidden]),
+  .sidebar[data-input-editing="true"] .search-wrap,
+  .sidebar[data-input-editing="true"] #route-panel:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .sidebar[data-input-editing="true"] .search-wrap {
+    margin: 0;
+  }
+  .sidebar[data-input-editing="true"] .sidebar-scroll {
+    padding: 4px 8px;
+  }
+  .sidebar[data-input-editing="true"] .search-box,
+  .sidebar[data-input-editing="true"] .route-inputs {
+    flex-shrink: 0;
+    min-height: 44px;
+    width: calc(100% - 44px);
+  }
+  .sidebar[data-input-editing="true"] .search-box {
+    height: 44px;
+  }
+  .sidebar[data-input-editing="true"] :is(.search-results, .route-results) {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 6px 0 0;
+  }
+  .sidebar[data-input-editing="true"]
+    :is(.search-results, .route-results)
+    button {
+    min-height: 44px;
+    padding: 6px 8px;
+  }
+  .sidebar[data-input-editing="true"]
+    :is(
+      .panel-tabs,
+      .explore-details,
+      #saved-places,
+      #place-categories,
+      #search-status,
+      #route-use-location,
+      #route-build,
+      #route-status,
+      #route-summary,
+      #route-steps,
+      #route-actions,
+      #route-progress,
+      #route-swap
+    ) {
+    display: none;
+  }
+  .sidebar[data-input-editing="true"] .route-inputs {
+    padding: 0 10px;
+  }
+  .sidebar[data-input-editing="true"] .route-inputs label {
+    height: 44px;
+    border: 0;
+  }
+  .sidebar[data-editing-field="route-from"] .route-inputs label:has(#route-to),
+  .sidebar[data-editing-field="route-to"] .route-inputs label:has(#route-from) {
+    display: none;
+  }
+  /* Safari's address and keyboard toolbars can leave less than two touch rows.
+     Keep the field and suggestions alongside each other in that visible strip. */
+  .sidebar[data-input-editing="true"][data-short-viewport="true"] {
+    top: calc(var(--sheet-viewport-top, 0px) + 2px);
+    left: var(--landscape-left);
+    width: calc(100% - var(--landscape-left) - var(--landscape-right));
+    height: calc(var(--sheet-viewport-height, 100dvh) - 4px);
+    border-radius: 12px;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    .sheet-handle {
+    top: 0;
+    right: 0;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    .sidebar-scroll {
+    padding: 0 48px 0 4px;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-wrap, #route-panel:not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    column-gap: 8px;
+    align-items: start;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-box, .route-inputs) {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results) {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: stretch;
+    width: 100%;
+    margin: 0;
+    border-radius: 10px;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results)
+    button {
+    min-height: 44px;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results)
+    button
+    > span {
+    min-width: 0;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results)
+    button
+    > span:nth-child(2) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    flex: 1;
+    column-gap: 6px;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results)
+    :is(b, small) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results)
+    b {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 14px;
+    line-height: 16px;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results)
+    small {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 14px;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    :is(.search-results, .route-results)
+    small
+    + small:not(.nearby-distance) {
+    display: none;
+  }
+  .sidebar[data-input-editing="true"][data-short-viewport="true"]
+    .search-results
+    .nearby-distance {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    margin-top: 0;
   }
   dialog {
     max-height: calc(100dvh - var(--landscape-top) - var(--landscape-bottom));

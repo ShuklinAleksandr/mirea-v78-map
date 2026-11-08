@@ -5,7 +5,7 @@ export const layout = `
 
 <button type="button" id="campus-overview" aria-label="Показать все корпуса кампуса" hidden>${icon("arrow", 18)}<span>Все корпуса</span></button>
 <button class="icon-button" id="settings-open" aria-label="Настройки">${icon("settings")}</button></header>
-<aside class="sidebar" aria-label="Поиск и навигация"><button class="sheet-handle" id="sheet-toggle" aria-controls="sheet-content" aria-label="Развернуть панель" aria-expanded="false"><span class="sheet-grip"></span><span class="sheet-collapsed-title">Поиск и маршрут</span></button>
+<aside class="sidebar" aria-label="Поиск и навигация"><button class="sheet-handle" id="sheet-toggle" aria-controls="sheet-content" aria-label="Развернуть панель" aria-expanded="false"><span class="sheet-grip"></span><span class="sheet-close-icon" aria-hidden="true">${icon("close")}</span><span class="sheet-search-icon" aria-hidden="true">${icon("search")}</span><span class="sheet-collapsed-title">Поиск и маршрут</span></button>
   <div class="sidebar-scroll" id="sheet-content">
     <div class="campus-heading">${icon("pin", 20)}<b>Вернадского, 78</b><span>РТУ МИРЭА</span></div>
     <div class="address" id="address">Загрузка данных…</div>
@@ -32,15 +32,15 @@ export const layout = `
   <div class="map-top">
     <div class="breadcrumb" id="breadcrumb">Вернадского, 78 <span>/</span> Общий вид</div>
     <div class="mode-switch">
-      <button id="nav-outside" class="active">Снаружи</button>
-      <button id="nav-inside">Внутри</button>
+      <button id="nav-outside" class="active" title="Снаружи — здания кампуса" aria-label="Снаружи — здания кампуса"><span class="landscape-button-icon">${icon("cube")}</span><span>Снаружи</span></button>
+      <button id="nav-inside" title="Внутри — план этажа" aria-label="Внутри — план этажа"><span class="landscape-button-icon">${icon("layers")}</span><span>Внутри</span></button>
     </div>
     <div class="view-segment" role="group" aria-label="Проекция карты">
       <button id="mode-toggle" class="mode-toggle" type="button" aria-label="Переключить проекцию" aria-pressed="false">3D</button>
     </div>
   </div>
   <button type="button" id="next-floor-open" aria-haspopup="dialog" aria-controls="next-floor-dialog" hidden>Выбрать этаж</button>
-  <div class="focus-floor-status"><div id="focus-floor-status" aria-live="polite"></div><button id="building-rooms-open" type="button" aria-haspopup="dialog" aria-controls="building-rooms-dialog" hidden>Аудитории</button></div>
+  <div class="focus-floor-status"><div id="focus-floor-status" aria-live="polite"></div><button id="building-rooms-open" type="button" title="Аудитории корпуса" aria-label="Аудитории корпуса" aria-haspopup="dialog" aria-controls="building-rooms-dialog" hidden><span class="landscape-button-icon">${icon("search")}</span><span>Аудитории</span></button></div>
   <div class="map-title"><div class="eyebrow" id="view-eyebrow">ПРОСТРАНСТВО УНИВЕРСИТЕТА</div><h1 id="view-title">Весь кампус.<br><span>Каждый поворот.</span></h1><p id="view-description">Выберите корпус, чтобы заглянуть внутрь</p><div class="exterior-actions" id="exterior-actions"><button id="street-view">${icon("pin", 14)} Вид с улицы</button><button id="open-interior">${icon("layers", 14)} Открыть этаж</button><button id="aerial-view">${icon("cube", 14)} С высоты</button></div></div>
   <div id="floor-rail" class="floor-rail" role="group" aria-label="Переключение этажей"></div>
   <div class="map-tools"><button id="locate-open" title="Моё местоположение" aria-label="Моё местоположение">${icon("locate")}</button><button id="fit" title="Показать целиком" aria-label="Показать целиком">${icon("expand")}</button><div class="zoom-tools"><button id="zoom-in" aria-label="Приблизить">+</button><button id="zoom-out" aria-label="Отдалить">−</button></div></div>
