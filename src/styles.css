@@ -2721,3 +2721,14 @@ dialog::backdrop {
     max-height: calc(100dvh - var(--landscape-top) - var(--landscape-bottom));
   }
 }
+
+/* Keep touch form controls readable without Safari focus magnification,
+   including tablet widths that do not use the compact phone layout. */
+@media (hover: none) and (pointer: coarse) {
+  .search-box input,
+  .route-inputs input,
+  .settings-content select,
+  #building-rooms-floor {
+    font-size: 16px;
+  }
+}

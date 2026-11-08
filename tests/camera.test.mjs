@@ -27,14 +27,15 @@ function cameraHarness() {
   controls.enableDamping = true;
   controls.dampingFactor = 0.09;
   controls.update();
-  return {
+  return Object.assign(Object.create(AtlasScene.prototype), {
     perspectiveCamera,
     planCamera,
     controls,
     camera: perspectiveCamera,
     plan: false,
     invalidate() {},
-  };
+    applyProjectionStyle() {},
+  });
 }
 
 function animatedCameraHarness() {
@@ -55,6 +56,83 @@ function animatedCameraHarness() {
     stats() {
       return {};
     },
+  });
+}
+
+test("an untouched automatic frame still refits when a desktop window narrows", () => {
+  let fitCalls = 0;
+  const bounds = [-80, -10, 80, 10];
+  const view = Object.assign(
+    Object.create(AtlasScene.prototype),
+    cameraHarness(),
+    {
+      host: { getBoundingClientRect: () => ({ width: 800, height: 720 }) },
+      renderer: { setSize() {} },
+      viewportWidth: 1280,
+      lastBounds: bounds,
+      updateLocationPickPreview() {},
+      fit(received, animate) {
+        assert.equal(received, bounds);
+        assert.equal(animate, false);
+        fitCalls++;
+      },
+    },
+  );
+  view.perspectiveCamera.aspect = 1280 / 720;
+  view.resize();
+  assert.equal(fitCalls, 1);
+});
+
+for (const plan of [false, true]) {
+  test(`${plan ? "2D" : "3D"}: browser bars and a keyboard never refit the last selected room`, () => {
+    const view = Object.assign(
+      Object.create(AtlasScene.prototype),
+      cameraHarness(),
+      {
+        host: { getBoundingClientRect: () => ({ width: 390, height: 280 }) },
+        renderer: { setSize() {} },
+        viewportWidth: 390,
+        lastBounds: [-5, -5, 5, 5],
+        updateLocationPickPreview() {},
+        fit() {
+          assert.fail("a height-only viewport change must not refocus a room");
+        },
+      },
+    );
+    view.perspectiveCamera.aspect = 390 / 844;
+    if (plan) view.setProjection(true);
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    const zoom = view.camera.zoom;
+    view.resize();
+    assert.deepEqual(view.camera.position.toArray(), position.toArray());
+    assert.deepEqual(view.controls.target.toArray(), target.toArray());
+    assert.equal(view.camera.zoom, zoom);
+  });
+
+  test(`${plan ? "2D" : "3D"}: manual map framing survives an orientation change`, () => {
+    const view = Object.assign(
+      Object.create(AtlasScene.prototype),
+      cameraHarness(),
+      {
+        host: { getBoundingClientRect: () => ({ width: 844, height: 390 }) },
+        renderer: { setSize() {} },
+        viewportWidth: 390,
+        lastBounds: [-5, -5, 5, 5],
+        updateLocationPickPreview() {},
+        fit() {
+          assert.fail("manual pan/pinch must not jump back to old room bounds");
+        },
+      },
+    );
+    view.perspectiveCamera.aspect = 390 / 844;
+    if (plan) view.setProjection(true);
+    view.beginMapInteraction();
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    view.resize();
+    assert.deepEqual(view.camera.position.toArray(), position.toArray());
+    assert.deepEqual(view.controls.target.toArray(), target.toArray());
   });
 }
 

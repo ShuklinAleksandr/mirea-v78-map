@@ -40,11 +40,8 @@ import {
   navigationLookAhead,
   styleNavigationWalls,
 } from "./navigation-view.js";
-import {
-  bindMapTouchRotation,
-  configureMapTouchControls,
-  createMapTapGuard,
-} from "./gestures.js";
+import { bindMapTouchRotation, configureMapTouchControls } from "./gestures.js";
+import { bindMapTapActions } from "./pointer-actions.js";
 import {
   createRouteLayer,
   createSchematicConnection,
@@ -197,7 +194,9 @@ export class AtlasScene {
       "aria-label",
       "Интерактивная 3D-карта кампуса",
     );
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    // Canvas and HTML labels are one gesture surface. Otherwise a finger on
+    // a label never reaches OrbitControls and Safari may zoom the page.
+    this.controls = new OrbitControls(this.camera, host);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.09;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.04;
@@ -206,10 +205,7 @@ export class AtlasScene {
     this.controls.screenSpacePanning = true;
     configureMapTouchControls(this.controls, this.plan);
     this.touchRotation = bindMapTouchRotation(this.controls);
-    this.controls.addEventListener("start", () => {
-      this.transition = null;
-      this.callbacks.onMapInteraction?.();
-    });
+    this.controls.addEventListener("start", () => this.beginMapInteraction());
     this.controls.addEventListener("change", () => {
       this.invalidate();
       this.updateLocationPickPreview();
@@ -238,32 +234,23 @@ export class AtlasScene {
     host.append(this.labelLayer);
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
-    const tap = createMapTapGuard();
-    this.renderer.domElement.addEventListener("pointerdown", (e) => {
-      tap.down(e);
-    });
-    this.renderer.domElement.addEventListener("pointerup", (e) => {
-      if (tap.up(e)) {
-        if (this.locationPicking) {
-          this.updateLocationPickPreview({ force: true });
-          return;
-        }
-        const hit = this.hit(e);
-        if (hit?.routeFloor) this.callbacks.onRouteFloor?.(hit.routeFloor);
-        else if (hit?.room) this.callbacks.onRoom?.(hit.room);
-        else if (hit?.building) this.callbacks.onBuilding?.(hit.building);
-        else if (hit?.external) this.callbacks.onExternal?.(hit.external);
-        else this.callbacks.onEmpty?.();
+    this.mapTapActions = bindMapTapActions(host, (e, label) => {
+      if (this.locationPicking) {
+        this.updateLocationPickPreview({ force: true });
+        return;
       }
+      if (label?.isConnected) {
+        label.click();
+        return;
+      }
+      const hit = this.hit(e);
+      if (hit?.routeFloor) this.callbacks.onRouteFloor?.(hit.routeFloor);
+      else if (hit?.room) this.callbacks.onRoom?.(hit.room);
+      else if (hit?.building) this.callbacks.onBuilding?.(hit.building);
+      else if (hit?.external) this.callbacks.onExternal?.(hit.external);
+      else this.callbacks.onEmpty?.();
     });
-    this.renderer.domElement.addEventListener("pointercancel", (e) =>
-      tap.cancel(e),
-    );
-    this.renderer.domElement.addEventListener("lostpointercapture", (e) =>
-      tap.cancel(e),
-    );
-    this.renderer.domElement.addEventListener("pointermove", (e) => {
-      tap.move(e);
+    host.addEventListener("pointermove", (e) => {
       if (
         this.cleanMap ||
         this.locationPicking ||
@@ -274,7 +261,7 @@ export class AtlasScene {
       this.mouseEvent = e;
       this.renderLifecycle?.requestFrame();
     });
-    this.renderer.domElement.addEventListener("pointerleave", () => {
+    host.addEventListener("pointerleave", () => {
       this.mouseEvent = null;
       this.showHover(null);
     });
@@ -358,7 +345,8 @@ export class AtlasScene {
   resize() {
     const { width, height } = this.host.getBoundingClientRect();
     if (!width || !height) return;
-    const previous = this.perspectiveCamera.aspect;
+    const previousWidth = this.viewportWidth;
+    this.viewportWidth = width;
     const aspect = width / height;
     this.renderer.setSize(width, height);
     this.perspectiveCamera.aspect = aspect;
@@ -367,7 +355,10 @@ export class AtlasScene {
     this.planCamera.left = -half * aspect;
     this.planCamera.right = half * aspect;
     this.planCamera.updateProjectionMatrix();
-    if (this.lastBounds && previous !== aspect) {
+    // Keyboard/browser bars change the height without navigation intent.
+    // After a manual pan/pinch, even rotation must keep the chosen camera.
+    const widthChanged = previousWidth != null && previousWidth !== width;
+    if (this.lastBounds && widthChanged && !this.manualCamera) {
       this.fit(
         this.lastBounds,
         false,
@@ -377,6 +368,11 @@ export class AtlasScene {
     }
     this.updateLocationPickPreview({ force: true });
     this.invalidate();
+  }
+  beginMapInteraction() {
+    this.manualCamera = true;
+    this.transition = null;
+    this.callbacks?.onMapInteraction?.();
   }
   setProjection(plan, { fit = false } = {}) {
     if (plan && (this.routeOverview || this.buildingOverview))
@@ -2496,6 +2492,7 @@ export class AtlasScene {
     return [box.min.x, box.min.z, box.max.x, box.max.z];
   }
   fit(bounds = null, animate = true, padding = null, options = null) {
+    this.manualCamera = false;
     // Floor/building changes and «Показать целиком» need the same clear map
     // area as a room focus. Otherwise a long wing fits behind the sidebar.
     padding ??= this.callbacks?.getViewportPadding?.() || {};
@@ -2680,6 +2677,7 @@ export class AtlasScene {
     };
   }
   zoom(factor) {
+    this.beginMapInteraction();
     if (this.plan) {
       this.camera.zoom = THREE.MathUtils.clamp(
         this.camera.zoom / factor,
