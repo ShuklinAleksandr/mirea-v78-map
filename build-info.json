@@ -1,6 +1,6 @@
 {
-  "version": "0.5.3",
-  "sourceCommit": "a1845aada86961c7dd7d791a60d258ed95edbd39",
+  "version": "0.5.4",
+  "sourceCommit": "6b3c095ecd10c6e3f42d83c8c00231f7a4589422",
   "base": "/mirea-v78-map/",
-  "scope": "V78; third physical floor or highest available on building selection"
+  "scope": "V78; confirmed G424 parent-entrance guidance; other routes unchanged"
 }
