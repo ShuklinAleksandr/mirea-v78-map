@@ -1,6 +1,6 @@
 {
-  "version": "0.5.0-compare.4",
-  "sourceCommit": "3cd37ce4fd9edfd517d0f36cb8ea5e6482b86c8b",
+  "version": "0.5.1",
+  "sourceCommit": "7ed1f53054eeec92f210ea61db6d073bde6594c1",
   "base": "/mirea-v78-map/",
-  "scope": "V78 Classic and Next; separated mobile gestures and stable camera framing"
+  "scope": "V78; single mobile interface, compact controls, physical floor context"
 }
