@@ -1,6 +1,6 @@
 {
   "version": "0.5.0-compare.3",
-  "sourceCommit": "6d768f42625a2109d29d8a2fb0596ee88a1eeb8b",
+  "sourceCommit": "c7e44bbe301c456d7ae6e8b167114948f8e49656",
   "base": "/mirea-v78-map/",
-  "scope": "V78 mobile web, Classic and Next"
+  "scope": "V78 Classic and Next; landscape and keyboard fixes"
 }
