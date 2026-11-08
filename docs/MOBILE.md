@@ -1,6 +1,6 @@
 # Мобильные приложения iOS и Android
 
-Приоритет текущей ветки `feature/stairs-and-floor-view` — **Android и мобильный веб, включая Safari на iPhone**. В приложении оставлен единый интерфейс; переключателя и названий прежних вариантов нет. Старые ссылки `?interface=classic` и `?interface=next` открывают ту же карту.
+Приоритет проекта в ветке `main` — **Android и мобильный веб, включая Safari на iPhone**. В приложении оставлен единый интерфейс; переключателя и названий прежних вариантов нет. Старые ссылки `?interface=classic` и `?interface=next` открывают ту же карту.
 
 Текущий тестовый выпуск **[v0.5.4](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.4)**, Android `versionCode=8`: [MIREA-V78.apk](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.5.4/MIREA-V78.apk) и [MIREA-V78-Web.zip](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.5.4/MIREA-V78-Web.zip). Фактические результаты компиляции, SHA-256 и сверки ресурсов фиксируются в [новом отчёте](ROUTING_ENTRANCE_AUDIT_2026-11-08.md). Нативная iOS-компиляция и подписанная device-сборка для этого выпуска здесь не заявляются.
 

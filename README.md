@@ -10,7 +10,7 @@
 
 В приложении оставлен **один интерфейс**: компактное ведение по маршруту, поиск с учётом корпуса и ближайших мест, настройки качества. Переключателя вариантов и названий «Классика/Новая» больше нет. Старые ссылки с `?interface=classic` и `?interface=next` открывают то же приложение.
 
-Текущие исходники — ветка `feature/stairs-and-floor-view`, изменения проходят через [Pull Request №6](https://github.com/ShuklinAleksandr/mirea-v78-map/pull/6). Ветка `main` автоматически не обновляется.
+Актуальные исходники — ветка **`main`**. Полная цепочка изменений интерфейса, производительности, лестниц, этажей, жестов и маршрутов объединена через [Pull Request №6](https://github.com/ShuklinAleksandr/mirea-v78-map/pull/6). Новые задачи разрабатывайте в отдельных ветках от `main` по [инструкции для участников](CONTRIBUTING.md).
 
 Текущий тестовый выпуск **[v0.5.4](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.4)**, Android `versionCode=8`. Готовые файлы: [MIREA-V78.apk](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.5.4/MIREA-V78.apk) и [MIREA-V78-Web.zip](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.5.4/MIREA-V78-Web.zip). Результаты компиляции, SHA-256 и испытаний — в [отчёте проверки маршрутов](docs/ROUTING_ENTRANCE_AUDIT_2026-11-08.md). Предыдущий проход — [компактный интерфейс и этажи](docs/MOBILE_COMPACT_FLOORS_2026-11-08.md). Новая подписанная iOS-сборка здесь не заявляется.
 
@@ -51,7 +51,7 @@
 В Terminal на Mac/Linux или PowerShell на Windows:
 
 ```sh
-git clone --branch feature/stairs-and-floor-view https://github.com/ShuklinAleksandr/mirea-v78-map.git
+git clone https://github.com/ShuklinAleksandr/mirea-v78-map.git
 cd mirea-v78-map
 npm ci
 npm run dev
@@ -163,7 +163,7 @@ docs/          инструкции, архитектура, источники 
 
 ## Исторические выпуски и проверки
 
-Эти материалы относятся к указанным снимкам проекта. Их тесты, контрольные суммы и готовые файлы **не подтверждают новую сборку ветки `feature/stairs-and-floor-view`**.
+Эти материалы относятся к указанным снимкам проекта. Их тесты, контрольные суммы и готовые файлы **не подтверждают новую сборку текущих исходников**.
 
 - [v0.5.0-compare.4](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.0-compare.4): последний исторический выпуск с двумя вариантами. [Жесты и камера](docs/MOBILE_GESTURES_2026-11-08.md), [горизонтальный экран и клавиатура](docs/MOBILE_WEB_SHARE_2026-11-08.md), [лестницы и показ этажей](docs/STAIRS_FLOORS_2026-11-08.md), [первый отчёт сравнения](docs/INTERFACE_COMPARISON_BUILD_2026-11-08.md).
 - [v0.3.0-test](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.3.0-test), 1 ноября 2026: удаление Wi-Fi-замеров и очистка тестового интерфейса. [Отчёт](docs/INTERFACE_CLEANUP_2026-11-01.md), [исторический Android APK](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.3.0-test/MIREA-V78-debug.apk), [исторический iOS Simulator](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.3.0-test/MIREA-V78-iOS-Simulator.zip).
