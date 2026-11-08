@@ -408,13 +408,62 @@ test("returning to 3D restores perspective and rotational controls at the plan s
   assert.equal(view.controls.enableRotate, true);
   assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.ROTATE);
   assert.equal(view.controls.touches.ONE, THREE.TOUCH.PAN);
-  assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_ROTATE);
+  assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_PAN);
   assert.ok(
     Math.abs(
       view.camera.position.distanceTo(view.controls.target) - expectedDistance,
     ) < 1e-6,
   );
   assert.ok(view.controls.getPolarAngle() > 0.1);
+});
+
+test("2D and 3D preserve the chosen bearing after twisting the flat map", () => {
+  const view = cameraHarness();
+  const initialBearing = view.controls.getAzimuthalAngle();
+  const initialTilt = view.controls.getPolarAngle();
+  view.setProjection(true);
+  const bearing = () => Math.atan2(-view.camera.up.x, -view.camera.up.z);
+  assert.ok(Math.abs(bearing() - initialBearing) < 1e-8);
+  view.camera.up.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.7);
+  view.controls.update();
+  const chosen = bearing();
+  const target = view.controls.target.clone();
+  view.setProjection(false);
+  assert.ok(Math.abs(view.controls.getAzimuthalAngle() - chosen) < 1e-8);
+  assert.ok(Math.abs(view.controls.getPolarAngle() - initialTilt) < 1e-8);
+  assert.ok(view.controls.target.distanceTo(target) < 1e-8);
+  view.setProjection(true);
+  assert.ok(Math.abs(bearing() - chosen) < 1e-8);
+  const direction = view.camera.position
+    .clone()
+    .sub(view.controls.target)
+    .normalize();
+  assert.ok(Math.hypot(direction.x, direction.z) < 0.00001);
+});
+
+test("fitting a twisted flat plan keeps all bounds clear of the mobile panels", () => {
+  const view = cameraHarness();
+  view.host = { clientWidth: 390, clientHeight: 844 };
+  view.perspectiveCamera.aspect = 390 / 844;
+  view.perspectiveCamera.updateProjectionMatrix();
+  view.model = new THREE.Group();
+  view.sun = new THREE.DirectionalLight();
+  view.mode = "floor";
+  view.setProjection(true);
+  view.camera.up.set(-Math.SQRT1_2, 0, -Math.SQRT1_2);
+  view.controls.update();
+  const padding = { left: 16, right: 72, top: 64, bottom: 290 };
+  view.fit([-120, -12, 120, 12], false, padding);
+  view.camera.updateMatrixWorld(true);
+  for (const x of [-120, 120])
+    for (const z of [-12, 12]) {
+      const projected = new THREE.Vector3(x, 0, z).project(view.camera);
+      const px = (projected.x + 1) * 195;
+      const py = (1 - projected.y) * 422;
+      assert.ok(px >= padding.left && px <= 390 - padding.right);
+      assert.ok(py >= padding.top && py <= 844 - padding.bottom);
+    }
+  assert.ok(Math.abs(view.camera.up.x + Math.SQRT1_2) < 1e-8);
 });
 
 function disposeGroup(group) {

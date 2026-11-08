@@ -247,9 +247,18 @@ function harness({
       },
       setCampus: (c) => calls.push(["campus", c.id]),
       setOverview: (b) => calls.push(["overview", b]),
-      setFloor(f) {
+      setFloor(f, building, options) {
         calls.push(["floor", f.id]);
+        this.lastFloorView = {
+          floor: f,
+          building,
+          options,
+          neighborsOn: this.neighborsOn,
+        };
         this.locationPicking = false;
+      },
+      keepFloorViewport() {
+        calls.push(["keep-floor-viewport"]);
       },
       selectRoom: (r) => calls.push(["room", r?.id]),
     },
@@ -358,6 +367,10 @@ function harness({
   );
   vm.runInContext(
     section('$("#overview").onclick', '$("#next-floor-open").onclick'),
+    context,
+  );
+  vm.runInContext(
+    section("function openInterior(", "new ResizeObserver("),
     context,
   );
   if (actualUI)
@@ -1208,4 +1221,92 @@ test("route context ignores other floors and owns the readout until a real camer
     "deliberate free map interaction may establish camera context again",
   );
   assert.equal(h.state.floorContext.source, "camera");
+});
+
+test("Outside building to Inside retains focus and scale while showing the complete source plan", () => {
+  const h = harness({ withExperience: true });
+  const source = h.state.floorData[0];
+  source.polygons.push({ id: "neighbor-room", building: "b", label: "b-101" });
+  const original = JSON.stringify(source);
+  h.chooseBuilding("a");
+  h.calls.length = 0;
+  assert.equal(h.$("#nav-inside").onclick(), true);
+  assert.equal(h.state.mode, "floor");
+  assert.equal(
+    h.state.building,
+    "a",
+    "building context remains the outside selection",
+  );
+  assert.equal(h.state.floor.id, source.id, "the existing source plan is used");
+  assert.strictEqual(h.state.floor.polygons, source.polygons);
+  assert.equal(
+    JSON.stringify(source),
+    original,
+    "source geometry remains untouched",
+  );
+  assert.equal(
+    h.scene.lastFloorView.neighborsOn,
+    true,
+    "neighbors are enabled before rendering",
+  );
+  assert.equal(
+    h.scene.lastFloorView.building,
+    "a",
+    "selected wing remains the camera focus",
+  );
+  assert.equal(
+    h.scene.lastFloorView.options.fit,
+    false,
+    "do not fit the full floor or change zoom",
+  );
+  assert.equal(h.$("#neighbors").checked, true);
+  assert.deepEqual(h.calls, [["floor", source.id], ["keep-floor-viewport"]]);
+  h.calls.length = 0;
+  assert.equal(h.$("#nav-inside").onclick(), true);
+  assert.deepEqual(
+    h.calls,
+    [],
+    "pressing Inside again does not reset the user's view",
+  );
+});
+
+test("an explicit neighbor choice remains usable and survives later Outside to Inside entries", () => {
+  const h = harness();
+  h.chooseBuilding("a");
+  h.$("#nav-inside").onclick();
+  h.$("#neighbors").checked = false;
+  h.$("#neighbors").onchange();
+  assert.equal(h.scene.lastFloorView.neighborsOn, false);
+  assert.equal(h.scene.lastFloorView.options.fit, false);
+  assert.equal(h.state.neighborsPreference, false);
+  h.overview();
+  h.chooseBuilding("a");
+  h.$("#open-interior").onclick();
+  assert.equal(
+    h.scene.lastFloorView.neighborsOn,
+    false,
+    "respect the explicit session preference",
+  );
+  assert.equal(h.$("#neighbors").checked, false);
+  h.$("#neighbors").checked = true;
+  h.$("#neighbors").onchange();
+  assert.equal(
+    h.scene.lastFloorView.neighborsOn,
+    true,
+    "all buildings can be restored directly in Settings",
+  );
+  assert.equal(h.state.building, "a");
+});
+
+test("Inside never enables neighbors or changes the view when the requested plan was not loaded", () => {
+  const h = harness();
+  h.state.floorData = [];
+  h.scene.neighborsOn = false;
+  h.$("#neighbors").checked = false;
+  assert.equal(h.$("#nav-inside").onclick(), false);
+  assert.equal(h.state.mode, "overview");
+  assert.equal(h.state.floor, null);
+  assert.equal(h.scene.neighborsOn, false);
+  assert.equal(h.$("#neighbors").checked, false);
+  assert.deepEqual(h.calls, []);
 });

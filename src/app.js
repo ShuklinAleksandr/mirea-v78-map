@@ -64,6 +64,7 @@ const state = {
   userLocation: null,
   floorContext: null,
   locationTracking: null,
+  neighborsPreference: null,
 };
 let floorContextTimer = null;
 let floorContextOwner = "camera";
@@ -452,9 +453,7 @@ function updateUI() {
 
   const touch = matchMedia("(pointer: coarse)").matches;
   $("#interaction-hint").textContent = touch
-    ? scene.plan
-      ? "Один палец — перемещение · два — масштаб"
-      : "Один палец — перемещение · щипок — масштаб · два пальца вместе — поворот"
+    ? "Один палец — перемещение · щипок — масштаб · разворот двух пальцев — поворот"
     : scene.plan
       ? "Перетаскивание — перемещение · колесо — масштаб"
       : "Перетаскивание — вращение · ПКМ — перемещение · колесо — масштаб";
@@ -575,13 +574,22 @@ function chooseBuilding(b) {
 }
 function chooseFloor(
   id,
-  { fit = true, preserveViewport = false, navigationToken = null } = {},
+  {
+    fit = true,
+    preserveViewport = false,
+    navigationToken = null,
+    showNeighbors,
+  } = {},
 ) {
   if (navigationToken == null) cancelPendingNavigation();
   else if (navigationToken !== state.loading) return false;
   busy(false);
   const floor = state.floorData.find((f) => f.id === id);
   if (!floor) return false;
+  if (typeof showNeighbors === "boolean") {
+    scene.neighborsOn = showNeighbors;
+    $("#neighbors").checked = showNeighbors;
+  }
   state.floor = mergedFloorView(
     floor,
     state.campus.floors.find((f) => f.id === id),
@@ -957,11 +965,17 @@ function openInterior() {
     fs.find((f) => floorPhysical(f) === 2) ||
     fs.find((f) => f.level === 1) ||
     fs[0];
-  if (f)
-    return chooseFloor(f.id, { preserveViewport: state.mode === "overview" });
+  if (!f) return false;
+  return chooseFloor(f.id, {
+    preserveViewport: state.mode === "overview",
+    // The outside building is a camera focus, not a request to remove the rest
+    // of this source plan. A later explicit visibility choice wins in this session.
+    showNeighbors: state.neighborsPreference ?? true,
+  });
 }
 $("#neighbors").onchange = () => {
-  scene.neighborsOn = $("#neighbors").checked;
+  state.neighborsPreference = $("#neighbors").checked;
+  scene.neighborsOn = state.neighborsPreference;
   if (state.mode === "floor")
     scene.setFloor(state.floor, state.building, { fit: false });
 };

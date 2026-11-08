@@ -405,6 +405,11 @@ export class AtlasScene {
       distance = this.camera.position.distanceTo(target);
     if (plan) {
       this.lastPerspectiveOffset = this.camera.position.clone().sub(target);
+      // Keep the bearing when switching projection, including a touch twist.
+      // A flat plan rotates through its up vector rather than camera tilt.
+      const bearing = this.lastPerspectiveOffset.clone().setY(0);
+      if (bearing.lengthSq() > 1e-8)
+        this.planCamera.up.copy(bearing.normalize().negate());
       const half =
         distance *
         Math.tan(THREE.MathUtils.degToRad(this.perspectiveCamera.fov / 2));
@@ -429,6 +434,12 @@ export class AtlasScene {
       )
         .clone()
         .normalize();
+      const horizontal = Math.hypot(direction.x, direction.z);
+      const bearing = this.planCamera.up.clone().setY(0).normalize();
+      if (bearing.lengthSq() > 0) {
+        direction.x = -bearing.x * horizontal;
+        direction.z = -bearing.z * horizontal;
+      }
       this.perspectiveCamera.position
         .copy(target)
         .addScaledVector(direction, dist);
@@ -974,16 +985,14 @@ export class AtlasScene {
   configureLocationPickingControls() {
     if (!this.controls) return;
     this.controls.enableRotate = !this.plan && !this.locationPicking;
+    this.controls.enableTouchRotate = !this.locationPicking;
     if (this.controls.mouseButtons)
       this.controls.mouseButtons.LEFT =
         this.plan || this.locationPicking
           ? THREE.MOUSE.PAN
           : THREE.MOUSE.ROTATE;
     if (this.controls.touches)
-      configureMapTouchControls(
-        this.controls,
-        this.plan || this.locationPicking,
-      );
+      configureMapTouchControls(this.controls, this.plan);
   }
   setLocationPicking(value) {
     const enabled = Boolean(value && this.mode === "floor");
@@ -2575,8 +2584,14 @@ export class AtlasScene {
     };
     let dist;
     if (this.plan) {
+      const up = this.planCamera.up.clone().setY(0).normalize();
+      const right = new THREE.Vector3().crossVectors(up, UP_AXIS);
+      const visibleWidth =
+        Math.abs(right.x) * width + Math.abs(right.z) * depth;
+      const visibleDepth = Math.abs(up.x) * width + Math.abs(up.z) * depth;
       const height =
-        Math.max(width / (aspect * usableX), depth / usableY) * 1.2;
+        Math.max(visibleWidth / (aspect * usableX), visibleDepth / usableY) *
+        1.2;
       this.planCamera.top = height / 2;
       this.planCamera.bottom = -height / 2;
       this.planCamera.left = (-height * aspect) / 2;
