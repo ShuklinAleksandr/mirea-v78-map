@@ -14,6 +14,8 @@
   --line: #e5eaf1;
   --shadow: 0 12px 48px #182c4a15;
   --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   --safe-bottom: var(
     --safe-area-inset-bottom,
     env(safe-area-inset-bottom, 0px)
@@ -2257,4 +2259,170 @@ dialog::backdrop {
   border: 1px solid var(--line);
   border-radius: 12px;
   font-size: 13px;
+}
+
+/* In phone landscape, the search and route panels share one side of the map. */
+@media (min-width: 520px) and (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
+  :root {
+    --landscape-top: calc(8px + var(--safe-top));
+    --landscape-bottom: calc(8px + var(--safe-bottom));
+    --landscape-left: calc(8px + var(--safe-left));
+    --landscape-right: calc(8px + var(--safe-right));
+    --landscape-panel: clamp(196px, 30vw, 276px);
+    --landscape-map-left: calc(
+      var(--landscape-left) + var(--landscape-panel) + 10px
+    );
+  }
+  .topbar {
+    top: var(--landscape-top);
+    left: var(--landscape-left);
+    right: var(--landscape-right);
+    height: 44px;
+  }
+  .sidebar {
+    left: var(--landscape-left);
+    right: auto;
+    bottom: var(--landscape-bottom);
+    width: var(--landscape-panel);
+    max-height: calc(100dvh - var(--landscape-top) - var(--landscape-bottom));
+    padding-bottom: 0;
+    border-radius: 18px;
+  }
+  .sidebar .sheet-handle {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .sidebar.dragging {
+    transform: translateY(var(--sheet-drag, 0px));
+    transition: none;
+  }
+  .sidebar.minimized .sidebar-scroll {
+    display: none;
+  }
+  .sidebar.minimized .sheet-collapsed-title {
+    display: inline;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .sidebar .sidebar-scroll,
+  .sidebar[data-place="true"] .sidebar-scroll {
+    max-height: none;
+    padding: 0 12px 12px;
+    overscroll-behavior: contain;
+  }
+  .sidebar:not(.expanded) .explore-details,
+  .sidebar:not(.expanded) #saved-places,
+  .sidebar:not(.expanded) .route-inputs {
+    display: block;
+  }
+  .sidebar .address {
+    display: none;
+  }
+  .map-top {
+    top: var(--landscape-top);
+    left: var(--landscape-map-left);
+    right: calc(var(--landscape-right) + 54px);
+    gap: 6px;
+  }
+  .map-top .mode-switch {
+    display: flex;
+  }
+  .map-top button {
+    min-height: 36px;
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+  .focus-floor-status {
+    top: calc(var(--landscape-top) + 52px);
+    left: var(--landscape-map-left);
+    max-width: calc(
+      100% - var(--landscape-map-left) - var(--landscape-right) - 54px
+    );
+    padding: 5px 8px;
+  }
+  .focus-floor-status small {
+    display: none;
+  }
+  .floor-rail {
+    top: calc(var(--landscape-top) + 102px);
+    left: var(--landscape-map-left);
+    right: auto;
+    max-height: none;
+    max-width: calc(
+      100% - var(--landscape-map-left) - var(--landscape-right) - 54px
+    );
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    padding: 4px;
+  }
+  .floor-rail > span {
+    padding: 0 3px;
+  }
+  .floor-rail button {
+    min-width: 36px;
+    min-height: 38px;
+  }
+  .map-tools {
+    top: calc(var(--landscape-top) + 54px);
+    right: var(--landscape-right);
+    max-height: calc(
+      100dvh - var(--landscape-top) - var(--landscape-bottom) - 54px
+    );
+    overflow: auto;
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .map-tools > * {
+    flex-shrink: 0;
+  }
+  .map-bottom,
+  .map-status {
+    display: none;
+  }
+  .route-guidance-dock {
+    left: var(--landscape-left);
+    right: auto;
+    bottom: calc(var(--landscape-bottom) + 52px);
+    width: var(--landscape-panel);
+    max-height: calc(
+      100dvh - var(--landscape-top) - var(--landscape-bottom) - 52px
+    );
+    transform: none;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 44px;
+    gap: 6px;
+    padding: 10px;
+    overflow: auto;
+  }
+  .sidebar:not(.minimized) ~ .route-guidance-dock {
+    display: none;
+  }
+  .route-dock-instruction {
+    padding-right: 0;
+    font-size: 14px;
+  }
+  .route-dock-previous,
+  .route-dock-next,
+  .route-dock-details {
+    padding: 4px;
+    font-size: 12px;
+  }
+  .route-dock-next svg,
+  .route-dock-details svg {
+    display: none;
+  }
+  .route-dock-details {
+    grid-column: 1 / -1;
+  }
+  .location-pick-banner {
+    left: var(--landscape-map-left);
+    right: calc(var(--landscape-right) + 54px);
+    bottom: var(--landscape-bottom);
+  }
+  dialog {
+    max-height: calc(100dvh - var(--landscape-top) - var(--landscape-bottom));
+  }
 }

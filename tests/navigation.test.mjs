@@ -199,6 +199,7 @@ function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
     kindNames: { room: "Помещение" },
     innerWidth: 390,
     innerHeight: 844,
+    isCompactLandscape: () => false,
     escape: String,
     icon: () => "",
     document: {

@@ -134,6 +134,7 @@ function harness(file, exports, saved = {}) {
     },
     innerWidth: 390,
     innerHeight: 844,
+    isCompactLandscape: () => false,
     location: { hash: "" },
     requestAnimationFrame(callback) {
       const id = ++nextAnimationFrame;

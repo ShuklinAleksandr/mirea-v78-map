@@ -106,6 +106,7 @@ export class AtlasScene {
     this.mode = "overview";
     this.plan = false;
     this.labelsOn = true;
+    this.cleanMap = false;
     this.theme = "light";
     this.reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -218,7 +219,7 @@ export class AtlasScene {
     );
     this.renderer.domElement.addEventListener("pointermove", (e) => {
       tap.move(e);
-      if (e.buttons || e.pointerType === "touch") return;
+      if (this.cleanMap || e.buttons || e.pointerType === "touch") return;
       this.mouseEvent = e;
     });
     this.renderer.domElement.addEventListener("pointerleave", () => {
@@ -256,6 +257,16 @@ export class AtlasScene {
     this.dirty = true;
     if (shadows) this.renderer.shadowMap.needsUpdate = true;
   }
+  setCleanMap(enabled) {
+    const cleanMap = Boolean(enabled);
+    if (cleanMap === this.cleanMap) return;
+    this.cleanMap = cleanMap;
+    if (cleanMap) {
+      this.mouseEvent = null;
+      this.showHover(null);
+    }
+    this.invalidate();
+  }
   resize() {
     const { width, height } = this.host.getBoundingClientRect();
     if (!width || !height) return;
@@ -272,7 +283,7 @@ export class AtlasScene {
       this.fit(
         this.lastBounds,
         false,
-        this.lastFitPadding,
+        this.callbacks?.getResizePadding?.() ?? this.lastFitPadding,
         this.lastFitOptions,
       );
     }
@@ -2440,22 +2451,31 @@ export class AtlasScene {
   updateLabels() {
     const width = this.host.clientWidth,
       height = this.host.clientHeight;
+    const routeShown = Boolean(
+      this.routeOverview || this.routeLayer?.group.children.length,
+    );
+    const showContext = this.labelsOn && !this.cleanMap && !routeShown;
+    const contextLimit = THREE.MathUtils.clamp(
+      Math.floor((width * height) / 24_000),
+      5,
+      24,
+    );
     const currentPosition = this.updateUserLocationOverlay();
     const occupied = [currentPosition].filter(Boolean);
     const hostRect = this.host.getBoundingClientRect();
     const obstacles = [
       ...document.querySelectorAll(
-        ".room-card:not([hidden]),.map-top,.map-title,.map-tools,.route-panel:not([hidden]),.mobile-sheet:not([hidden])",
+        ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock:not([hidden]),.location-pick-banner:not([hidden]),#clean-map-exit:not([hidden])",
       ),
-    ].map((el) => {
-      const r = el.getBoundingClientRect();
-      return {
-        x: r.x - hostRect.x,
-        y: r.y - hostRect.y,
-        w: r.width,
-        h: r.height,
-      };
-    });
+    ]
+      .map((el) => el.getBoundingClientRect())
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => ({
+        x: rect.x - hostRect.x,
+        y: rect.y - hostRect.y,
+        w: rect.width,
+        h: rect.height,
+      }));
     const ordered = [...this.roomLabels].sort(
       (a, b) =>
         Number(Boolean(b.activeFloor)) - Number(Boolean(a.activeFloor)) ||
@@ -2465,8 +2485,20 @@ export class AtlasScene {
         (a.kind === "building" || a.kind === "stairs" ? 0 : 1) -
           (b.kind === "building" || b.kind === "stairs" ? 0 : 1),
     );
-    let count = 0;
+    let contextCount = 0;
     for (const label of ordered) {
+      const routeLabel = label.kind === "route";
+      const selected = label.id != null && label.id === this.selectedId;
+      const countsTowardLimit =
+        !routeLabel && !selected && label.kind !== "building";
+      if (
+        (!routeLabel && !showContext) ||
+        (routeLabel && this.cleanMap && this.buildingOverview) ||
+        (countsTowardLimit && contextCount >= contextLimit)
+      ) {
+        label.el.style.display = "none";
+        continue;
+      }
       const p = label.position.clone().project(this.camera);
       let x = (p.x * 0.5 + 0.5) * width,
         y = (-p.y * 0.5 + 0.5) * height;
@@ -2479,6 +2511,9 @@ export class AtlasScene {
                   (label.kind === "route" ? 28 : 0),
               ),
         h = label.kind === "building" || label.kind === "route" ? 34 : 21;
+      const inset = h / 2 + 4;
+      const labelGapX = routeLabel ? 6 : 16;
+      const labelGapY = routeLabel ? 4 : 10;
       if (String(label.id).startsWith("level-") && p.z > -1 && p.z < 1) {
         const baseY = y;
         x = THREE.MathUtils.clamp(x, w / 2 + 10, width - w / 2 - 10);
@@ -2486,8 +2521,8 @@ export class AtlasScene {
           .map((offset) => baseY + offset)
           .find(
             (cy) =>
-              cy > 30 &&
-              cy < height - 100 &&
+              cy > inset &&
+              cy < height - inset &&
               !obstacles.some(
                 (r) =>
                   x + w / 2 > r.x &&
@@ -2504,20 +2539,20 @@ export class AtlasScene {
         if (candidate != null) y = candidate;
       }
       let visible =
-        (this.labelsOn || label.kind === "route") &&
         p.z < 1 &&
         p.z > -1 &&
         x > w / 2 &&
         x < width - w / 2 &&
-        y > 25 &&
-        y < height - 100 &&
-        count < (this.mode === "overview" ? 30 : 70);
-      const distance = this.camera.position.distanceTo(label.position);
+        y > inset &&
+        y < height - inset;
       if (
         label.kind !== "building" &&
-        label.kind !== "route" &&
-        distance > 200 &&
-        !this.building
+        !routeLabel &&
+        !selected &&
+        !this.building &&
+        (this.plan
+          ? (this.camera.top - this.camera.bottom) / this.camera.zoom > 140
+          : this.camera.position.distanceTo(label.position) > 200)
       )
         visible = false;
       if (
@@ -2541,17 +2576,17 @@ export class AtlasScene {
         visible &&
         occupied.some(
           (r) =>
-            Math.abs(x - r.x) < (w + r.w) / 2 + 6 &&
-            Math.abs(y - r.y) < (h + r.h) / 2 + 4,
+            Math.abs(x - r.x) < (w + r.w) / 2 + labelGapX &&
+            Math.abs(y - r.y) < (h + r.h) / 2 + labelGapY,
         )
       )
         visible = false;
       label.el.style.display = visible ? "block" : "none";
       if (visible) {
         occupied.push({ x, y, w, h });
-        count++;
+        if (countsTowardLimit) contextCount++;
         label.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%)`;
-        label.el.classList.toggle("selected", label.id === this.selectedId);
+        label.el.classList.toggle("selected", selected);
       }
     }
   }

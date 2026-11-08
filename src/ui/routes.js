@@ -1,6 +1,7 @@
 import { $, escape } from "./dom.js";
 import { icon } from "./icons.js";
 import { shareView } from "./experience.js";
+import { isCompactLandscape, landscapeMapPadding } from "./map-viewport.js";
 import { makeCurrentRouteEndpoint } from "../data/current-route-origin.js";
 import { isCurrentUserLocation } from "../data/user-location.js";
 import { createRouteTracker } from "../data/route-tracking.js";
@@ -365,6 +366,10 @@ export function bindRoutes({
     refreshCurrentOriginButton();
   };
   const padding = () => {
+    if (document.body?.dataset.cleanMap === "true")
+      return { top: 64, bottom: 16, left: 16, right: 16 };
+    if (isCompactLandscape(innerWidth, innerHeight))
+      return landscapeMapPadding();
     const mobile = innerWidth <= 700;
     const padding = mobile
       ? { top: 164, bottom: 0, left: 64, right: 64 }
@@ -980,6 +985,7 @@ export function bindRoutes({
     if (dock) observer.observe(dock);
   }
   return {
+    getViewportPadding: padding,
     useCurrentLocation,
     locationChanged,
     refreshCurrentOrigin: locationChanged,

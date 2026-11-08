@@ -1,6 +1,8 @@
 import { $, escape } from "./ui/dom.js";
 import { icon } from "./ui/icons.js";
 import { layout } from "./ui/layout.js";
+import { bindBuildingRooms } from "./ui/building-rooms.js";
+import "./ui/building-rooms.css";
 import { getJSON } from "./data/client.js";
 import { loadBootstrapData } from "./data/bootstrap.js";
 import { resolveInitialView } from "./data/navigation.js";
@@ -8,6 +10,7 @@ import { bindSearch } from "./ui/search.js";
 import { bindExperience, readSaved, shareView } from "./ui/experience.js";
 import { bindRoutes } from "./ui/routes.js";
 import { bindLocation } from "./ui/location.js";
+import { bindCleanMap } from "./ui/clean-map.js";
 import { resolveRoom, geometryEvidence } from "./data/utils.js";
 import {
   placeDescription,
@@ -26,6 +29,7 @@ import { AtlasScene } from "./map/scene.js";
 import { getHallAdjacencyView } from "./map/hall-adjacency.js";
 import { pickLocationSurface } from "./map/location-view.js";
 import { getBuildingFloorView } from "./map/building-view.js";
+import { isCompactLandscape, landscapeMapPadding } from "./ui/map-viewport.js";
 
 const state = {
   campus: null,
@@ -43,6 +47,7 @@ const state = {
   locationTracking: null,
 };
 $("#app").innerHTML = layout;
+bindBuildingRooms({ state, navigateRoom });
 
 const searchUI = bindSearch({
   state,
@@ -62,6 +67,8 @@ let scene, experience, routes, userPosition;
 try {
   scene = new AtlasScene($("#viewport"), {
     getViewportPadding: () => roomPadding(),
+    getResizePadding: () =>
+      routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),
     onMapInteraction: () => {
       routes?.pauseGuidance?.();
       userPosition?.pauseFollowing();
@@ -91,6 +98,7 @@ try {
   );
 }
 if (scene) {
+  bindCleanMap(scene, () => userPosition?.cancelPicking());
   experience = bindExperience({ state, scene, navigateRoom, toast });
   routes = bindRoutes({
     state,
@@ -261,6 +269,7 @@ function updateUI() {
   $("#exterior-actions").hidden = state.mode !== "overview";
   for (const b of $("#buildings").children)
     b.classList.toggle("active", b.dataset.building === (state.building || ""));
+  $("#building-rooms-open").hidden = !state.building;
   $("#view-eyebrow").textContent =
     state.mode === "overview" ? "ПРОСТРАНСТВО УНИВЕРСИТЕТА" : "ВНУТРИ КАМПУСА";
   $("#view-title").innerHTML =
@@ -323,7 +332,9 @@ function updateUI() {
         : focusLocation.physicalLevel != null
           ? `${focusLocation.physicalLevel} этаж · корпус уточняется`
           : `Уровень плана ${state.floor.level}`
-      : "Обзор кампуса";
+      : state.building
+        ? building
+        : "Обзор кампуса";
   $("#focus-floor-status").innerHTML =
     `${icon("layers", 16)}<span>${escape(level)}</span>`;
   routes?.syncView();
@@ -466,6 +477,9 @@ function dismissRoom() {
   }
 }
 function roomPadding() {
+  if (document.body?.dataset.cleanMap === "true")
+    return { top: 64, bottom: 16, left: 16, right: 16 };
+  if (isCompactLandscape(innerWidth, innerHeight)) return landscapeMapPadding();
   const panel = $(".sidebar").getBoundingClientRect();
   return innerWidth <= 700
     ? {
@@ -767,8 +781,9 @@ $("#nav-stack").onclick = () => {
   }
   if (!state.floor) openInterior();
   scene.setBuildingOverview?.(state.building, {
-    padding:
-      innerWidth <= 700
+    padding: isCompactLandscape(innerWidth, innerHeight)
+      ? roomPadding()
+      : innerWidth <= 700
         ? {
             top: 170,
             bottom: Math.min(
@@ -798,6 +813,7 @@ document.addEventListener("click", (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
+  if (document.body.dataset.cleanMap === "true") return;
   if (
     e.key === "/" &&
     !["INPUT", "SELECT"].includes(document.activeElement.tagName) &&

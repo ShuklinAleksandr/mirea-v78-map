@@ -1,5 +1,6 @@
 import { $, escape } from "./dom.js";
 import { icon } from "./icons.js";
+import { isCompactLandscape } from "./map-viewport.js";
 import { getBundledMapPackage, nativeShareLink } from "../mobile.js";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
@@ -68,7 +69,8 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   let sheetState = "peek",
     drag = null,
     suppressDragClick = false;
-  const mobile = () => innerWidth <= 700;
+  const landscape = () => isCompactLandscape(innerWidth, innerHeight);
+  const mobile = () => innerWidth <= 700 || landscape();
   const clearDrag = () => {
     sidebar.classList.toggle("dragging", false);
     sidebar.style.removeProperty("--sheet-drag");
@@ -83,12 +85,15 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       document.activeElement.blur();
     content.inert = minimized;
     content.setAttribute("aria-hidden", minimized);
-    handle.setAttribute("aria-expanded", next === "expanded");
+    handle.setAttribute(
+      "aria-expanded",
+      next === "expanded" || (landscape() && !minimized),
+    );
     handle.setAttribute(
       "aria-label",
       minimized
         ? "Открыть поиск и маршрут"
-        : next === "expanded"
+        : next === "expanded" || landscape()
           ? "Свернуть панель"
           : "Развернуть панель",
     );
@@ -101,6 +106,10 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       return;
     }
     suppressDragClick = false;
+    if (landscape()) {
+      setSheetState(sheetState === "minimized" ? "expanded" : "minimized");
+      return;
+    }
     setSheetState(
       sheetState === "minimized"
         ? "peek"
@@ -184,8 +193,9 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   });
   window.addEventListener("resize", () => {
     drag = null;
-    clearDrag();
-    if (!mobile() && sheetState === "minimized") setSheetState("peek");
+    setSheetState(
+      !mobile() && sheetState === "minimized" ? "peek" : sheetState,
+    );
   });
   setSheetState("peek");
   const themeQuery = matchMedia("(prefers-color-scheme: dark)");
