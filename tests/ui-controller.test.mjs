@@ -13,8 +13,15 @@ import {
 } from "../src/data/place-location.js";
 import placeLandmarks from "../src/data/place-landmarks.json" with { type: "json" };
 import { nextRouteReadout } from "../src/ui/next-route.js";
-import { variantStorageKey } from "../src/ui/variant.js";
-import { isCompactLandscape } from "../src/ui/map-viewport.js";
+import {
+  variantStorageKey,
+  migrateInterfaceStorage,
+} from "../src/ui/variant.js";
+import {
+  isCompactLandscape,
+  measuredPortraitPadding,
+  measuredLandscapePadding,
+} from "../src/ui/map-viewport.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -26,6 +33,11 @@ import {
 function harness(file, exports, saved = {}, options = {}) {
   const elements = new Map();
   const store = new Map(Object.entries(saved));
+  const persistedStorage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => store.set(key, value),
+  };
+  migrateInterfaceStorage(persistedStorage);
   function element(selector) {
     if (elements.has(selector)) return elements.get(selector);
     const listeners = new Map(),
@@ -87,6 +99,37 @@ function harness(file, exports, saved = {}, options = {}) {
         return [];
       },
       getBoundingClientRect() {
+        const width = options.width ?? 390;
+        const height = options.height ?? 844;
+        if (selector === ".sidebar")
+          return {
+            left: 0,
+            right: width,
+            width,
+            top: height - 500,
+            bottom: height,
+            height: 500,
+          };
+        if (
+          [".map-top", "#campus-overview", "#settings-open"].includes(selector)
+        )
+          return {
+            left: 16,
+            right: width - 16,
+            width: width - 32,
+            top: 16,
+            bottom: 64,
+            height: 48,
+          };
+        if ([".map-tools", "#next-floor-open"].includes(selector))
+          return {
+            left: width - 52,
+            right: width - 8,
+            width: 44,
+            top: 80,
+            bottom: 124,
+            height: 44,
+          };
         return { height: selector === "#sheet-toggle" ? 44 : 500 };
       },
     };
@@ -134,10 +177,7 @@ function harness(file, exports, saved = {}, options = {}) {
     getBundledMapPackage: async () => null,
     nativeShareLink: () => "",
     matchMedia: () => ({ matches: false, addEventListener() {} }),
-    localStorage: {
-      getItem: (key) => store.get(key) ?? null,
-      setItem: (key, value) => store.set(key, value),
-    },
+    localStorage: persistedStorage,
     document: {
       body: { dataset: {} },
       documentElement: { dataset: {} },
@@ -155,6 +195,36 @@ function harness(file, exports, saved = {}, options = {}) {
     innerWidth: options.width ?? 390,
     innerHeight: options.height ?? 844,
     isCompactLandscape,
+    portraitMapPadding: () =>
+      measuredPortraitPadding(
+        sandbox.innerWidth,
+        sandbox.innerHeight,
+        mapRectangles({
+          top: ".map-top",
+          back: "#campus-overview",
+          settings: "#settings-open",
+          floorPicker: "#next-floor-open",
+          tools: ".map-tools",
+          sidebar: ".sidebar",
+          dock: "#route-guidance-dock",
+          location: "#location-pick-banner",
+        }),
+      ),
+    landscapeMapPadding: () =>
+      measuredLandscapePadding(
+        sandbox.innerWidth,
+        sandbox.innerHeight,
+        mapRectangles({
+          top: ".map-top",
+          status: ".focus-floor-status",
+          floorPicker: "#next-floor-open",
+          floors: "#floor-rail",
+          tools: ".map-tools",
+          sidebar: ".sidebar",
+          dock: "#route-guidance-dock",
+          location: "#location-pick-banner",
+        }),
+      ),
     location: { hash: "" },
     setTimeout(callback) {
       const id = ++nextTimer;
@@ -181,6 +251,14 @@ function harness(file, exports, saved = {}, options = {}) {
       }
     },
   };
+  function mapRectangles(selectors) {
+    return Object.fromEntries(
+      Object.entries(selectors).map(([name, selector]) => {
+        const el = element(selector);
+        return [name, el.hidden ? null : el.getBoundingClientRect()];
+      }),
+    );
+  }
   const source = readFileSync(new URL(file, import.meta.url), "utf8")
     .replace(/^import[\s\S]*?;\n/gm, "")
     .replace(/export /g, "")
@@ -258,6 +336,7 @@ function routeHarness({
   onRefineLocation,
   onConfirmFloor,
   onPauseFollowing,
+  onFloorContext,
 } = {}) {
   const h = harness(
     "../src/ui/routes.js",
@@ -301,6 +380,7 @@ function routeHarness({
     onRefineLocation,
     onConfirmFloor,
     onPauseFollowing,
+    onFloorContext,
     scene,
     loadCampus: async (id) => {
       state.campus = { id };
@@ -510,7 +590,8 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
     "atlas:settings": '{"theme":7,"motion":"bad","quality":"unknown"}',
   });
   assert.equal(JSON.stringify(h.readSaved("favorites", [])), '["a"]');
-  const settings = JSON.parse(h.store.get("atlas:settings"));
+  const settingsKey = variantStorageKey("atlas:settings");
+  const settings = JSON.parse(h.store.get(settingsKey));
   assert.deepEqual(settings, {
     theme: "system",
     quality: "balanced",
@@ -519,7 +600,7 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
     headingFollow: true,
   });
   h.element("#heading-follow-setting").onchange({ target: { checked: false } });
-  assert.equal(JSON.parse(h.store.get("atlas:settings")).headingFollow, false);
+  assert.equal(JSON.parse(h.store.get(settingsKey)).headingFollow, false);
 });
 
 test("canceling a route during worker calculation cannot restore its path", async () => {
@@ -881,18 +962,18 @@ test("guidance supplies the actual mobile panel occupation after its controls ex
   const panel = h.element("#route-panel");
   h.element(".sidebar").getBoundingClientRect = () =>
     panel.dataset.guiding === "true"
-      ? { height: 590, top: 254 }
-      : { height: 340, top: 504 };
+      ? { height: 590, top: 254, bottom: 844, left: 0, right: 390, width: 390 }
+      : { height: 340, top: 504, bottom: 844, left: 0, right: 390, width: 390 };
   await buildPreview(h);
   assert.equal(panel.dataset.guiding, "false");
-  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 356);
+  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 352);
   h.element("#route-dock-next").dispatch("click");
   h.element("#route-preview-play").dispatch("click");
   assert.equal(panel.dataset.guiding, "true");
   h.tick(0);
   assert.deepEqual(
     { ...h.guidanceOptions.at(-1).padding },
-    { top: 164, bottom: 606, left: 64, right: 64 },
+    { top: 76, bottom: 602, left: 16, right: 64 },
   );
   h.element("#route-clear").onclick();
   assert.equal(panel.dataset.guiding, "false");
@@ -910,10 +991,14 @@ test("resizing a paused guidance panel updates padding without returning from an
   const distance = h.guidanceCalls.at(-1).distance;
   h.element(".sidebar").getBoundingClientRect = () => ({
     top: 400,
+    bottom: 844,
+    left: 0,
+    right: 390,
+    width: 390,
     height: 444,
   });
   h.resize();
-  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 460);
+  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 456);
   assert.equal(h.guidanceCalls.at(-1).distance, distance);
   assert.equal(h.animationFrames.size, 0);
   const callCount = h.guidanceCalls.length;
@@ -1027,11 +1112,18 @@ test("the route camera reserves the compact card's actual area, and a manual ori
   const h = routeHarness();
   h.element("#route-guidance-dock").getBoundingClientRect = () => ({
     top: 630,
+    left: 16,
+    right: 374,
+    width: 358,
     bottom: 780,
     height: 150,
   });
   h.element(".sidebar").getBoundingClientRect = () => ({
     top: 800,
+    bottom: 844,
+    left: 0,
+    right: 390,
+    width: 390,
     height: 44,
   });
   const calls = h.sheetCalls.length;
@@ -1331,6 +1423,7 @@ async function liveRouteHarness(options = {}) {
       text: "У аудитории",
     },
   ];
+  options.configureRoute?.(h);
   const pending = h.build();
   h.reply(h.result);
   await pending;
@@ -1469,6 +1562,79 @@ test("live navigation holds poor or stale positions and retains actual GPS coord
   h.locationChanged();
   assert.match(h.element("#route-dock-note").textContent, /Нет свежего GPS/);
   assert.equal(h.element("#route-dock-instruction").textContent, instruction);
+});
+
+test("live floor context receives only accepted fresh route samples while following, without moving or confirming GPS", async () => {
+  const contexts = [];
+  let confirmations = 0;
+  const h = await liveRouteHarness({
+    onFloorContext(sample, nodes) {
+      contexts.push({ sample, nodes });
+    },
+    onConfirmFloor() {
+      confirmations++;
+    },
+    configureRoute(h) {
+      const segment = h.result.segments[0];
+      segment.nodes = segment.points.map((position) => ({
+        position,
+        floorId: segment.floorId,
+        building: "Г",
+        physicalLevel: 1,
+      }));
+    },
+  });
+  contexts.length = 0;
+  h.emitGps([0, 0]);
+  assert.equal(contexts.length, 0, "one observation is still acquiring");
+  h.emitGps([1, 0]);
+  assert.equal(contexts.length, 1);
+  assert.equal(contexts[0].sample.sourceSegmentIndex, 0);
+  assert.equal(contexts[0].sample.floorId, h.state.floor.id);
+  assert.equal(contexts[0].nodes, h.result.segments[0].nodes);
+  assert.deepEqual(
+    [...contexts[0].sample.position],
+    [0, 0],
+    "uses accepted route progress, not raw GPS coordinate",
+  );
+  h.locationChanged();
+  assert.equal(contexts.length, 1, "a UI refresh is not a new accepted fix");
+  h.state.locationTracking.following = false;
+  h.emitGps([2, 0]);
+  assert.equal(contexts.length, 1, "manual browsing retains camera context");
+  h.state.locationTracking.following = true;
+  h.state.selected = { id: "place-card" };
+  h.emitGps([3, 0]);
+  assert.equal(
+    contexts.length,
+    1,
+    "an explicitly selected place retains its context",
+  );
+  h.state.selected = null;
+  h.emitGps([4, 0], { accuracyMeters: 40 });
+  assert.equal(contexts.length, 1, "uncertain GPS cannot update context");
+  h.emitGps([5, 0]);
+  h.emitGps([6, 0]);
+  assert.equal(
+    contexts.length,
+    2,
+    "following resumes only after new accepted evidence",
+  );
+  const actualLocation = structuredClone(h.state.userLocation);
+  h.setNow(h.state.userLocation.timestamp + 11_000);
+  h.locationChanged();
+  assert.equal(
+    contexts.length,
+    2,
+    "expired samples retain the last known context",
+  );
+  assert.equal(confirmations, 0, "context is not automatic floor confirmation");
+  assert.deepEqual(h.state.userLocation, actualLocation);
+  assert.equal(
+    h.guidanceCalls.at(-1),
+    null,
+    "no demonstration camera or marker is introduced",
+  );
 });
 
 test("a GPS stair handoff waits for explicit floor confirmation and never switches floors from coordinates alone", async () => {
@@ -1611,7 +1777,7 @@ test("an unavailable destination keeps the honest graph explanation visible inst
   assert.equal(h.element("#route-guidance-dock").hidden, true);
 });
 
-test("both interface profiles use balanced quality and migrate legacy auto only once", () => {
+test("the single interface uses balanced quality and migrates legacy auto only once", () => {
   for (const nextInterface of [false, true]) {
     const variant = nextInterface ? "next" : "classic";
     const settingsKey = variantStorageKey("atlas:settings", variant);
@@ -1674,16 +1840,16 @@ test("both interface profiles use balanced quality and migrate legacy auto only 
   }
 });
 
-test("quality migration does not change the other interface profile", () => {
+test("quality migration updates only the active Next settings and retains the Classic backup", () => {
   const classic = "atlas:settings",
     next = "atlas:next:atlas:settings";
   const h = experienceHarness({
     [classic]: '{"quality":"auto"}',
     [next]: '{"quality":"auto"}',
   });
-  assert.equal(JSON.parse(h.store.get(classic)).quality, "balanced");
-  assert.equal(JSON.parse(h.store.get(next)).quality, "auto");
-  assert.equal(h.store.has("atlas:next:atlas:quality-default-version"), false);
+  assert.equal(JSON.parse(h.store.get(classic)).quality, "auto");
+  assert.equal(JSON.parse(h.store.get(next)).quality, "balanced");
+  assert.equal(h.store.get("atlas:next:atlas:quality-default-version"), "1");
   const newUI = experienceHarness(Object.fromEntries(h.store), undefined, {
     nextInterface: true,
   });

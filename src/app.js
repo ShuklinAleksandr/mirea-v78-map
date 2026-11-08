@@ -15,6 +15,10 @@ import { getJSON } from "./data/client.js";
 import { loadBootstrapData } from "./data/bootstrap.js";
 import { resolveInitialView } from "./data/navigation.js";
 import { mergedFloorView } from "./data/floor-view.js";
+import {
+  resolveFloorContext,
+  resolveRouteFloorContext,
+} from "./data/floor-context.js";
 import { bindSearch } from "./ui/search.js";
 import { bindExperience, readSaved, shareView } from "./ui/experience.js";
 import { bindRoutes } from "./ui/routes.js";
@@ -39,7 +43,11 @@ import { getHallAdjacencyView } from "./map/hall-adjacency.js";
 import { entranceHint } from "./data/entrance-hints.js";
 import { pickLocationSurface } from "./map/location-view.js";
 import { getBuildingFloorView } from "./map/building-view.js";
-import { isCompactLandscape, landscapeMapPadding } from "./ui/map-viewport.js";
+import {
+  isCompactLandscape,
+  landscapeMapPadding,
+  portraitMapPadding,
+} from "./ui/map-viewport.js";
 
 const state = {
   campus: null,
@@ -54,11 +62,18 @@ const state = {
   search: [],
   loading: 0,
   userLocation: null,
+  floorContext: null,
   locationTracking: null,
 };
+let floorContextTimer = null;
+let floorContextOwner = "camera";
 $("#app").innerHTML = layout;
 initializeInterface();
-bindBuildingRooms({ state, navigateRoom });
+bindBuildingRooms({
+  state,
+  navigateRoom,
+  getBuilding: () => floorContextBuilding(),
+});
 
 const searchUI = bindSearch({
   state,
@@ -86,9 +101,11 @@ try {
     getResizePadding: () =>
       routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),
     onMapInteraction: () => {
+      floorContextOwner = "camera";
       routes?.pauseGuidance?.();
       userPosition?.pauseFollowing();
     },
+    onFrame: () => queueCameraFloorContext(),
     onRoom: (r) => selectRoom(r),
     onPositionPickPreview: () => userPosition?.previewPicking(),
     onBuilding: (b) => chooseBuilding(b),
@@ -125,6 +142,14 @@ if (scene) {
     getUserOrigin: () => userPosition?.routeOrigin(),
     onLocate: () => userPosition?.locate(),
     onPauseFollowing: () => userPosition?.pauseFollowing(),
+    onFloorContext: (sample, nodes) => {
+      if (sample.floorId !== state.floor?.id) return;
+      floorContextOwner = "route";
+      const context =
+        resolveRouteFloorContext(state.floor, sample.position, nodes) ||
+        resolveFloorContext(state.floor, sample.position);
+      applyFloorContext(context, "route");
+    },
     onConfirmFloor: (selection) => userPosition?.confirmRouteFloor(selection),
     onRefineLocation: () =>
       userPosition?.beginPicking({
@@ -177,6 +202,7 @@ if (scene) {
     },
     onChange: () => {
       searchUI.refreshPosition?.();
+      refreshLocationFloorContext();
       routes?.locationChanged?.();
       if (state.campus) updateUI();
     },
@@ -202,6 +228,80 @@ function toast(text) {
 function floorPhysical(f, building = state.building) {
   return f.buildingLevels?.[building] ?? f.level;
 }
+function floorContextBuilding() {
+  const contextual =
+    state.floorContext && state.floorContext.floorId === state.floor?.id
+      ? state.floorContext.building
+      : null;
+  return (
+    contextual ||
+    placeLocation(state.selected, state.floor).building ||
+    state.building ||
+    null
+  );
+}
+function applyFloorContext(context, source) {
+  if (!context?.building || !state.floor || state.mode !== "floor") return;
+  if (
+    state.floorContext?.floorId === state.floor.id &&
+    state.floorContext.building === context.building
+  )
+    return;
+  state.floorContext = { ...context, floorId: state.floor.id, source };
+  // This changes the physical-floor readout, never the current plan, geometry,
+  // camera, GPS fix, or route. Connecting corridors keep the last clear context.
+  renderFloors();
+  renderFocusedFloorStatus();
+}
+function refreshLocationFloorContext() {
+  const location = state.userLocation;
+  if (
+    !location?.point ||
+    !state.floor ||
+    location.campusId !== state.campus?.id ||
+    (location.floorId && location.floorId !== state.floor.id)
+  )
+    return;
+  if (location.source === "gps") {
+    if (
+      !state.locationTracking?.following ||
+      location.trackingStatus !== "live" ||
+      !Number.isFinite(location.timestamp) ||
+      Date.now() - location.timestamp > 15000 ||
+      !Number.isFinite(location.accuracyRadiusMap)
+    )
+      return;
+  }
+  floorContextOwner = "location";
+  applyFloorContext(
+    resolveFloorContext(state.floor, location.point, {
+      accuracy: location.source === "gps" ? location.accuracyRadiusMap : 0,
+    }),
+    "location",
+  );
+}
+function queueCameraFloorContext() {
+  if (floorContextTimer !== null || state.mode !== "floor") return;
+  floorContextTimer = setTimeout(() => {
+    floorContextTimer = null;
+    if (
+      !scene ||
+      floorContextOwner !== "camera" ||
+      !state.floor ||
+      state.mode !== "floor" ||
+      scene.transition ||
+      scene.locationPicking ||
+      (state.locationTracking?.following && state.locationTracking?.enabled) ||
+      routes?.isFollowingHeading?.()
+    )
+      return;
+    const point = scene.floorFocusPoint(roomPadding());
+    applyFloorContext(
+      resolveFloorContext(scene.locationFloor || state.floor, point),
+      "camera",
+    );
+  }, 150);
+}
 function floorName(f, building = state.building) {
   return building ? `${floorPhysical(f, building)} этаж` : `Уровень ${f.level}`;
 }
@@ -218,7 +318,7 @@ function renderFloors() {
   const routeBuilding = activeRoute?.segments.find(
     (s) => s.floorId === state.floor?.id,
   )?.nodes[0]?.building;
-  const railBuilding = state.building || routeBuilding;
+  const railBuilding = floorContextBuilding() || routeBuilding;
   const railFloors = state.campus.floors.filter(
     (f) => !railBuilding || Object.hasOwn(f.buildingLevels || {}, railBuilding),
   );
@@ -236,9 +336,17 @@ function renderFloors() {
   for (const button of $("#floor-rail").querySelectorAll("button"))
     button.onclick = () => {
       const id = button.dataset.railFloor;
-      if (activeRoute?.segments.some((s) => s.floorId === id))
+      if (activeRoute?.segments.some((s) => s.floorId === id)) {
         routes.showFloor(id);
-      else {
+        floorContextOwner = "selection";
+        applyFloorContext(
+          {
+            building: railBuilding,
+            physicalLevel: floorPhysical(state.floor, railBuilding),
+          },
+          "selection",
+        );
+      } else {
         state.building = railBuilding || null;
         chooseFloor(id);
       }
@@ -246,10 +354,16 @@ function renderFloors() {
       else if (experience.getSheetState?.() !== "minimized")
         experience.expand(false);
     };
-  if (isNextInterface()) {
+  {
     const picker = $("#next-floor-open");
     picker.hidden = state.mode !== "floor";
-    picker.innerHTML = `${icon("layers", 18)}<span>${railBuilding ? `Корпус ${escape(railBuilding)} · ${floorPhysical(state.floor || {}, railBuilding)} этаж` : `Уровень плана ${state.floor?.level ?? ""}`}</span>${icon("down", 16)}`;
+    const number = floorPhysical(state.floor || {}, railBuilding);
+    const description = railBuilding
+      ? `Корпус ${railBuilding} · ${number} этаж`
+      : `Уровень плана ${state.floor?.level ?? ""}`;
+    picker.innerHTML = `${icon("layers", 18)}<span class="floor-picker-number" aria-hidden="true">${number === -1 ? "Ц" : (number ?? "—")}</span><span class="floor-picker-description">${escape(description)}</span><span class="floor-picker-chevron">${icon("down", 16)}</span>`;
+    picker.setAttribute("aria-label", `Выбрать этаж. ${description}`);
+    picker.title = description;
     $("#next-floor-title").textContent = railBuilding
       ? `Корпус ${railBuilding} · этажи`
       : "Уровни карты";
@@ -258,10 +372,10 @@ function renderFloors() {
       .reverse()
       .map(
         (f) =>
-          `<button type="button" data-next-floor="${escape(f.id)}" aria-pressed="${state.floor?.id === f.id}"><span>${railBuilding ? `${floorPhysical(f, railBuilding)} этаж` : `Уровень плана ${f.level}`}</span>${state.floor?.id === f.id ? "<small>На экране</small>" : ""}</button>`,
+          `<button type="button" data-next-floor="${escape(f.id)}" aria-label="${railBuilding ? `${floorPhysical(f, railBuilding)} этаж корпуса ${escape(railBuilding)}` : `Уровень плана ${f.level}`}" aria-pressed="${state.floor?.id === f.id}"><span class="floor-option-number">${floorPhysical(f, railBuilding) === -1 ? "Ц" : floorPhysical(f, railBuilding)}</span><span class="floor-option-description">${railBuilding ? `${floorPhysical(f, railBuilding)} этаж` : `Уровень плана ${f.level}`}</span>${state.floor?.id === f.id ? "<small>На экране</small>" : ""}</button>`,
       )
       .join("");
-    $("#next-floor-rooms").hidden = !state.building;
+    $("#next-floor-rooms").hidden = !railBuilding;
     for (const button of $("#next-floor-list").querySelectorAll("button"))
       button.onclick = () => {
         $("#next-floor-dialog").close();
@@ -340,13 +454,18 @@ function updateUI() {
   $("#interaction-hint").textContent = touch
     ? scene.plan
       ? "Один палец — перемещение · два — масштаб"
-      : "Один палец — перемещение · два — поворот и масштаб"
+      : "Один палец — перемещение · щипок — масштаб · два пальца вместе — поворот"
     : scene.plan
       ? "Перетаскивание — перемещение · колесо — масштаб"
       : "Перетаскивание — вращение · ПКМ — перемещение · колесо — масштаб";
   renderFloors();
+  renderFocusedFloorStatus();
+  routes?.syncView();
+}
+function renderFocusedFloorStatus() {
   const selectedLocation = placeLocation(state.selected, state.floor);
-  const focusBuilding = selectedLocation.building || state.building;
+  const focusBuilding = floorContextBuilding();
+  const building = state.building ? `Корпус ${state.building}` : "Все корпуса";
   const focusLocation = focusBuilding
     ? placeLocation({ building: focusBuilding }, state.floor)
     : selectedLocation;
@@ -364,7 +483,15 @@ function updateUI() {
         : "Обзор кампуса";
   $("#focus-floor-status").innerHTML =
     `${icon("layers", 16)}<span>${escape(level)}</span>`;
-  routes?.syncView();
+  if (state.mode === "floor" && focusBuilding) {
+    const focusedBuilding = `Корпус ${focusBuilding}`;
+    const focusedFloor = floorName(state.floor, focusBuilding);
+    $("#breadcrumb").innerHTML =
+      `${escape(state.campus.title)} <span>/</span> ${escape(focusedBuilding)} <span>/</span> ${focusedFloor}`;
+    $("#view-title").innerHTML =
+      `${escape(focusedBuilding)}<span class="title-level">${focusedFloor}</span>`;
+    $("#caption-title").textContent = `${focusedBuilding} · ${focusedFloor}`;
+  }
 }
 function cancelPendingNavigation() {
   state.loading++;
@@ -386,6 +513,7 @@ async function loadCampus(id, { navigationToken = null } = {}) {
     state.search = withConfirmedStairSearch(state.search, floors);
     state.building = null;
     state.floor = null;
+    state.floorContext = null;
     state.mode = "overview";
     $("#address").textContent = campus.address;
     const buildings = [
@@ -459,6 +587,10 @@ function chooseFloor(
     state.campus.floors.find((f) => f.id === id),
   );
   state.mode = "floor";
+  floorContextOwner = "selection";
+  state.floorContext = state.building
+    ? { floorId: floor.id, building: state.building, source: "selection" }
+    : null;
   closeRoom();
   const keepPicking = Boolean(scene.locationPicking);
   scene.setFloor(state.floor, state.building, {
@@ -479,6 +611,7 @@ function overview() {
   state.mode = "overview";
   state.building = null;
   state.floor = null;
+  state.floorContext = null;
   closeRoom();
   scene.setOverview();
   updateUI();
@@ -522,20 +655,14 @@ function roomPadding() {
   if (document.body?.dataset.cleanMap === "true")
     return { top: 64, bottom: 16, left: 16, right: 16 };
   if (isCompactLandscape(innerWidth, innerHeight)) return landscapeMapPadding();
+  if (innerWidth <= 700) return portraitMapPadding();
   const panel = $(".sidebar").getBoundingClientRect();
-  return innerWidth <= 700
-    ? {
-        top: isNextInterface() ? 180 : 164,
-        bottom: Math.max(0, innerHeight - panel.top + 16),
-        left: 64,
-        right: 64,
-      }
-    : {
-        top: 110,
-        bottom: 90,
-        left: Math.max(390, panel.right + 24),
-        right: 90,
-      };
+  return {
+    top: 110,
+    bottom: 90,
+    left: Math.max(390, panel.right + 24),
+    right: 90,
+  };
 }
 const kindNames = {
   room: "Аудитория",
@@ -560,6 +687,14 @@ function selectRoom(room, focus = true) {
     state.floor,
   );
   state.selected = room;
+  floorContextOwner = "selection";
+  const selectedBuilding = placeLocation(room, state.floor).building;
+  if (selectedBuilding)
+    state.floorContext = {
+      floorId: state.floor.id,
+      building: selectedBuilding,
+      source: "selection",
+    };
   const card = $("#room-card");
   card.hidden = false;
   $(".sidebar").dataset.place = "true";

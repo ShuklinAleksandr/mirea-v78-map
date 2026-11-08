@@ -776,3 +776,76 @@ for (const viewport of [
     });
   }
 }
+
+for (const plan of [false, true]) {
+  for (const viewport of [
+    {
+      width: 390,
+      height: 844,
+      padding: { left: 16, right: 64, top: 164, bottom: 310 },
+    },
+    {
+      width: 844,
+      height: 390,
+      padding: { left: 272, right: 64, top: 56, bottom: 12 },
+    },
+  ]) {
+    test(`${plan ? "orthographic" : "perspective"} floor context samples the visible map centre at ${viewport.width}px`, () => {
+      const view = cameraHarness();
+      view.mode = "floor";
+      view.host = {
+        clientWidth: viewport.width,
+        clientHeight: viewport.height,
+      };
+      view.perspectiveCamera.aspect = viewport.width / viewport.height;
+      view.perspectiveCamera.updateProjectionMatrix();
+      if (plan) view.setProjection(true);
+      const before = {
+        camera: view.camera.position.toArray(),
+        target: view.controls.target.toArray(),
+        zoom: view.camera.zoom,
+      };
+      const point = view.floorFocusPoint(viewport.padding);
+      assert.ok(point && point.every(Number.isFinite));
+      const projected = new THREE.Vector3(point[0], 0, point[1]).project(
+        view.camera,
+      );
+      const x = ((projected.x + 1) * viewport.width) / 2;
+      const y = ((1 - projected.y) * viewport.height) / 2;
+      const expectedX =
+        (viewport.padding.left + viewport.width - viewport.padding.right) / 2;
+      const expectedY =
+        (viewport.padding.top + viewport.height - viewport.padding.bottom) / 2;
+      assert.ok(
+        Math.abs(x - expectedX) < 1e-6,
+        `map x=${x}, expected ${expectedX}`,
+      );
+      assert.ok(
+        Math.abs(y - expectedY) < 1e-6,
+        `map y=${y}, expected ${expectedY}`,
+      );
+      const unpadded = view.floorFocusPoint();
+      assert.ok(
+        Math.hypot(point[0] - unpadded[0], point[1] - unpadded[1]) > 0.1,
+        "an obstructed viewport must not silently use the orbit target",
+      );
+      assert.deepEqual(view.camera.position.toArray(), before.camera);
+      assert.deepEqual(view.controls.target.toArray(), before.target);
+      assert.equal(view.camera.zoom, before.zoom);
+    });
+  }
+}
+
+test("floor context ray has no point outside an available floor viewport or when looking above the ground", () => {
+  const view = cameraHarness();
+  view.host = { clientWidth: 390, clientHeight: 844 };
+  view.mode = "overview";
+  assert.equal(view.floorFocusPoint(), null);
+  view.mode = "floor";
+  view.host.clientHeight = 0;
+  assert.equal(view.floorFocusPoint(), null);
+  view.host.clientHeight = 844;
+  view.camera.position.set(0, 20, 0);
+  view.camera.lookAt(0, 30, -10);
+  assert.equal(view.floorFocusPoint(), null);
+});

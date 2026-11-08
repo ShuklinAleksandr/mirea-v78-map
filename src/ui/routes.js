@@ -1,7 +1,11 @@
 import { $, escape } from "./dom.js";
 import { icon } from "./icons.js";
 import { shareView } from "./experience.js";
-import { isCompactLandscape, landscapeMapPadding } from "./map-viewport.js";
+import {
+  isCompactLandscape,
+  landscapeMapPadding,
+  portraitMapPadding,
+} from "./map-viewport.js";
 import { makeCurrentRouteEndpoint } from "../data/current-route-origin.js";
 import { isCurrentUserLocation } from "../data/user-location.js";
 import { createRouteTracker } from "../data/route-tracking.js";
@@ -54,6 +58,7 @@ export function bindRoutes({
   onRefineLocation,
   onConfirmFloor,
   onPauseFollowing,
+  onFloorContext,
 }) {
   const nextInterface = isNextInterface();
   let from = null,
@@ -264,6 +269,7 @@ export function bindRoutes({
       updateDockReadout();
       return;
     }
+    const previousTimestamp = liveProgress?.locationTimestamp;
     liveProgress = liveTracker.update(state.userLocation, {
       now: Date.now(),
       floorId: state.mode === "overview" ? null : state.floor?.id,
@@ -272,6 +278,23 @@ export function bindRoutes({
     guideSection = liveProgress.sectionIndex;
     guideDistance = liveProgress.distance;
     stepIndex = liveProgress.stepIndex;
+    // Context follows accepted progress on the current horizontal segment.
+    // It must not override manual map browsing or a pending stair hand-off.
+    if (
+      liveProgress.status === "tracking" &&
+      liveProgress.locationTimestamp !== previousTimestamp &&
+      state.locationTracking?.enabled &&
+      state.locationTracking.following &&
+      !state.selected &&
+      state.mode === "floor"
+    ) {
+      const sample = sampleRouteGuidance(guide, guideSection, guideDistance);
+      if (sample?.floorId === state.floor?.id)
+        onFloorContext?.(
+          sample,
+          route.segments[sample.sourceSegmentIndex]?.nodes || [],
+        );
+    }
     // The only moving location marker is the actual provider position. The
     // projected route distance is evidence for instructions, not a replacement
     // coordinate or an orange demonstration marker.
@@ -397,6 +420,7 @@ export function bindRoutes({
       return { top: 64, bottom: 16, left: 16, right: 16 };
     if (isCompactLandscape(innerWidth, innerHeight))
       return landscapeMapPadding();
+    if (innerWidth <= 700) return portraitMapPadding();
     const mobile = innerWidth <= 700;
     const padding = mobile
       ? nextInterface && guiding
@@ -475,7 +499,12 @@ export function bindRoutes({
     // A source level can contain different physical floors in several wings.
     // Keep an explicitly selected place/building's own header when a saved
     // route also happens to cross the same source level.
-    if (state.selected || state.building) return;
+    if (
+      state.selected ||
+      state.building ||
+      state.floorContext?.floorId === state.floor?.id
+    )
+      return;
     const n = route.segments.find((s) => s.floorId === state.floor?.id)
       ?.nodes[0];
     if (n) {
@@ -905,6 +934,10 @@ export function bindRoutes({
     )
       return null;
     if (!keepStep) stepIndex = sample.stepIndex;
+    onFloorContext?.(
+      sample,
+      route.segments[sample.sourceSegmentIndex]?.nodes || [],
+    );
     if (automatic) {
       if (
         scene.setRouteGuidance?.(sample, {

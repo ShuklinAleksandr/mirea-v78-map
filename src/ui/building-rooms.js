@@ -1,7 +1,11 @@
 import { buildingRoomFloors } from "../data/building-rooms.js";
 import { $, escape } from "./dom.js";
 
-export function bindBuildingRooms({ state, navigateRoom }) {
+export function bindBuildingRooms({
+  state,
+  navigateRoom,
+  getBuilding = () => state.building,
+}) {
   const dialog = $("#building-rooms-dialog");
   const floor = $("#building-rooms-floor");
   const list = $("#building-rooms-list");
@@ -37,10 +41,10 @@ export function bindBuildingRooms({ state, navigateRoom }) {
   }
 
   $("#building-rooms-open").onclick = () => {
-    if (!state.building || dialog.open) return;
-    floors = buildingRoomFloors(state.campus, state.building, state.search);
-    $("#building-rooms-title").textContent =
-      `Аудитории корпуса ${state.building}`;
+    const building = getBuilding();
+    if (!building || dialog.open) return;
+    floors = buildingRoomFloors(state.campus, building, state.search);
+    $("#building-rooms-title").textContent = `Аудитории корпуса ${building}`;
     $("#building-rooms-filter").hidden = floors.length === 0;
     floor.innerHTML = floors
       .map(

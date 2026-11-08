@@ -7,7 +7,16 @@ import { mergedFloorView } from "../src/data/floor-view.js";
 import { geometryEvidence, resolveRoom } from "../src/data/utils.js";
 import { getHallAdjacencyView } from "../src/map/hall-adjacency.js";
 import { entranceHint } from "../src/data/entrance-hints.js";
-import { isCompactLandscape } from "../src/ui/map-viewport.js";
+import {
+  isCompactLandscape,
+  measuredPortraitPadding,
+  measuredLandscapePadding,
+} from "../src/ui/map-viewport.js";
+import { isNextInterface } from "../src/ui/variant.js";
+import {
+  resolveFloorContext,
+  resolveRouteFloorContext,
+} from "../src/data/floor-context.js";
 import {
   placeDescription,
   placeLocation,
@@ -82,6 +91,7 @@ function section(start, end) {
   return appSource.slice(from, to);
 }
 const controller = [
+  section("function floorPhysical(", "function renderFloors("),
   section("function cancelPendingNavigation(", "function saveView("),
   section("function roomPadding(", "const kindNames"),
   section("function selectRoom(", '$("#overview").onclick'),
@@ -153,7 +163,40 @@ function harness({
         before() {},
         querySelector: (child) => $(`${selector} ${child}`),
         querySelectorAll: () => [],
-        getBoundingClientRect: () => ({ top: 624, right: 366, height: 220 }),
+        getBoundingClientRect() {
+          if (selector === ".sidebar")
+            return {
+              left: 0,
+              right: width,
+              width,
+              top: height - 220,
+              bottom: height,
+              height: 220,
+            };
+          if (
+            [".map-top", "#campus-overview", "#settings-open"].includes(
+              selector,
+            )
+          )
+            return {
+              left: 16,
+              right: width - 16,
+              width: width - 32,
+              top: 16,
+              bottom: 64,
+              height: 48,
+            };
+          if ([".map-tools", "#next-floor-open"].includes(selector))
+            return {
+              left: width - 52,
+              right: width - 8,
+              width: 44,
+              top: 80,
+              bottom: 124,
+              height: 44,
+            };
+          return { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 };
+        },
       });
     return elements.get(selector);
   };
@@ -161,7 +204,16 @@ function harness({
   const requests = new Map(),
     errors = [],
     calls = [];
+  const timers = new Map();
+  let timerId = 0;
   let targetButtons = [];
+  const rectangles = (selectors) =>
+    Object.fromEntries(
+      Object.entries(selectors).map(([name, selector]) => {
+        const element = $(selector);
+        return [name, element.hidden ? null : element.getBoundingClientRect()];
+      }),
+    );
   const context = vm.createContext({
     state,
     $,
@@ -172,7 +224,15 @@ function harness({
     getHallAdjacencyView,
     mergedFloorView,
     entranceHint,
-    isNextInterface: () => nextInterface,
+    isNextInterface,
+    resolveFloorContext,
+    resolveRouteFloorContext,
+    floorContextOwner: "camera",
+    floorContextTimer: null,
+    setTimeout(callback) {
+      timers.set(++timerId, callback);
+      return timerId;
+    },
     placeLandmarks: { hints: landmarks },
     presentStairIdentity,
     getJSON(url) {
@@ -206,9 +266,6 @@ function harness({
     updateUI() {},
     saveView() {},
     openSources() {},
-    availableFloors: () => state.campus.floors,
-    floorPhysical: (f) => f.level,
-    floorName: (f) => String(f.level),
     geometryEvidence,
     withConfirmedStairSearch,
     getFloorMarkers: () => [],
@@ -218,6 +275,36 @@ function harness({
     innerWidth: width,
     innerHeight: height,
     isCompactLandscape,
+    portraitMapPadding: () =>
+      measuredPortraitPadding(
+        width,
+        height,
+        rectangles({
+          top: ".map-top",
+          back: "#campus-overview",
+          settings: "#settings-open",
+          floorPicker: "#next-floor-open",
+          tools: ".map-tools",
+          sidebar: ".sidebar",
+          dock: "#route-guidance-dock",
+          location: "#location-pick-banner",
+        }),
+      ),
+    landscapeMapPadding: () =>
+      measuredLandscapePadding(
+        width,
+        height,
+        rectangles({
+          top: ".map-top",
+          status: ".focus-floor-status",
+          floorPicker: "#next-floor-open",
+          tools: ".map-tools",
+          floors: "#floor-rail",
+          sidebar: ".sidebar",
+          dock: "#route-guidance-dock",
+          location: "#location-pick-banner",
+        }),
+      ),
     escape: String,
     icon: () => "",
     document: {
@@ -246,7 +333,7 @@ function harness({
     },
     matchMedia: () => ({ matches: true }),
     renderFloors() {},
-    routes: { syncView() {}, changedCampus() {} },
+    routes: { syncView() {}, changedCampus() {}, getRoute: () => null },
     readSaved: (_key, fallback) => fallback,
     experience: withExperience
       ? {
@@ -266,12 +353,16 @@ function harness({
   });
   vm.runInContext(controller, context);
   vm.runInContext(
+    `var routeCallbacks = {${section("    onFloorContext:", "    onConfirmFloor:")}};`,
+    context,
+  );
+  vm.runInContext(
     section('$("#overview").onclick', '$("#next-floor-open").onclick'),
     context,
   );
   if (actualUI)
     vm.runInContext(
-      section("function updateUI(", "function cancelPendingNavigation(") +
+      section("function renderFloors(", "function cancelPendingNavigation(") +
         section("function closeRoom(", "function roomPadding("),
       context,
     );
@@ -290,6 +381,23 @@ function harness({
     choose: (id) => context.chooseFloor(`${id}-floor1`),
     chooseBuilding: (building) => context.chooseBuilding(building),
     overview: () => context.overview(),
+    updateUI: () => context.updateUI(),
+    floorContextBuilding: () => context.floorContextBuilding(),
+    applyFloorContext: (value, source) =>
+      context.applyFloorContext(value, source),
+    locationContext: () => context.refreshLocationFloorContext(),
+    routeContext: (sample, nodes) =>
+      context.routeCallbacks.onFloorContext(sample, nodes),
+    queueCameraContext(point, { owner = "camera" } = {}) {
+      context.floorContextOwner = owner;
+      context.scene.floorFocusPoint = () => point;
+      context.queueCameraFloorContext();
+    },
+    flushTimers() {
+      const callbacks = [...timers.values()];
+      timers.clear();
+      for (const callback of callbacks) callback();
+    },
     select: (r) => context.selectRoom(r),
     clickStairTarget(index = 0) {
       assert.ok(
@@ -612,7 +720,7 @@ test("a room callback without an active floor is harmless", () => {
   assert.equal(h.state.selected, null);
 });
 
-test("Next G-424-1 card opens its confirmed entrance room while Classic retains its card", async () => {
+test("G-424-1 opens its confirmed entrance room for either historical interface choice", async () => {
   const campus = manifest.campuses.find((item) => item.id === "v-78");
   const meta = campus.floors.find((item) => item.id === "v-78-floor3");
   const floor = JSON.parse(
@@ -636,10 +744,7 @@ test("Next G-424-1 card opens its confirmed entrance room while Classic retains 
     const hint = h.createdElements.find(
       (element) => element.className === "entrance-hint",
     );
-    if (!nextInterface) {
-      assert.equal(hint, undefined);
-      continue;
-    }
+    assert.ok(hint, "the single interface always includes the entrance hint");
     assert.match(hint.innerHTML, /Вход через Г-424/);
     assert.match(hint.innerHTML, /положение внутренней двери ещё уточняется/);
     const actions = h.createdElements.find(
@@ -806,6 +911,7 @@ test("floor rail and Next picker preserve the minimized sheet for ordinary and r
         const $ = (selector) => {
           if (!elements.has(selector))
             elements.set(selector, {
+              setAttribute() {},
               querySelectorAll: () =>
                 selector === "#floor-rail" ? rail : picker,
               close() {
@@ -821,7 +927,8 @@ test("floor rail and Next picker preserve the minimized sheet for ordinary and r
           escape: String,
           icon: () => "",
           isNextInterface: () => nextInterface,
-          floorPhysical: (floor) => floor.level,
+          placeLocation,
+          floorContextOwner: "selection",
           chooseFloor(id) {
             state.floor = floors.find((floor) => floor.id === id);
             floorCalls.push("ordinary");
@@ -854,7 +961,11 @@ test("floor rail and Next picker preserve the minimized sheet for ordinary and r
           },
         };
         vm.runInNewContext(
-          section("function renderFloors(", "function updateUI(") +
+          section("function floorPhysical(", "function updateUI(") +
+            section(
+              "function renderFocusedFloorStatus(",
+              "function cancelPendingNavigation(",
+            ) +
             "\nrenderFloors();",
           context,
         );
@@ -932,4 +1043,169 @@ test("top All buildings returns to the whole campus without opening the sheet in
     assert.equal(h.state.selected, null);
     assert.equal(button.hidden, true);
   }
+});
+
+test("overview startup without an active floor tolerates missing, null and stale floor context", () => {
+  for (const floorContext of [
+    undefined,
+    null,
+    { floorId: "a-floor1", building: "a" },
+  ]) {
+    const h = harness({ actualUI: true });
+    h.state.floorContext = floorContext;
+    assert.equal(h.state.floor, null);
+    assert.equal(h.floorContextBuilding(), null);
+    assert.doesNotThrow(h.updateUI);
+    assert.match(h.$("#focus-floor-status").innerHTML, /Обзор кампуса/);
+    assert.equal(h.$("#next-floor-open").hidden, true);
+    assert.equal(h.$("#campus-overview").hidden, true);
+  }
+});
+
+function contextFloorHarness() {
+  const h = realStairView(2);
+  h.scene.locationFloor = h.state.floor;
+  h.state.floorContext = {
+    floorId: h.state.floor.id,
+    building: "А",
+    source: "selection",
+  };
+  const room = (label) =>
+    h.state.floor.polygons.find((polygon) => polygon.label === label);
+  return { ...h, room };
+}
+
+test("camera context moves from A2 to G3 on the same source plan and synchronizes every floor readout", () => {
+  const h = contextFloorHarness();
+  const floor = h.state.floor;
+  const source = JSON.stringify(h.state.floorData);
+  const location = {
+    source: "manual",
+    campusId: "v-78",
+    floorId: floor.id,
+    point: h.room("А-203").center.slice(),
+  };
+  h.state.userLocation = location;
+  h.updateUI();
+  assert.match(h.$("#next-floor-open").innerHTML, /Корпус А · 2 этаж/);
+  h.queueCameraContext(h.room("Г-310").center);
+  h.flushTimers();
+  assert.equal(
+    h.state.floor,
+    floor,
+    "context does not select a different plan",
+  );
+  assert.equal(
+    h.state.building,
+    "А",
+    "context does not rebuild the chosen geometry",
+  );
+  assert.equal(
+    h.state.userLocation,
+    location,
+    "panning cannot move or refine the user's point",
+  );
+  assert.equal(h.state.floorContext.source, "camera");
+  assert.equal(h.state.floorContext.building, "Г");
+  assert.equal(h.state.floorContext.physicalLevel, 3);
+  assert.match(h.$("#focus-floor-status").innerHTML, /3 этаж · корпус Г/);
+  assert.match(h.$("#next-floor-open").innerHTML, /Корпус Г · 3 этаж/);
+  assert.match(h.$("#next-floor-title").textContent, /Корпус Г/);
+  assert.match(h.$("#breadcrumb").innerHTML, /Корпус Г.*3 этаж/);
+  assert.match(h.$("#view-title").innerHTML, /Корпус Г.*3 этаж/);
+  assert.equal(h.$("#caption-title").textContent, "Корпус Г · 3 этаж");
+  for (const level of [1, 2, 3, 4])
+    assert.match(
+      h.$("#next-floor-list").innerHTML,
+      new RegExp(`aria-label="${level} этаж корпуса Г"`),
+    );
+  assert.equal(
+    (h.$("#next-floor-list").innerHTML.match(/data-next-floor=/g) || []).length,
+    4,
+  );
+  assert.equal(
+    h.calls.some(([kind]) => kind === "floor"),
+    false,
+  );
+  const confirmed = h.state.floorContext;
+  const shared = floor.polygons.find(
+    (polygon) => polygon.id === "v-78-floor2-area-29",
+  );
+  assert.equal(resolveFloorContext(floor, shared.center), null);
+  h.queueCameraContext(shared.center);
+  h.flushTimers();
+  assert.equal(
+    h.state.floorContext,
+    confirmed,
+    "ambiguous corridor retains the last clear G3 context",
+  );
+  assert.match(h.$("#next-floor-open").innerHTML, /Корпус Г · 3 этаж/);
+  assert.equal(JSON.stringify(h.state.floorData), source);
+});
+
+test("manual location context updates the selected plan's floor readout without inferring a different source level", () => {
+  const h = contextFloorHarness();
+  h.state.userLocation = {
+    source: "manual",
+    campusId: "v-78",
+    floorId: h.state.floor.id,
+    point: h.room("Г-310").center.slice(),
+  };
+  const floor = h.state.floor;
+  h.locationContext();
+  assert.equal(h.state.floorContext.building, "Г");
+  assert.equal(h.state.floorContext.source, "location");
+  assert.match(h.$("#focus-floor-status").innerHTML, /3 этаж · корпус Г/);
+  const confirmed = h.state.floorContext;
+  h.state.userLocation = {
+    ...h.state.userLocation,
+    floorId: "v-78-floor1",
+    point: h.room("А-203").center.slice(),
+  };
+  h.locationContext();
+  assert.equal(
+    h.state.floorContext,
+    confirmed,
+    "a manual point on another selected plan cannot overwrite this readout",
+  );
+  assert.equal(h.state.floor, floor);
+});
+
+test("route context ignores other floors and owns the readout until a real camera interaction", () => {
+  const h = contextFloorHarness();
+  const point = h.room("Г-310").center;
+  const nodes = [
+    {
+      floorId: h.state.floor.id,
+      building: "Г",
+      physicalLevel: 3,
+      position: [point[0] - 0.5, point[1]],
+    },
+    {
+      floorId: h.state.floor.id,
+      building: "Г",
+      physicalLevel: 3,
+      position: [point[0] + 0.5, point[1]],
+    },
+  ];
+  h.routeContext({ floorId: "v-78-floor1", position: point }, nodes);
+  assert.equal(h.state.floorContext.building, "А");
+  h.routeContext({ floorId: h.state.floor.id, position: point }, nodes);
+  assert.equal(h.state.floorContext.building, "Г");
+  assert.equal(h.state.floorContext.source, "route");
+  h.queueCameraContext(h.room("А-203").center, { owner: "route" });
+  h.flushTimers();
+  assert.equal(
+    h.state.floorContext.building,
+    "Г",
+    "route camera animation cannot replace the route's actual section context",
+  );
+  h.queueCameraContext(h.room("А-203").center);
+  h.flushTimers();
+  assert.equal(
+    h.state.floorContext.building,
+    "А",
+    "deliberate free map interaction may establish camera context again",
+  );
+  assert.equal(h.state.floorContext.source, "camera");
 });

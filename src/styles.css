@@ -2294,6 +2294,53 @@ dialog::backdrop {
   display: none;
 }
 
+/* Phone portrait uses the same single-row controls as landscape. Keep full
+   touch targets and the accessible names on each icon button. */
+@media (max-width: 700px) {
+  .topbar {
+    top: calc(8px + var(--safe-top));
+    left: calc(8px + var(--safe-left));
+    right: calc(8px + var(--safe-right));
+    height: 44px;
+  }
+  .topbar .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .map-top {
+    top: calc(8px + var(--safe-top));
+    left: calc(60px + var(--safe-left));
+    right: auto;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+  .map-top .mode-switch,
+  .map-top .view-segment {
+    display: flex;
+    padding: 0;
+    margin: 0;
+  }
+  .map-top button {
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+    padding: 8px;
+  }
+  .map-top .landscape-button-icon {
+    display: inline-flex;
+  }
+  .map-top .mode-switch button > span:not(.landscape-button-icon) {
+    display: none;
+  }
+  .map-tools {
+    right: calc(8px + var(--safe-right));
+  }
+  .map-tools button {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* In phone landscape, the search and route panels share one side of the map. */
 @media (min-width: 520px) and (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
   :root {

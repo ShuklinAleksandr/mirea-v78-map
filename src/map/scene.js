@@ -374,6 +374,28 @@ export class AtlasScene {
     this.transition = null;
     this.callbacks?.onMapInteraction?.();
   }
+  floorFocusPoint(padding = {}) {
+    if (this.mode !== "floor") return null;
+    const width = this.host.clientWidth,
+      height = this.host.clientHeight;
+    if (!width || !height) return null;
+    const left = Math.min(width - 1, Math.max(0, padding.left || 0));
+    const right = Math.min(width - left - 1, Math.max(0, padding.right || 0));
+    const top = Math.min(height - 1, Math.max(0, padding.top || 0));
+    const bottom = Math.min(height - top - 1, Math.max(0, padding.bottom || 0));
+    const pointer = new THREE.Vector2(
+      (left - right) / width,
+      (bottom - top) / height,
+    );
+    const raycaster = new THREE.Raycaster();
+    this.camera.updateMatrixWorld();
+    raycaster.setFromCamera(pointer, this.camera);
+    const point = raycaster.ray.intersectPlane(
+      new THREE.Plane(UP_AXIS, 0),
+      new THREE.Vector3(),
+    );
+    return point ? [point.x, point.z] : null;
+  }
   setProjection(plan, { fit = false } = {}) {
     if (plan && (this.routeOverview || this.buildingOverview))
       this.setRouteOverview(false);
