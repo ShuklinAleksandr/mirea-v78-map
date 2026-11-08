@@ -1,4 +1,5 @@
-import { loadRouting, findRoute } from "./routing.js";
+import { loadRouting } from "./routing.js";
+import { findNavigationRoute } from "./entrance-route.js";
 import { getJSON } from "./client.js";
 self.onmessage = async ({ data }) => {
   try {
@@ -19,7 +20,7 @@ self.onmessage = async ({ data }) => {
     );
     self.postMessage({
       id: data.id,
-      result: findRoute(graph, data.from, data.to, { floors }),
+      result: findNavigationRoute(graph, data.from, data.to, { floors }),
     });
   } catch (error) {
     self.postMessage({

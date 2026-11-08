@@ -14,7 +14,7 @@ import { findNextPlaces } from "../data/next-place-search.js";
 import { placeLocation, presentPlaceIdentity } from "../data/place-location.js";
 import placeLandmarks from "../data/place-landmarks.json" with { type: "json" };
 import { isNextInterface } from "./variant.js";
-import { nextRouteReadout } from "./next-route.js";
+import { nextRouteReadout, partialRouteInfo } from "./next-route.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -571,12 +571,14 @@ export function bindRoutes({
     updateLiveGuidance();
   }
   function clear({ open = false, completed = false } = {}) {
+    const completion =
+      partialRouteInfo(route)?.completion || "Вы пришли. Маршрут завершён";
     pendingCurrentOrigin = null;
     from = to = null;
     refreshCurrentOriginButton();
     $("#route-from").value = $("#route-to").value = "";
     invalidate();
-    if (completed) toast("Вы пришли. Маршрут завершён");
+    if (completed) toast(completion);
     panel(open);
     if (open) experience.expand(true);
     else minimizePanel();
@@ -703,6 +705,12 @@ export function bindRoutes({
   }
   function updateDockReadout() {
     if (!route) return;
+    const partial = partialRouteInfo(route);
+    const manualEntry = Boolean(
+      partial &&
+        (route.steps[stepIndex]?.kind === "manual-entry" ||
+          liveProgress?.arrived),
+    );
     const meta = $("#route-dock-meta");
     const nextDistance =
       automatic && Number.isFinite(liveProgress?.distanceToNextMeters)
@@ -710,15 +718,16 @@ export function bindRoutes({
         : "";
     if (meta)
       meta.textContent = guiding
-        ? `Шаг ${stepIndex + 1} из ${route.steps.length}${nextDistance}`
-        : `${route.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}`;
+        ? `${partial ? `До ${partial.via} · ` : ""}Шаг ${stepIndex + 1} из ${route.steps.length}${nextDistance}`
+        : `${route.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}${partial ? ` · до ${partial.via}` : ""}`;
     const instruction = $("#route-dock-instruction");
     if (instruction)
       instruction.textContent = guiding
         ? liveProgress?.arrived && automatic
-          ? `Вы пришли · ${to?.label || "назначение"}`
+          ? partial?.instruction || `Вы пришли · ${to?.label || "назначение"}`
           : route.steps[stepIndex]?.text || "Следуйте по выделенному пути"
-        : `${from?.label || "Начало"} → ${to?.label || "Назначение"}`;
+        : partial?.summary ||
+          `${from?.label || "Начало"} → ${to?.label || "Назначение"}`;
     const note = $("#route-dock-note");
     if (note && guiding) {
       const notes = {
@@ -742,13 +751,19 @@ export function bindRoutes({
           ? "Демонстрация маршрута · это не ваше движение"
           : "Переключайте шаги, когда дойдёте до указанного места";
     }
+    if (note && partial && (!guiding || manualEntry))
+      note.textContent = previewing
+        ? `Демонстрация до ${partial.via} · это не ваше движение`
+        : guiding && automatic && liveProgress?.arrived
+          ? `По GPS — у входа в ${partial.via}. ${partial.note}`
+          : partial.note;
     const previous = $("#route-dock-previous");
     if (previous) previous.hidden = !guiding || stepIndex === 0;
     const next = $("#route-dock-next");
     if (next) {
       const transition =
         guiding && automatic && route.steps[stepIndex]?.targetFloorId;
-      next.innerHTML = `${guiding ? (stepIndex === route.steps.length - 1 ? "Завершить" : transition ? "Я на следующем этаже" : "Далее") : "В путь"}${icon("arrow", 17)}`;
+      next.innerHTML = `${guiding ? (stepIndex === route.steps.length - 1 ? (partial ? "Закрыть маршрут" : "Завершить") : transition ? "Я на следующем этаже" : "Далее") : "В путь"}${icon("arrow", 17)}`;
     }
     const recenter = $("#route-dock-recenter");
     if (recenter && guiding && onLocate) {
@@ -805,11 +820,13 @@ export function bindRoutes({
         symbol.hidden = !guiding;
         symbol.dataset.direction = view.direction;
         symbol.innerHTML = icon(
-          view.direction === "stairs"
-            ? "stair"
-            : view.direction === "arrive"
-              ? "pin"
-              : "arrow",
+          view.direction === "manual-entry"
+            ? "info"
+            : view.direction === "stairs"
+              ? "stair"
+              : view.direction === "arrive"
+                ? "pin"
+                : "arrow",
           28,
         );
       }
@@ -1054,11 +1071,15 @@ export function bindRoutes({
       $("#route-panel").dataset.complete = "true";
       $("#route-share").hidden =
         a.kind === "user-location" || b.kind === "user-location";
+      const partial = partialRouteInfo(result);
       $("#route-summary").innerHTML =
-        `<div class="route-summary-head">${icon("route", 30)}<div><b>${result.durationMinutes != null ? `≈ ${result.durationMinutes} мин` : "Путь найден"}</b><small>${escape(a.label)} → ${escape(b.label)}${result.distanceMeters != null ? ` · ≈ ${Math.round(result.distanceMeters)} м` : ""}</small></div></div><p class="route-estimate">${escape(result.durationModel || "Время и расстояние оценочные.")}</p><div id="route-floor-chips" class="route-floor-chips" aria-label="Этажи маршрута"></div><div id="route-progress" class="route-progress"></div>`;
+        `<div class="route-summary-head">${icon("route", 30)}<div><b>${result.durationMinutes != null ? `≈ ${result.durationMinutes} мин` : "Путь найден"}</b><small>${escape(a.label)} → ${escape(partial?.via || b.label)}${result.distanceMeters != null ? ` · ≈ ${Math.round(result.distanceMeters)} м` : ""}</small></div></div>${partial ? `<p class="route-estimate">${escape(partial.summary)} ${escape(partial.note)}</p>` : ""}<p class="route-estimate">${escape(result.durationModel || "Время и расстояние оценочные.")}</p><div id="route-floor-chips" class="route-floor-chips" aria-label="Этажи маршрута"></div><div id="route-progress" class="route-progress"></div>`;
       for (const key of ["route-summary", "route-steps", "route-actions"])
         $("#" + key).hidden = false;
-      status("Маршрут готов. Проходы и доступность на месте могут изменяться.");
+      status(
+        partial?.summary ||
+          "Маршрут готов. Проходы и доступность на месте могут изменяться.",
+      );
       minimizePanel();
       renderSteps();
       viewFloor(route.segments[0].floorId, !guide.sections.length);

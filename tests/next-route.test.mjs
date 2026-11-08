@@ -160,3 +160,58 @@ test("Next preview does not advertise automatic navigation or a corrective GPS a
   assert.equal(preview.showNext, true);
   assert.equal(view({ guiding: false }).nextLabel, "В путь");
 });
+
+test("a partial route identifies the parent entrance and never turns GPS arrival into arrival in the inner room", () => {
+  const partial = {
+    ...route,
+    partial: true,
+    requestedDestination: {
+      roomId: "inside",
+      label: "Г-424-3",
+      floorId: "first",
+    },
+    end: { roomId: "parent", label: "Г-424" },
+    lastLeg: {
+      kind: "inside-parent",
+      viaRoomId: "parent",
+      viaLabel: "Г-424",
+      label: "Г-424-3",
+      geometryAvailable: false,
+      message:
+        "Войдите в Г-424 и найдите Г-424-3. Положение внутренней двери пока не нанесено.",
+    },
+    steps: [
+      ...route.steps.slice(0, 2),
+      { kind: "manual-entry", text: "Найдите Г-424-3 внутри Г-424" },
+    ],
+  };
+  const preview = view({ route: partial, guiding: false });
+  assert.match(preview.meta, /до Г-424$/);
+  assert.match(preview.note, /внутри Г-424 пока не нанесён/);
+  const progress = view({ route: partial });
+  assert.equal(progress.distance, "≈ 18 м");
+  assert.equal(
+    view({ route: partial, stepIndex: 2 }).distance,
+    "≈ 18 м до Г-424",
+  );
+  for (const status of ["waiting", "tracking", "arrived"]) {
+    const current = view({
+      route: partial,
+      stepIndex: 2,
+      liveProgress: { status, arrived: status === "arrived" },
+    });
+    assert.equal(current.direction, "manual-entry");
+    assert.equal(current.nextLabel, "Закрыть маршрут");
+    assert.equal(current.showNext, true);
+    assert.match(current.note, /Г-424/);
+    assert.doesNotMatch(current.note, /пришли|назначения|Г-424-3/);
+    assert.equal(current.distance, "");
+  }
+  const manualOnly = view({
+    route: { ...partial, steps: [partial.steps[2]] },
+    liveProgress: { status: "floor-mismatch" },
+    following: false,
+  });
+  assert.equal(manualOnly.contextAction, null);
+  assert.equal(manualOnly.showRecenter, false);
+});

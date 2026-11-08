@@ -12,7 +12,7 @@ import {
   presentPlaceIdentity,
 } from "../src/data/place-location.js";
 import placeLandmarks from "../src/data/place-landmarks.json" with { type: "json" };
-import { nextRouteReadout } from "../src/ui/next-route.js";
+import { nextRouteReadout, partialRouteInfo } from "../src/ui/next-route.js";
 import {
   variantStorageKey,
   migrateInterfaceStorage,
@@ -167,6 +167,7 @@ function harness(file, exports, saved = {}, options = {}) {
     presentPlaceIdentity,
     placeLandmarks,
     nextRouteReadout,
+    partialRouteInfo,
     isNextInterface: () => options.nextInterface === true,
     variantStorageKey: (key) =>
       variantStorageKey(key, options.nextInterface ? "next" : "classic"),
@@ -357,6 +358,7 @@ function routeHarness({
   const sheetCalls = [];
   const navigationModes = [];
   const overviewCalls = [];
+  const toasts = [];
   const scene = {
     setNavigationMode(active) {
       navigationModes.push(active);
@@ -394,7 +396,9 @@ function routeHarness({
       return true;
     },
     closeRoom() {},
-    toast() {},
+    toast(message) {
+      toasts.push(message);
+    },
     updateUI() {},
     saveView() {},
     experience: {
@@ -432,6 +436,7 @@ function routeHarness({
     sheetCalls,
     navigationModes,
     overviewCalls,
+    toasts,
     room,
     result,
   };
@@ -2242,4 +2247,183 @@ test("suggestion compatibility mousedown preserves input focus but leaves touch 
       assert.equal(clicked, true);
     }
   }
+});
+
+function configurePartialRoute(h, { manualOnly = false } = {}) {
+  const label = "Г-424-3";
+  const message = `Войдите в Г-424 и найдите ${label}. Положение внутренней двери пока не нанесено.`;
+  h.setEndpoint("to", { ...h.room("inside"), label });
+  h.result.partial = true;
+  h.result.requestedDestination = {
+    roomId: "inside",
+    label,
+    floorId: "a-floor1",
+  };
+  h.result.end = {
+    roomId: "parent",
+    label: "Г-424",
+    floorId: "a-floor1",
+    point: [12, 16],
+  };
+  h.result.lastLeg = {
+    kind: "inside-parent",
+    viaRoomId: "parent",
+    viaLabel: "Г-424",
+    label,
+    message,
+    geometryAvailable: false,
+  };
+  h.result.durationModel =
+    "Время и расстояние оценены только до входа в Г-424.";
+  const last = {
+    kind: "manual-entry",
+    floorId: "a-floor1",
+    position: [12, 16],
+    text: message,
+  };
+  if (manualOnly) {
+    h.result.segments = [
+      {
+        floorId: "a-floor1",
+        points: [[12, 16]],
+        nodes: [{ physicalLevel: 4, building: "Г", position: [12, 16] }],
+      },
+    ];
+    h.result.steps = [last];
+  } else {
+    h.result.steps[h.result.steps.length - 1] = last;
+  }
+}
+
+test("partial route preview and manual completion identify only the parent entrance in both dock variants", async () => {
+  for (const nextInterface of [false, true]) {
+    const h = routeHarness({ nextInterface });
+    h.result.distanceMeters = 20;
+    h.result.durationMinutes = 1;
+    h.result.segments = [
+      {
+        floorId: "a-floor1",
+        points: [
+          [0, 0],
+          [12, 16],
+        ],
+        nodes: [{ physicalLevel: 4, building: "Г" }],
+      },
+    ];
+    h.result.steps = [
+      {
+        kind: "start",
+        floorId: "a-floor1",
+        position: [0, 0],
+        text: "Начните здесь",
+      },
+      { kind: "arrive" },
+    ];
+    configurePartialRoute(h);
+    const pending = h.build();
+    h.reply(h.result);
+    await pending;
+    assert.match(
+      h.element("#route-status").textContent,
+      /до входа в Г-424; дальше — Г-424-3 внутри/,
+    );
+    assert.match(
+      h.element("#route-summary").innerHTML,
+      /только до входа в Г-424/,
+    );
+    assert.match(
+      h.element("#route-summary").innerHTML,
+      /внутри Г-424 пока не нанесён/,
+    );
+    assert.match(
+      h.element("#route-dock-instruction").textContent,
+      /до входа в Г-424; дальше — Г-424-3 внутри/,
+    );
+    assert.equal(h.getRoute().end.roomId, "parent");
+    assert.equal(h.getEndpoints().to.id, "inside");
+    h.element("#route-dock-next").dispatch("click");
+    h.element("#route-dock-next").dispatch("click");
+    assert.match(
+      h.element("#route-dock-instruction").textContent,
+      /Войдите в Г-424 и найдите Г-424-3/,
+    );
+    assert.match(h.element("#route-dock-next").innerHTML, /Закрыть маршрут/);
+    h.element("#route-dock-next").dispatch("click");
+    assert.equal(h.getRoute(), null);
+    assert.match(h.toasts.at(-1), /Маршрут до Г-424 завершён/);
+    assert.doesNotMatch(h.toasts.at(-1), /Вы пришли/);
+  }
+});
+
+test("GPS reaching the partial geometry keeps the manual interior instruction and never announces the inner room as reached", async () => {
+  for (const nextInterface of [false, true]) {
+    const h = await liveRouteHarness({
+      nextInterface,
+      configureRoute: configurePartialRoute,
+    });
+    for (const point of [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [6, 0],
+      [10, 0],
+      [12, 0],
+      [12, 2],
+      [12, 6],
+      [12, 10],
+      [12, 14],
+      [12, 15],
+      [12, 16],
+      [12, 16],
+    ])
+      h.emitGps(point);
+    assert.match(
+      h.element("#route-dock-instruction").textContent,
+      /Войдите в Г-424 и найдите Г-424-3/,
+    );
+    assert.doesNotMatch(
+      h.element("#route-dock-instruction").textContent,
+      /Вы пришли/,
+    );
+    assert.match(
+      h.element("#route-dock-note").textContent,
+      /По GPS — у входа в Г-424/,
+    );
+    assert.doesNotMatch(
+      h.element("#route-dock-note").textContent,
+      /у назначения|Г-424-3/,
+    );
+    if (nextInterface)
+      assert.equal(
+        h.element("#route-dock-symbol").dataset.direction,
+        "manual-entry",
+      );
+    assert.equal(h.guidanceCalls.at(-1), null);
+    assert.deepEqual(h.state.userLocation.point, [12, 16]);
+    h.element("#route-dock-next").dispatch("click");
+    assert.equal(h.getRoute(), null);
+    assert.match(h.toasts.at(-1), /Маршрут до Г-424 завершён/);
+  }
+});
+
+test("starting inside the parent shows a single manual instruction without drawing an interior connection", async () => {
+  const h = routeHarness({ nextInterface: true });
+  configurePartialRoute(h, { manualOnly: true });
+  const pending = h.build();
+  h.reply(h.result);
+  await pending;
+  assert.equal(h.getRoute().segments[0].points.length, 1);
+  h.element("#route-dock-next").dispatch("click");
+  assert.match(
+    h.element("#route-dock-instruction").textContent,
+    /Войдите в Г-424 и найдите Г-424-3/,
+  );
+  assert.match(
+    h.element("#route-dock-note").textContent,
+    /внутри Г-424 пока не нанесён/,
+  );
+  assert.equal(h.element("#route-dock-context").hidden, true);
+  assert.match(h.element("#route-dock-next").innerHTML, /Закрыть маршрут/);
+  h.element("#route-dock-next").dispatch("click");
+  assert.match(h.toasts.at(-1), /Маршрут до Г-424 завершён/);
 });
