@@ -232,7 +232,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const settings = readSaved("settings", {
     theme: "system",
-    quality: "auto",
+    quality: "balanced",
     frameRate: "auto",
     motion: motionQuery.matches,
     headingFollow: true,
@@ -240,9 +240,14 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   if (!["system", "light", "dark"].includes(settings.theme))
     settings.theme = "system";
   if (!["auto", "low", "balanced", "high"].includes(settings.quality))
-    settings.quality = "auto";
+    settings.quality = "balanced";
   if (!["auto", "30", "60"].includes(settings.frameRate))
     settings.frameRate = "auto";
+  const migrateQualityDefault = readSaved("quality-default-version", 0) < 1;
+  // The old startup saved "auto" even when nobody chose it. Reset that legacy
+  // value once per interface profile; subsequent explicit "auto" is retained.
+  if (migrateQualityDefault && settings.quality === "auto")
+    settings.quality = "balanced";
   let autoFrameRate = 60;
   function applyFrameRate() {
     scene.setFrameRate?.(
@@ -298,6 +303,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   themeQuery.addEventListener("change", applySettings);
   applyGraphics();
   applySettings();
+  if (migrateQualityDefault) writeSaved("quality-default-version", 1);
   $("#settings-open").onclick = () => $("#settings-dialog").showModal();
   $("#settings-close").onclick = () => $("#settings-dialog").close();
   bindInterfaceControls();

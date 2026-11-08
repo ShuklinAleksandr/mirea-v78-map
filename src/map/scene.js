@@ -17,7 +17,10 @@ import hallAdjacency from "../data/hall-adjacency.json" with { type: "json" };
 import { getIndoorDisplayGeometry } from "./indoor-overrides.js";
 import {
   getBuildingFloorView,
-  getBuildingScopePolygonIds,
+  getBuildingFloorComponentScopes,
+  getBuildingScopePoints,
+  restrictFloorDisplayBounds,
+  BUILDING_DISPLAY_MARGIN,
 } from "./building-view.js";
 import {
   createStaircase,
@@ -215,11 +218,7 @@ export class AtlasScene {
     this.scene.add(this.hemisphere);
     this.sun = new THREE.DirectionalLight(0xfff7ed, 2.2);
     this.sun.position.set(-150, 240, 130);
-    this.sun.castShadow = true;
-    const shadowSize = this.qualityProfile.shadowSize || 1024;
-    this.sun.shadow.mapSize.set(shadowSize, shadowSize);
-    this.sun.shadow.bias = -0.0003;
-    this.sun.shadow.normalBias = 0.12;
+    this.sun.castShadow = false;
     this.scene.add(this.sun, this.sun.target);
     this.model = new THREE.Group();
     this.context = new THREE.Group();
@@ -481,6 +480,8 @@ export class AtlasScene {
   }
   setCampus(campus, floors) {
     this.floorDisplay = null;
+    this.floorDisplayCache = [];
+    this.buildingPointsCache = new WeakMap();
     this.clearRoute({ rebuild: false });
     this.campus = campus;
     this.floors = floors;
@@ -1068,6 +1069,7 @@ export class AtlasScene {
     if (this.renderer.getPixelRatio() !== this.qualityProfile.pixelRatio)
       this.renderer.setPixelRatio(this.qualityProfile.pixelRatio);
     this.renderer.shadowMap.enabled = this.qualityProfile.shadows;
+    this.sun.castShadow = false;
     const shadow = this.sun.shadow;
     const size = this.qualityProfile.shadowSize;
     if (!size || shadow.mapSize.x !== size) {
@@ -1907,13 +1909,44 @@ export class AtlasScene {
     return true;
   }
   prepareFloorDisplay(floor, scopedBuilding) {
-    const cached = this.floorDisplay;
-    if (cached?.floor === floor && cached.scopedBuilding === scopedBuilding)
-      return cached;
     const hallFloor = getHallAdjacencyView(floor);
-    const renderFloor = scopedBuilding
+    const components = scopedBuilding
+      ? getBuildingFloorComponentScopes(hallFloor, scopedBuilding)
+      : [];
+    const preserveSharedComponents = components.some(
+      ({ owners }) => owners.length > 1,
+    );
+    const sourceFootprints = hallFloor.exteriorFootprints?.length
+      ? hallFloor.exteriorFootprints
+      : hallFloor.footprints;
+    // A shared connected component has identical source contours for every
+    // selected wing it contains. Cache that common display once, not per label.
+    const scopeKey = preserveSharedComponents
+      ? `components:${components.map(({ footprint }) => sourceFootprints.indexOf(footprint)).join(",")}`
+      : scopedBuilding;
+    const cache = (this.floorDisplayCache ??= []);
+    const index = cache.findIndex(
+      (entry) => entry.floor === floor && entry.scopeKey === scopeKey,
+    );
+    if (index >= 0) {
+      const [cached] = cache.splice(index, 1);
+      cache.push(cached);
+      this.floorDisplay = cached;
+      return cached;
+    }
+    let renderFloor = scopedBuilding
       ? getBuildingFloorView(hallFloor, scopedBuilding)
       : hallFloor;
+    const bounds = scopedBuilding
+      ? this.boundsForBuilding(scopedBuilding, floor)
+      : null;
+    if (bounds && !preserveSharedComponents)
+      renderFloor = restrictFloorDisplayBounds(renderFloor, [
+        bounds[0] - BUILDING_DISPLAY_MARGIN,
+        bounds[1] - BUILDING_DISPLAY_MARGIN,
+        bounds[2] + BUILDING_DISPLAY_MARGIN,
+        bounds[3] + BUILDING_DISPLAY_MARGIN,
+      ]);
     const stairCutouts = getStairDisplayCutouts(renderFloor);
     const openings = new Set();
     const cut = (polygon) =>
@@ -1925,11 +1958,14 @@ export class AtlasScene {
       ...renderFloor,
       walls: display.walls,
     });
-    // The cut contours, openings and wall layout are shared by both
-    // projections. Cache only the most recent floor, and rebuild GPU meshes.
-    return (this.floorDisplay = {
+    // Six recently used floor/scope combinations cover adjacent-floor returns.
+    // These are immutable CPU contours only: every scene still owns and disposes
+    // its GPU geometry/materials, including independently built stacked stages.
+    const prepared = {
       floor,
       scopedBuilding,
+      scopeKey,
+      preserveSharedComponents,
       renderFloor,
       stairCutouts,
       openings,
@@ -1937,7 +1973,10 @@ export class AtlasScene {
       rooms,
       display,
       stairPartitions,
-    });
+    };
+    cache.push(prepared);
+    if (cache.length > 6) cache.shift();
+    return (this.floorDisplay = prepared);
   }
   setFloor(floor, building = null, { fit = true } = {}) {
     const keepPicking = Boolean(this.locationPicking);
@@ -1954,7 +1993,9 @@ export class AtlasScene {
       rooms: roomShapes,
       display,
       stairPartitions,
+      preserveSharedComponents,
     } = this.prepareFloorDisplay(floor, scopedBuilding);
+    this.preserveSharedComponents = preserveSharedComponents;
     this.locationFloor = renderFloor;
     this.locationCutouts = stairCutouts;
     if (this.ground)
@@ -2072,10 +2113,15 @@ export class AtlasScene {
     if (this.plan && openings.size)
       this.model.add(createStairOpeningPlan(openings));
     this.addUncertainty(renderFloor.uncertaintyRegions || []);
-    if (building && !this.neighborsOn && !this.route) {
+    if (
+      building &&
+      !this.neighborsOn &&
+      !this.route &&
+      !preserveSharedComponents
+    ) {
       const b = this.boundsForBuilding(building, floor);
       if (b) {
-        const margin = 2.5;
+        const margin = BUILDING_DISPLAY_MARGIN;
         // A rotated building needs a rotated cutaway; an axis-aligned box leaves
         // fragments of adjacent wings in its corners.
         const hull = convexHull(this.pointsForBuilding(building, floor));
@@ -2213,14 +2259,13 @@ export class AtlasScene {
             marker.shapeReviewStatus !== "user-confirmed-schematic"))
       )
         continue;
-      if (
+      const outsideFocus =
         bounds &&
         (p[0] < bounds[0] - 6 ||
           p[0] > bounds[2] + 6 ||
           p[1] < bounds[1] - 6 ||
-          p[1] > bounds[3] + 6)
-      )
-        continue;
+          p[1] > bounds[3] + 6);
+      if (outsideFocus && !this.preserveSharedComponents) continue;
       const stair = this.plan
         ? null
         : createStaircase(marker, floor, this.assumptions, {
@@ -2249,37 +2294,39 @@ export class AtlasScene {
         continue;
       }
       placed.push({ center, layoutId });
-      const stairLabel = this.addLabel(
-        marker.shapeReviewStatus === "requires-correction"
-          ? "Спуск · схема уточняется"
-          : marker.layoutId
-            ? stairLayout?.layoutMode === "opposed-branches"
-              ? "Главная лестница"
-              : stairLayout?.building
-                ? marker.label.split(" · ")[0]
-                : marker.label
-            : marker.placeEvidence
-              ? marker.label
-              : "↕",
-        p,
-        this.plan
-          ? 0.5
-          : marker.shapeReviewStatus === "requires-correction"
-            ? 0.55
-            : marker.shapeReviewStatus === "user-confirmed-schematic"
-              ? 1.25
-              : stairLayout?.incomingDisplay
-                ? 1.25
-                : marker.layoutId
-                  ? stairLayout?.levelRole === "upper-arrival"
+      const stairLabel = outsideFocus
+        ? null
+        : this.addLabel(
+            marker.shapeReviewStatus === "requires-correction"
+              ? "Спуск · схема уточняется"
+              : marker.layoutId
+                ? stairLayout?.layoutMode === "opposed-branches"
+                  ? "Главная лестница"
+                  : stairLayout?.building
+                    ? marker.label.split(" · ")[0]
+                    : marker.label
+                : marker.placeEvidence
+                  ? marker.label
+                  : "↕",
+            p,
+            this.plan
+              ? 0.5
+              : marker.shapeReviewStatus === "requires-correction"
+                ? 0.55
+                : marker.shapeReviewStatus === "user-confirmed-schematic"
+                  ? 1.25
+                  : stairLayout?.incomingDisplay
                     ? 1.25
-                    : 4.2
-                  : 0.55,
-        "stairs",
-        () => this.callbacks.onRoom?.(marker),
-        marker.id,
-      );
-      stairLabel.title = marker.label;
+                    : marker.layoutId
+                      ? stairLayout?.levelRole === "upper-arrival"
+                        ? 1.25
+                        : 4.2
+                      : 0.55,
+            "stairs",
+            () => this.callbacks.onRoom?.(marker),
+            marker.id,
+          );
+      if (stairLabel) stairLabel.title = marker.label;
       if (!stair) {
         if (!batches.has("plan"))
           batches.set("plan", {
@@ -2407,7 +2454,10 @@ export class AtlasScene {
     }
   }
   pointsForBuilding(building, floor) {
-    const scopeIds = getBuildingScopePolygonIds(floor, building);
+    const cache = (this.buildingPointsCache ??= new WeakMap());
+    let buildings = cache.get(floor);
+    if (buildings?.has(building)) return buildings.get(building);
+    if (!buildings) cache.set(floor, (buildings = new Map()));
     // Photographed stairs identify unlabelled hall regions belonging to a wing.
     // Include their source containers in the cutaway without rewriting source data.
     const sourceIds = new Set(
@@ -2418,9 +2468,16 @@ export class AtlasScene {
           return [...(layout?.sourcePolygonIds || []), layout?.containerAreaId];
         }),
     );
-    return (floor.polygons || [])
-      .filter((p) => scopeIds.has(p.id) || sourceIds.has(p.id))
-      .flatMap((p) => p.points || []);
+    const points = [
+      ...getBuildingScopePoints(floor, building),
+      ...(floor.polygons || [])
+        .filter((p) => sourceIds.has(p.id))
+        .flatMap((p) => p.points || []),
+    ];
+    // Floors are immutable source/metadata views. Weak identity keys release
+    // evicted derived views and a changed source object gets fresh bounds.
+    buildings.set(building, points);
+    return points;
   }
   boundsForBuilding(building, floor = null) {
     const pts = (floor ? [floor] : this.floors).flatMap((f) =>

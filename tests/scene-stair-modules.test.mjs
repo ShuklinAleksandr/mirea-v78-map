@@ -212,35 +212,28 @@ test("the real photographed A146 stair next to the schematic hall branches keeps
   }
 });
 
-test("the scene keeps synthetic scan color attributes separate from uncolored stairs and disposes each batch once", () => {
+test("the scene batches clean stair solids without loading scan colors and disposes each batch once", () => {
   const result = renderConnections(readFloor(1), false, null);
   const disposed = [];
   try {
-    let colored = 0,
-      uncolored = 0;
+    let uncolored = 0;
     for (const mesh of result.view.pickables) {
       const color = mesh.geometry.getAttribute("color"),
         position = mesh.geometry.getAttribute("position");
-      if (mesh.material.vertexColors) {
-        colored++;
-        assert.ok(color);
-        assert.equal(color.count, position.count);
-        assert.ok([...color.array].every(Number.isFinite));
-        assert.ok(
-          mesh.userData.faceRooms.every((owner) => owner.layoutId),
-          "colored scan triangles retain their selectable source markers",
-        );
-      } else {
-        uncolored++;
-        assert.equal(color, undefined);
-      }
+      assert.equal(mesh.material.vertexColors, false);
+      assert.equal(mesh.material.map, null);
+      assert.equal(color, undefined);
+      assert.equal(mesh.userData.faceRooms.length, position.count / 3);
+      uncolored++;
       for (const resource of [mesh.geometry, mesh.material]) {
         const observation = { count: 0 };
         resource.addEventListener("dispose", () => observation.count++);
         disposed.push(observation);
       }
     }
-    assert.ok(colored > 0 && uncolored > 0);
+    assert.ok(uncolored > 0);
+    assert.ok(result.layouts.has("v-78-floor1-photo-stair-A154"));
+    assert.ok(result.layouts.has("v-78-floor1-user-stair-basement"));
   } finally {
     result.dispose();
   }

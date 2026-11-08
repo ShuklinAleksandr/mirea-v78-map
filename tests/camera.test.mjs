@@ -502,7 +502,9 @@ for (const sourceLevel of [2, 3]) {
     });
     view.setFloor(floor, "А", { fit: false });
     assert.ok(labels.some((args) => args[5] === marker.id));
-    assert.ok(view.clipPlanes.length >= 3);
+    if (view.floorDisplay.preserveSharedComponents)
+      assert.equal(view.clipPlanes, null, "shared source rooms stay whole");
+    else assert.ok(view.clipPlanes.length >= 3);
     let checkedVertices = 0;
     for (const mesh of view.pickables) {
       const rooms = mesh.userData.faceRooms || [];
@@ -515,7 +517,7 @@ for (const sourceLevel of [2, 3]) {
             face * 3 + corner,
           );
           assert.ok(
-            view.clipPlanes.every(
+            (view.clipPlanes || []).every(
               (plane) => plane.distanceToPoint(point) >= -0.0001,
             ),
             `${marker.id} visible vertex ${point.toArray()}`,

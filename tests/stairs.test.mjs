@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
+import {
+  createStairScanVisual,
+  getStairScanDisplayCutouts,
+} from "../src/map/stair-scan-visual.js";
 import polygonClipping from "polygon-clipping";
 import { pointInLocationPolygon } from "../src/location.js";
 import lowerScan from "../src/data/stair-scan-meshes/grand-lower.json" with { type: "json" };
@@ -321,13 +325,17 @@ test("main stair on A3 descends to A2 through a display cutout, while the separa
     const cutouts = getStairDisplayCutouts(floor).filter(
       (cutout) => cutout.layoutId === main.layoutId,
     );
-    assert.equal(cutouts.length, 1);
+    assert.equal(
+      cutouts.length,
+      2,
+      "separate branches retain the central arrival landing",
+    );
     const polygon = floor.polygons.find(
       (p) => p.id === cutouts[0].sourcePolygonIds[0],
     );
     const before = JSON.stringify(polygon);
     const display = withStairDisplayCutouts(polygon, cutouts);
-    assert.equal(display.holes.length, (polygon.holes || []).length + 1);
+    assert.equal(display.holes.length, (polygon.holes || []).length + 2);
     assert.equal(
       JSON.stringify(polygon),
       before,
@@ -445,7 +453,12 @@ test("confirmed lower hall scheme has two separate mirrored half-level returns w
       [],
       "one graph edge cannot choose or concatenate the two physical branches",
     );
-    const group = createStaircase(marker, floor);
+    const group = createStaircase(
+      marker,
+      floor,
+      {},
+      { observedRenderer: createStairScanVisual },
+    );
     try {
       const bounds = new THREE.Box3().setFromObject(group);
       assert.equal(group.userData.geometryStatus, "user-confirmed-schematic");
@@ -473,9 +486,9 @@ test("confirmed lower hall scheme has two separate mirrored half-level returns w
               "all schematic mesh vertices stay within the known hall",
             );
       });
-      const openings = getStairDisplayCutouts(floor).filter(
-        (cutout) => cutout.layoutId === layout.id,
-      );
+      const openings = getStairDisplayCutouts(floor, {
+        observedCutouts: getStairScanDisplayCutouts,
+      }).filter((cutout) => cutout.layoutId === layout.id);
       assert.equal(openings.length, top === 0 ? 1 : 0);
       if (openings.length) {
         assertScanOpeningExposesTreads(group, layout, openings, container);
@@ -768,9 +781,9 @@ test("the confirmed second descent repeats the mirrored scheme toward IVC withou
     layout.shapeStatus,
     "user-confirmed-topology-schematic-dimensions",
   );
-  const basementOpenings = getStairDisplayCutouts(floor).filter(
-    (cutout) => cutout.layoutId === basement.layoutId,
-  );
+  const basementOpenings = getStairDisplayCutouts(floor, {
+    observedCutouts: getStairScanDisplayCutouts,
+  }).filter((cutout) => cutout.layoutId === basement.layoutId);
   assert.deepEqual(
     basementOpenings.map((cutout) => cutout.layoutId),
     [basement.layoutId],
@@ -781,7 +794,12 @@ test("the confirmed second descent repeats the mirrored scheme toward IVC withou
       .polygons.some((polygon) => polygon.building === "А"),
     "a basement floor plan is not fabricated",
   );
-  const group = createStaircase(basement, floor);
+  const group = createStaircase(
+    basement,
+    floor,
+    {},
+    { observedRenderer: createStairScanVisual },
+  );
   try {
     const box = new THREE.Box3().setFromObject(group);
     assert.ok(box.min.y < -3 && box.max.y < 1.1);
@@ -1013,7 +1031,12 @@ test("lower stair scans retain observed tall wall faces without generating the o
         (wall) => wall.from[1] === 0.09 && wall.to[1] === 0.09,
       ),
     );
-    const group = createStaircase(marker, floor);
+    const group = createStaircase(
+      marker,
+      floor,
+      {},
+      { observedRenderer: createStairScanVisual },
+    );
     try {
       assert.equal(
         group.userData.enclosureStatus,

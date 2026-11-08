@@ -455,32 +455,20 @@ export function bindRoutes({
   function renderFloors() {
     if (!route) return;
     const floors = [...new Set(route.segments.map((s) => s.floorId))];
-    $("#route-floor-chips").innerHTML =
-      `<button id="route-all-floors" aria-label="Показать все этажи маршрута">${icon("layers", 14)} Все этажи · 3D</button>` +
-      floors
-        .map((id, i) => {
-          const segment = route.segments.find((s) => s.floorId === id);
-          const n = segment.nodes[0];
-          const title =
-            n?.physicalLevel != null
-              ? `${n.physicalLevel} этаж${n.building ? ` · ${n.building}` : ""}`
-              : `Уровень ${n?.sourceLevel ?? i + 1}`;
-          return `<button data-route-floor="${escape(id)}" class="${state.floor?.id === id ? "active" : ""}">${escape(title)}</button>`;
-        })
-        .join("");
+    $("#route-floor-chips").innerHTML = floors
+      .map((id, i) => {
+        const segment = route.segments.find((s) => s.floorId === id);
+        const n = segment.nodes[0];
+        const title =
+          n?.physicalLevel != null
+            ? `${n.physicalLevel} этаж${n.building ? ` · ${n.building}` : ""}`
+            : `Уровень ${n?.sourceLevel ?? i + 1}`;
+        return `<button data-route-floor="${escape(id)}" class="${state.floor?.id === id ? "active" : ""}">${escape(title)}</button>`;
+      })
+      .join("");
     for (const b of $("#route-floor-chips").children)
       if (b.dataset.routeFloor)
         b.onclick = () => viewFloor(b.dataset.routeFloor);
-    $("#route-all-floors").onclick = () => {
-      pausePreview();
-      scene.setRouteGuidance?.(null);
-      experience.expand(false);
-      scene.setRouteOverview?.(true, { padding: padding() });
-      updateUI();
-      saveView();
-      for (const b of $("#route-floor-chips").children)
-        b.classList.toggle("active", b.id === "route-all-floors");
-    };
   }
   function syncView() {
     if (!route || route.campusId !== state.campus?.id) return;
@@ -488,14 +476,6 @@ export function bindRoutes({
     // Keep an explicitly selected place/building's own header when a saved
     // route also happens to cross the same source level.
     if (state.selected || state.building) return;
-    if (scene.routeOverview) {
-      const n = route.segments.find((s) => s.floorId === state.floor?.id)
-        ?.nodes[0];
-      $("#focus-floor-status").innerHTML =
-        `${icon("layers", 16)}<span>${n?.physicalLevel != null ? `${n.physicalLevel} этаж${n.building ? ` · ${escape(n.building)}` : ""} в фокусе` : "Маршрут по этажам"}</span><small>3D · несколько этажей</small>`;
-      $("#caption-title").textContent = "Все этажи маршрута · 3D";
-      return;
-    }
     const n = route.segments.find((s) => s.floorId === state.floor?.id)
       ?.nodes[0];
     if (n) {
@@ -1149,13 +1129,6 @@ export function bindRoutes({
     locationChanged,
     refreshCurrentOrigin: locationChanged,
     showFloor: viewFloor,
-    focusStackFloor(id) {
-      viewFloor(id, false);
-      scene.setRouteOverview?.(true, { padding: padding(), focusFloorId: id });
-      updateUI();
-      $("#route-all-floors").classList.add("active");
-      saveView();
-    },
     syncView,
     projectionChanged() {
       if (route) {

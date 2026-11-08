@@ -52,3 +52,11 @@ test("Android keeps GPS and compass but has no production Wi-Fi scanner or scan 
     });
   }
 });
+
+test("both interfaces expose single-floor controls without an all-floors entry", async () => {
+  assert.doesNotMatch(layout, /nav-stack|Все этажи/iu);
+  assert.match(layout, /id="nav-inside"/u);
+  assert.match(layout, /id="floor-rail"/u);
+  const app = await read("src/app.js");
+  assert.doesNotMatch(app, /nav-stack|focusStackFloor|setBuildingOverview/u);
+});

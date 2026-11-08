@@ -425,10 +425,18 @@ test("stacked route preserves source level heights, keeps focus, and disposes ge
       "all stage geometries are disposed once",
     );
     view.clearRoute();
-    for (const floor of floors) {
-      floor.polygons[0].building = "А";
-      floor.buildingLevels = { А: floor.level + 2 };
-    }
+    // Source/metadata refreshes replace immutable floor views, as chooseFloor
+    // does. Replacing the fixture also exercises scope-cache invalidation.
+    floors.forEach((floor, index) => {
+      floors[index] = {
+        ...floor,
+        polygons: floor.polygons.map((polygon) => ({
+          ...polygon,
+          building: "А",
+        })),
+        buildingLevels: { А: floor.level + 2 },
+      };
+    });
     assert.equal(view.setBuildingOverview("А"), true);
     assert.equal(view.buildingOverview, true);
     assert.equal(view.routeOverview, false);

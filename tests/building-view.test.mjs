@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import {
   getBuildingFloorView,
   getBuildingScopePolygonIds,
+  getBuildingScopePoints,
+  restrictFloorDisplayBounds,
 } from "../src/map/building-view.js";
 
 const rect = (x, z, width, height) => ({
@@ -27,7 +29,8 @@ test("A2 removes the entire separate I component without changing source geometr
   const sourceTransitions = floor2.transitions.length;
   const view = getBuildingFloorView(floor2, "А");
   assert.equal(view.footprints.length, 1);
-  assert.equal(view.footprints[0], floor2.footprints[0]);
+  assert.ok(floor2.exteriorFootprints.includes(view.footprints[0]));
+  assert.ok(view.polygons.every((p) => p.exteriorEligible !== false));
   assert.ok(!view.polygons.some((p) => p.building === "И"));
   for (const id of [
     "v-78-floor2-area-327",
@@ -156,4 +159,81 @@ test("A2 scope adds complete native A corridors only while their exact adjacency
     ),
   };
   assert.ok(!getBuildingScopePolygonIds(changedType, "А").has(corridor.id));
+});
+
+test("E2 uses the complete existing indoor component, including unnamed labs and the real opening", () => {
+  const before = JSON.stringify(floor2);
+  const view = getBuildingFloorView(floor2, "Е");
+  assert.equal(view.footprints.length, 1);
+  const footprint = view.footprints[0];
+  assert.ok(floor2.exteriorFootprints.includes(footprint));
+  assert.equal(footprint.holes.length, 1);
+  for (const id of [
+    "v-78-floor2-area-350",
+    "v-78-floor2-area-354",
+    "v-78-floor2-area-450",
+    "v-78-floor2-area-453",
+  ])
+    assert.ok(
+      view.polygons.some((polygon) => polygon.id === id),
+      id,
+    );
+  assert.ok(
+    !view.polygons.some(
+      (polygon) => polygon.building && polygon.building !== "Е",
+    ),
+  );
+  assert.ok(
+    view.polygons.every((polygon) => polygon.exteriorEligible !== false),
+  );
+  const points = getBuildingScopePoints(floor2, "Е");
+  for (const point of footprint.points) assert.ok(points.includes(point));
+  assert.deepEqual(
+    [
+      Math.min(...points.map((p) => p[0])),
+      Math.min(...points.map((p) => p[1])),
+      Math.max(...points.map((p) => p[0])),
+      Math.max(...points.map((p) => p[1])),
+    ],
+    [-267.814, -9.5336, -189.072, 54.5674],
+  );
+  assert.equal(JSON.stringify(floor2), before);
+});
+
+test("display-bounds rejection keeps crossing shapes and preserves their holes and source segments", () => {
+  const polygon = {
+    id: "crossing",
+    ...rect(-20, -1, 40, 2),
+    holes: [rect(-1, -0.5, 2, 1).points],
+  };
+  const wall = { a: [-20, 0], b: [20, 0] };
+  const source = {
+    footprints: [polygon, rect(30, 30, 5, 5)],
+    polygons: [polygon],
+    walls: [wall, { a: [30, 30], b: [35, 35] }],
+    doors: [],
+    markers: [{ position: [0, 0] }, { position: [30, 30] }],
+  };
+  const view = restrictFloorDisplayBounds(source, [-2, -2, 2, 2]);
+  assert.equal(view.polygons[0], polygon);
+  assert.equal(view.footprints[0], polygon);
+  assert.deepEqual(view.walls, [wall]);
+  assert.equal(view.markers.length, 1);
+  assert.equal(source.walls.length, 2);
+});
+
+test("E1 keeps the already visible separate ЛК3 source island whole without assigning its building", () => {
+  const floor = JSON.parse(
+    readFileSync(
+      new URL("../public/data/campuses/v-78/v-78-floor1.json", import.meta.url),
+    ),
+  );
+  const island = floor.polygons.find(
+    (polygon) => polygon.id === "v-78--floor-1--6lv",
+  );
+  assert.equal(island.building, null);
+  const points = getBuildingScopePoints(floor, "Е");
+  for (const point of island.points)
+    assert.ok(points.some((p) => p[0] === point[0] && p[1] === point[1]));
+  assert.equal(island.building, null);
 });

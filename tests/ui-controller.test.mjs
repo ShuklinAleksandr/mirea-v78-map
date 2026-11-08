@@ -13,6 +13,7 @@ import {
 } from "../src/data/place-location.js";
 import placeLandmarks from "../src/data/place-landmarks.json" with { type: "json" };
 import { nextRouteReadout } from "../src/ui/next-route.js";
+import { variantStorageKey } from "../src/ui/variant.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -121,7 +122,8 @@ function harness(file, exports, saved = {}, options = {}) {
     placeLandmarks,
     nextRouteReadout,
     isNextInterface: () => options.nextInterface === true,
-    variantStorageKey: (key) => key,
+    variantStorageKey: (key) =>
+      variantStorageKey(key, options.nextInterface ? "next" : "classic"),
     bindInterfaceControls: () => {},
     createRouteGuidance,
     sampleRouteGuidance,
@@ -203,20 +205,28 @@ function harness(file, exports, saved = {}, options = {}) {
     },
   };
 }
-function experienceHarness(saved, visualViewport) {
+function experienceHarness(saved, visualViewport, options = {}) {
   const h = harness(
     "../src/ui/experience.js",
     ["bindExperience", "readSaved"],
     saved,
+    options,
   );
   h.window.visualViewport = visualViewport;
+  const qualityCalls = [];
   const api = h.bindExperience({
     state: { search: [] },
-    scene: { setTheme() {}, setQuality() {}, setReducedMotion() {} },
+    scene: {
+      setTheme() {},
+      setQuality(value) {
+        qualityCalls.push(value);
+      },
+      setReducedMotion() {},
+    },
     navigateRoom() {},
     toast() {},
   });
-  return { ...h, ...api };
+  return { ...h, ...api, qualityCalls };
 }
 function routeHarness({
   nextInterface = false,
@@ -245,6 +255,7 @@ function routeHarness({
   const guidanceOptions = [];
   const sheetCalls = [];
   const navigationModes = [];
+  const overviewCalls = [];
   const scene = {
     setNavigationMode(active) {
       navigationModes.push(active);
@@ -253,7 +264,9 @@ function routeHarness({
     setRoute(route) {
       draws.push(route);
     },
-    setRouteOverview() {},
+    setRouteOverview(value) {
+      overviewCalls.push(value);
+    },
     setRouteGuidance(sample, options) {
       guidanceCalls.push(sample);
       guidanceOptions.push(options);
@@ -316,6 +329,7 @@ function routeHarness({
     guidanceOptions,
     sheetCalls,
     navigationModes,
+    overviewCalls,
     room,
     result,
   };
@@ -477,7 +491,7 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
   const settings = JSON.parse(h.store.get("atlas:settings"));
   assert.deepEqual(settings, {
     theme: "system",
-    quality: "auto",
+    quality: "balanced",
     frameRate: "auto",
     motion: false,
     headingFollow: true,
@@ -1573,4 +1587,143 @@ test("an unavailable destination keeps the honest graph explanation visible inst
   assert.match(h.element("#route-status").textContent, /Г-424-1.*вход/);
   assert.equal(h.sheetCalls.at(-1), "expanded");
   assert.equal(h.element("#route-guidance-dock").hidden, true);
+});
+
+test("both interface profiles use balanced quality and migrate legacy auto only once", () => {
+  for (const nextInterface of [false, true]) {
+    const variant = nextInterface ? "next" : "classic";
+    const settingsKey = variantStorageKey("atlas:settings", variant);
+    const versionKey = variantStorageKey(
+      "atlas:quality-default-version",
+      variant,
+    );
+    const options = { nextInterface };
+    const fresh = experienceHarness({}, undefined, options);
+    assert.deepEqual(fresh.qualityCalls, ["balanced"]);
+    assert.equal(fresh.element("#quality-setting").value, "balanced");
+    assert.equal(fresh.store.get(versionKey), "1");
+
+    const preferences = {
+      quality: "auto",
+      theme: "dark",
+      frameRate: "30",
+      motion: true,
+      headingFollow: false,
+    };
+    const migrated = experienceHarness(
+      { [settingsKey]: JSON.stringify(preferences) },
+      undefined,
+      options,
+    );
+    assert.deepEqual(migrated.qualityCalls, ["balanced"]);
+    assert.deepEqual(JSON.parse(migrated.store.get(settingsKey)), {
+      ...preferences,
+      quality: "balanced",
+    });
+    assert.equal(migrated.store.get(versionKey), "1");
+
+    migrated
+      .element("#quality-setting")
+      .onchange({ target: { value: "auto" } });
+    const restarted = experienceHarness(
+      Object.fromEntries(migrated.store),
+      undefined,
+      options,
+    );
+    assert.deepEqual(
+      restarted.qualityCalls,
+      ["auto"],
+      "explicit auto after migration survives restart",
+    );
+    assert.equal(restarted.element("#quality-setting").value, "auto");
+
+    for (const quality of ["low", "balanced", "high"]) {
+      const existing = experienceHarness(
+        { [settingsKey]: JSON.stringify({ ...preferences, quality }) },
+        undefined,
+        options,
+      );
+      assert.deepEqual(existing.qualityCalls, [quality]);
+      assert.deepEqual(JSON.parse(existing.store.get(settingsKey)), {
+        ...preferences,
+        quality,
+      });
+    }
+  }
+});
+
+test("quality migration does not change the other interface profile", () => {
+  const classic = "atlas:settings",
+    next = "atlas:next:atlas:settings";
+  const h = experienceHarness({
+    [classic]: '{"quality":"auto"}',
+    [next]: '{"quality":"auto"}',
+  });
+  assert.equal(JSON.parse(h.store.get(classic)).quality, "balanced");
+  assert.equal(JSON.parse(h.store.get(next)).quality, "auto");
+  assert.equal(h.store.has("atlas:next:atlas:quality-default-version"), false);
+  const newUI = experienceHarness(Object.fromEntries(h.store), undefined, {
+    nextInterface: true,
+  });
+  assert.equal(JSON.parse(newUI.store.get(next)).quality, "balanced");
+  assert.equal(
+    newUI.store.get("atlas:next:atlas:quality-default-version"),
+    "1",
+  );
+});
+
+test("both route interfaces keep individual floors and transitions without an all-floor control", async () => {
+  for (const nextInterface of [false, true]) {
+    const h = routeHarness({ nextInterface });
+    const chips = ["a-floor1", "a-floor2"].map((floor) => ({
+      dataset: { routeFloor: floor },
+    }));
+    h.element("#route-floor-chips").children = chips;
+    h.result.segments = [1, 2].map((level) => ({
+      floorId: `a-floor${level}`,
+      points: [
+        [0, 0],
+        [10, 0],
+      ],
+      nodes: [{ physicalLevel: level }],
+    }));
+    h.result.steps = [
+      {
+        kind: "stairs",
+        floorId: "a-floor1",
+        position: [10, 0],
+        targetFloorId: "a-floor2",
+        text: "Поднимитесь на 2 этаж",
+      },
+      {
+        kind: "arrive",
+        floorId: "a-floor2",
+        position: [10, 0],
+        text: "Вы у аудитории",
+      },
+    ];
+    const pending = h.build();
+    h.reply(h.result);
+    await pending;
+    const content = h.element("#route-floor-chips").innerHTML;
+    assert.doesNotMatch(content, /route-all-floors|Все этажи/);
+    assert.match(content, /data-route-floor="a-floor1"/);
+    assert.match(content, /data-route-floor="a-floor2"/);
+    chips[1].onclick();
+    assert.equal(h.state.floor.id, "a-floor2");
+    chips[0].onclick();
+    assert.equal(h.state.floor.id, "a-floor1");
+    h.startGuidance();
+    h.element("#route-dock-next").dispatch("click");
+    assert.equal(
+      h.state.floor.id,
+      "a-floor2",
+      "the explicit staircase transition remains available",
+    );
+    assert.ok(h.overviewCalls.length > 0);
+    assert.ok(
+      h.overviewCalls.every((value) => value === false),
+      "no route action enables a stacked view",
+    );
+  }
 });

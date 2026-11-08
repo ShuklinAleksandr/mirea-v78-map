@@ -52,7 +52,7 @@ test("weak-device automatic quality lowers pixel density and shadows", () => {
     detail: false,
     autoFrameRate: 30,
   });
-  assert.equal(mapQuality("high", weak).shadowSize, 2048);
+  assert.equal(mapQuality("high", weak).shadowSize, 0);
   assert.equal(mapQuality("balanced", weak).autoFrameRate, 60);
 });
 

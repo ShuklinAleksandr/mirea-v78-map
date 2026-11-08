@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { resolveInitialView } from "../src/data/navigation.js";
+import { mergedFloorView } from "../src/data/floor-view.js";
 import { geometryEvidence, resolveRoom } from "../src/data/utils.js";
 import { getHallAdjacencyView } from "../src/map/hall-adjacency.js";
 import { entranceHint } from "../src/data/entrance-hints.js";
+import { isCompactLandscape } from "../src/ui/map-viewport.js";
 import {
   placeDescription,
   placeLocation,
@@ -91,6 +93,8 @@ function harness({
   landmarks = {},
   nextInterface = false,
   withExperience = false,
+  width = 390,
+  height = 844,
 } = {}) {
   const campuses = ["a", "b", "c"].map((id) => ({
     id,
@@ -166,6 +170,7 @@ function harness({
     placeLocation,
     presentPlaceIdentity,
     getHallAdjacencyView,
+    mergedFloorView,
     entranceHint,
     isNextInterface: () => nextInterface,
     placeLandmarks: { hints: landmarks },
@@ -210,9 +215,9 @@ function harness({
     getMapStairMarkers: () => stairMarkers,
     resolveStairTarget,
     kindNames: { room: "Помещение" },
-    innerWidth: 390,
-    innerHeight: 844,
-    isCompactLandscape: () => false,
+    innerWidth: width,
+    innerHeight: height,
+    isCompactLandscape,
     escape: String,
     icon: () => "",
     document: {
@@ -244,7 +249,14 @@ function harness({
     routes: { syncView() {}, changedCampus() {} },
     readSaved: (_key, fallback) => fallback,
     experience: withExperience
-      ? { remember() {}, expand() {}, favorite() {} }
+      ? {
+          remember() {},
+          expand() {},
+          favorite() {},
+          minimize() {
+            calls.push(["minimize"]);
+          },
+        }
       : undefined,
     userPosition: {
       cancelPicking() {
@@ -272,6 +284,7 @@ function harness({
     navigatePlace: (room) => context.navigateRoom(room),
     dismiss: () => context.dismissRoom(),
     choose: (id) => context.chooseFloor(`${id}-floor1`),
+    chooseBuilding: (building) => context.chooseBuilding(building),
     overview: () => context.overview(),
     select: (r) => context.selectRoom(r),
     clickStairTarget(index = 0) {
@@ -690,4 +703,182 @@ test("fresh V78 opens the main entrance A2 while explicit links preserve their v
     ).floorId,
     "v-78-floor1",
   );
+});
+
+test("legacy stacked links open a compatible single floor and preserve other link parameters", () => {
+  const exact = new URLSearchParams(
+    "campus=v-78&building=Г&floor=v-78-floor3&view=stack&projection=2d&from=a&to=b",
+  );
+  const original = exact.toString();
+  assert.deepEqual(resolveInitialView(exact, manifest), {
+    campusId: "v-78",
+    building: "Г",
+    floorId: "v-78-floor3",
+    mode: "floor",
+    projection: "2d",
+  });
+  assert.equal(exact.toString(), original);
+  const campus = manifest.campuses.find((item) => item.id === "v-78");
+  for (const hash of [
+    "campus=v-78&building=Г&view=stack",
+    "campus=v-78&building=Г&floor=v-78-floor4&view=stack",
+    "campus=v-78&building=missing&floor=missing&view=stack",
+    "campus=v-78&view=stack",
+  ]) {
+    const view = resolveInitialView(hash, manifest);
+    assert.equal(view.mode, "floor");
+    const floor = campus.floors.find((item) => item.id === view.floorId);
+    assert.ok(floor);
+    assert.ok(
+      !view.building || Object.hasOwn(floor.buildingLevels, view.building),
+    );
+  }
+});
+
+test("choosing a building or overview reveals the phone map before focusing it in both interfaces", () => {
+  for (const nextInterface of [false, true]) {
+    for (const [width, height] of [
+      [390, 844],
+      [844, 390],
+    ]) {
+      const h = harness({ nextInterface, withExperience: true, width, height });
+      h.chooseBuilding("a");
+      assert.equal(h.state.building, "a");
+      assert.deepEqual(h.calls, [["minimize"], ["overview", "a"]]);
+      h.choose("a");
+      h.calls.length = 0;
+      h.chooseBuilding("a");
+      assert.deepEqual(h.calls, [["minimize"], ["floor", "a-floor1"]]);
+      assert.equal(h.state.mode, "floor");
+      h.calls.length = 0;
+      h.overview();
+      assert.deepEqual(h.calls, [["minimize"], ["overview", undefined]]);
+      assert.equal(h.state.mode, "overview");
+      assert.equal(h.state.building, null);
+    }
+    const desktop = harness({
+      nextInterface,
+      withExperience: true,
+      width: 1440,
+      height: 900,
+    });
+    desktop.chooseBuilding("a");
+    desktop.overview();
+    assert.equal(
+      desktop.calls.some(([kind]) => kind === "minimize"),
+      false,
+    );
+  }
+});
+
+test("floor rail and Next picker preserve the minimized sheet for ordinary and route floors", () => {
+  for (const nextInterface of [false, true]) {
+    for (const hasRoute of [false, true]) {
+      for (const initialSheet of ["minimized", "peek", "expanded"]) {
+        const floors = [1, 2].map((level) => ({
+          id: `e-${level}`,
+          level,
+          buildingLevels: { Е: level },
+        }));
+        const state = {
+          campus: { floors },
+          floor: floors[1],
+          building: "Е",
+          mode: "floor",
+        };
+        let sheet = initialSheet,
+          pickerClosed = false;
+        const sheetCalls = [],
+          floorCalls = [];
+        const button = (name, id) => ({
+          dataset: { [name]: id },
+          click() {
+            this.onclick();
+          },
+        });
+        const rail = floors.map((floor) => button("railFloor", floor.id));
+        const picker = floors.map((floor) => button("nextFloor", floor.id));
+        const elements = new Map();
+        const $ = (selector) => {
+          if (!elements.has(selector))
+            elements.set(selector, {
+              querySelectorAll: () =>
+                selector === "#floor-rail" ? rail : picker,
+              close() {
+                pickerClosed = true;
+              },
+            });
+          return elements.get(selector);
+        };
+        const context = {
+          $,
+          state,
+          scene: { locationPicking: false },
+          escape: String,
+          icon: () => "",
+          isNextInterface: () => nextInterface,
+          floorPhysical: (floor) => floor.level,
+          chooseFloor(id) {
+            state.floor = floors.find((floor) => floor.id === id);
+            floorCalls.push("ordinary");
+          },
+          routes: {
+            getRoute: () =>
+              hasRoute
+                ? {
+                    segments: floors.map((floor) => ({
+                      floorId: floor.id,
+                      nodes: [{ building: "Е" }],
+                    })),
+                  }
+                : null,
+            showFloor(id) {
+              state.floor = floors.find((floor) => floor.id === id);
+              floorCalls.push("route");
+            },
+          },
+          experience: {
+            getSheetState: () => sheet,
+            minimize() {
+              sheet = "minimized";
+              sheetCalls.push("minimized");
+            },
+            expand(value) {
+              sheet = value ? "expanded" : "peek";
+              sheetCalls.push(sheet);
+            },
+          },
+        };
+        vm.runInNewContext(
+          section("function renderFloors(", "function updateUI(") +
+            "\nrenderFloors();",
+          context,
+        );
+        (nextInterface ? picker : rail)[0].click();
+        assert.equal(state.floor.id, "e-1");
+        assert.deepEqual(floorCalls, [hasRoute ? "route" : "ordinary"]);
+        assert.equal(
+          sheet,
+          initialSheet === "minimized" ? "minimized" : "peek",
+        );
+        if (initialSheet === "minimized")
+          assert.deepEqual(
+            sheetCalls,
+            [],
+            "changing floor must not reopen a hidden panel",
+          );
+        assert.equal(pickerClosed, nextInterface);
+      }
+    }
+  }
+});
+
+test("actual floor selection reuses the same merged plan after leaving and returning", () => {
+  const h = harness();
+  h.choose("a");
+  const first = h.state.floor;
+  assert.ok(first);
+  h.overview();
+  h.choose("a");
+  assert.strictEqual(h.state.floor, first);
 });

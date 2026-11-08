@@ -38,16 +38,27 @@ export function resolveInitialView(parameters, manifest) {
   const requestedFloor = campus.floors.find(
     (f) => f.id === params.get("floor"),
   );
+  const legacyStack = params.get("view") === "stack";
   const wantsFloor =
+    legacyStack ||
     params.get("view") === "floor" ||
     (!params.get("view") && !!params.get("floor"));
+  const compatibleFloors = campus.floors.filter((f) =>
+    hasBuilding(f, building),
+  );
   const floor =
     validBuilding &&
     wantsFloor &&
     requestedFloor &&
     hasBuilding(requestedFloor, building)
       ? requestedFloor
-      : null;
+      : legacyStack
+        ? compatibleFloors.find(
+            (f) => (f.buildingLevels?.[building] ?? f.level) === 2,
+          ) ||
+          compatibleFloors.find((f) => f.level === 1) ||
+          compatibleFloors[0]
+        : null;
   return {
     campusId: campus.id,
     building,

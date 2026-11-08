@@ -10,18 +10,29 @@ import lower from "../src/data/stair-scan-meshes/grand-lower.json" with { type: 
 import { AtlasScene } from "../src/map/scene.js";
 import { pointInLocationPolygon } from "../src/location.js";
 import {
-  createStaircase,
+  createStaircase as createDisplayedStaircase,
   getMapStairMarkers,
   stairLayoutFor,
-  getStairDisplayCutouts,
+  getStairDisplayCutouts as getDisplayedCutouts,
   withStairDisplayCutouts,
 } from "../src/map/stairs.js";
 import {
   createStairScanVisual,
+  getStairScanDisplayCutouts,
   stairScanBinding,
   scanBackedStairLayoutsForFloor,
 } from "../src/map/stair-scan-visual.js";
 import { stairScanDisplayTopology } from "../src/map/stair-scan-repair.js";
+
+// Preserve the observed renderer's forensic checks independently of the clean
+// structural default. These diagnostics are no longer the runtime stair mesh.
+const createStaircase = (marker, floor, assumptions, options = {}) =>
+  createDisplayedStaircase(marker, floor, assumptions, {
+    ...options,
+    observedRenderer: createStairScanVisual,
+  });
+const getStairDisplayCutouts = (floor) =>
+  getDisplayedCutouts(floor, { observedCutouts: getStairScanDisplayCutouts });
 
 const floor = (n) =>
   JSON.parse(
