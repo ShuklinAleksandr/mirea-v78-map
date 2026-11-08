@@ -1,6 +1,6 @@
 {
-  "version": "0.5.0-compare.3",
-  "sourceCommit": "c7e44bbe301c456d7ae6e8b167114948f8e49656",
+  "version": "0.5.0-compare.4",
+  "sourceCommit": "3cd37ce4fd9edfd517d0f36cb8ea5e6482b86c8b",
   "base": "/mirea-v78-map/",
-  "scope": "V78 Classic and Next; landscape and keyboard fixes"
+  "scope": "V78 Classic and Next; separated mobile gestures and stable camera framing"
 }
