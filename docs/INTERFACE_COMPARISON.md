@@ -4,7 +4,7 @@
 
 Один проект используется для Android, сайта на компьютере и мобильного веба, включая Safari на iPhone. Данные карты и граф маршрутов общие. Текущая работа проходит через [PR №6](https://github.com/ShuklinAleksandr/mirea-v78-map/pull/6), без автоматического объединения с `main`.
 
-Подготавливается выпуск [v0.5.1](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.1), Android `versionCode=5`: `MIREA-V78.apk` и `MIREA-V78-Web.zip`. Фактические сборки, контрольные суммы и ограничения испытаний указываются в [новом отчёте](MOBILE_COMPACT_FLOORS_2026-11-08.md), а не выводятся из наличия исходников.
+Опубликован тестовый выпуск [v0.5.1](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.1), Android `versionCode=5`: `MIREA-V78.apk` и `MIREA-V78-Web.zip`. Фактические сборки, контрольные суммы и ограничения испытаний указываются в [новом отчёте](MOBILE_COMPACT_FLOORS_2026-11-08.md), а не выводятся из наличия исходников.
 
 ## Управление картой
 
