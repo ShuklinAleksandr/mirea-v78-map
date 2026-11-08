@@ -295,19 +295,10 @@ function updateUI() {
     state.campus.id === "mp-1"
       ? "Условные единицы · не измерительные данные"
       : "Масштаб источника: метры · высоты приблизительны";
- 
-  const modeToggle = $("#mode-toggle");
-  if (modeToggle) {
-    const is2D = scene.plan;
-    modeToggle.setAttribute("aria-pressed", is2D);
-    
-    // Меняем только текст, не трогая иконки (которых больше нет)
-    const label = modeToggle.querySelector(".mode-label");
-    if (label) {
-      label.textContent = is2D ? "2D" : "3D";
-    }
-  } 
 
+  const modeToggle = $("#mode-toggle");
+  modeToggle.setAttribute("aria-pressed", scene.plan);
+  modeToggle.textContent = scene.plan ? "2D" : "3D";
 
   const touch = matchMedia("(pointer: coarse)").matches;
   $("#interaction-hint").textContent = touch
@@ -722,7 +713,7 @@ $("#labels").onchange = () => {
   scene.invalidate();
 };
 $("#mode-toggle").onclick = () => {
-  scene.setProjection(!scene.plan); // Переключаем текущее состояние
+  scene.setProjection(!scene.plan);
   routes?.projectionChanged();
   updateUI();
   saveView();

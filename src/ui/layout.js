@@ -36,9 +36,7 @@ export const layout = `
       <button id="nav-stack" aria-label="Показать все этажи корпуса в 3D" hidden>Все этажи</button>
     </div>
     <div class="view-segment" role="group" aria-label="Проекция карты">
-      <button id="mode-toggle" class="mode-toggle" type="button" aria-label="Переключить проекцию" aria-pressed="false">
-        <span class="mode-label">3D</span>
-      </button>
+      <button id="mode-toggle" class="mode-toggle" type="button" aria-label="Переключить проекцию" aria-pressed="false">3D</button>
     </div>
   </div>
   <div id="focus-floor-status" class="focus-floor-status" aria-live="polite"></div>
