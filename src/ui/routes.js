@@ -986,6 +986,18 @@ export function bindRoutes({
   }
   return {
     getViewportPadding: padding,
+    isFollowingHeading: () =>
+      Boolean(
+        route &&
+          guiding &&
+          automatic &&
+          !previewing &&
+          !document.hidden &&
+          !state.selected &&
+          state.locationTracking?.enabled &&
+          state.locationTracking.following &&
+          route.segments.some((segment) => segment.floorId === state.floor?.id),
+      ),
     useCurrentLocation,
     locationChanged,
     refreshCurrentOrigin: locationChanged,

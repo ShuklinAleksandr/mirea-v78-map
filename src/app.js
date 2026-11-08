@@ -67,6 +67,7 @@ let scene, experience, routes, userPosition;
 try {
   scene = new AtlasScene($("#viewport"), {
     getViewportPadding: () => roomPadding(),
+    shouldFollowHeading: () => routes?.isFollowingHeading(),
     getResizePadding: () =>
       routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),
     onMapInteraction: () => {
@@ -413,7 +414,10 @@ function chooseBuilding(b) {
     if (scene.locationPicking) experience.minimize();
   }
 }
-function chooseFloor(id, { fit = true, navigationToken = null } = {}) {
+function chooseFloor(
+  id,
+  { fit = true, preserveViewport = false, navigationToken = null } = {},
+) {
   if (navigationToken == null) cancelPendingNavigation();
   else if (navigationToken !== state.loading) return false;
   busy(false);
@@ -423,7 +427,10 @@ function chooseFloor(id, { fit = true, navigationToken = null } = {}) {
   state.mode = "floor";
   closeRoom();
   const keepPicking = Boolean(scene.locationPicking);
-  scene.setFloor(state.floor, state.building, { fit });
+  scene.setFloor(state.floor, state.building, {
+    fit: fit && !preserveViewport,
+  });
+  if (preserveViewport) scene.keepFloorViewport();
   if (keepPicking) scene.setLocationPicking(true);
   updateUI();
   saveView();
@@ -760,7 +767,8 @@ function openInterior() {
     fs.find((f) => floorPhysical(f) === 2) ||
     fs.find((f) => f.level === 1) ||
     fs[0];
-  if (f) chooseFloor(f.id);
+  if (f)
+    return chooseFloor(f.id, { preserveViewport: state.mode === "overview" });
 }
 $("#neighbors").onchange = () => {
   scene.neighborsOn = $("#neighbors").checked;

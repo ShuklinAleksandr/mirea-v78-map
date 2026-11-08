@@ -37,6 +37,44 @@ function cameraHarness() {
   };
 }
 
+test("entering a floor keeps the exterior camera scale and clears the old fit", () => {
+  const view = Object.assign(
+    Object.create(AtlasScene.prototype),
+    cameraHarness(),
+    {
+      allBounds: () => [-40, -30, 40, 30],
+      lastBounds: [-150, -150, 150, 150],
+      lastFitOptions: { targetY: 9 },
+    },
+  );
+  view.controls.target.y = 9;
+  const offset = view.camera.position.clone().sub(view.controls.target);
+  view.keepFloorViewport();
+  assert.deepEqual(view.controls.target.toArray(), [12, 0, -4]);
+  assert.ok(
+    view.camera.position.clone().sub(view.controls.target).distanceTo(offset) <
+      1e-6,
+  );
+  assert.equal(view.lastBounds, null);
+  assert.equal(view.lastFitOptions, null);
+});
+
+test("a plan panned away from campus recenters on entry without resetting its zoom", () => {
+  const view = Object.assign(
+    Object.create(AtlasScene.prototype),
+    cameraHarness(),
+    {
+      allBounds: () => [-40, -30, 60, 50],
+    },
+  );
+  view.controls.target.set(700, 0, 400);
+  view.setProjection(true);
+  view.camera.zoom = 3;
+  view.keepFloorViewport();
+  assert.equal(view.camera.zoom, 3);
+  assert.deepEqual(view.controls.target.toArray(), [10, 0, 10]);
+});
+
 for (const viewport of [
   {
     width: 1280,

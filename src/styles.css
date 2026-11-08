@@ -1338,6 +1338,13 @@ dialog::backdrop {
   }
 }
 @media (max-width: 700px) {
+  :root {
+    --portrait-sheet-bottom: calc(8px + var(--safe-bottom));
+    --portrait-handle-height: 48px;
+    --portrait-over-sheet: calc(
+      var(--portrait-sheet-bottom) + var(--portrait-handle-height) + 12px
+    );
+  }
   .topbar {
     top: calc(12px + var(--safe-top));
     left: 12px;
@@ -1369,24 +1376,34 @@ dialog::backdrop {
     height: 42px;
   }
   .sidebar {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-height: calc(100dvh - 110px - var(--safe-top));
-    border-radius: 26px 26px 0 0;
-    padding-bottom: var(--safe-bottom);
+    left: calc(8px + var(--safe-left));
+    right: calc(8px + var(--safe-right));
+    bottom: var(--portrait-sheet-bottom);
+    width: auto;
+    max-height: calc(
+      100dvh - 110px - var(--safe-top) - var(--portrait-sheet-bottom)
+    );
+    border-radius: 24px;
+    padding-bottom: 0;
     border: 0;
     box-shadow: 0 -8px 40px #142d4b1a;
     transform: none;
     transition: transform 0.18s ease;
+  }
+  .sidebar.expanded {
+    z-index: 14;
+    top: calc(8px + max(var(--safe-top), var(--sheet-viewport-top, 0px)));
+    bottom: calc(
+      8px + max(var(--safe-bottom), var(--sheet-viewport-bottom, 0px))
+    );
+    max-height: none;
   }
   .sidebar.dragging {
     transform: translateY(var(--sheet-drag, 0px));
     transition: none;
   }
   .sheet-handle {
-    height: 44px;
+    height: var(--portrait-handle-height);
   }
   .sidebar.minimized .sidebar-scroll {
     display: none;
@@ -1399,7 +1416,7 @@ dialog::backdrop {
   }
   .sidebar.minimized .sheet-collapsed-title {
     display: inline;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--muted);
   }
   [data-reduced-motion="true"] .sidebar {
@@ -1407,7 +1424,14 @@ dialog::backdrop {
   }
   .sidebar-scroll {
     padding: 0 18px 12px;
-    max-height: calc(100dvh - 150px - var(--safe-top) - var(--safe-bottom));
+    overscroll-behavior: contain;
+  }
+  .sidebar.expanded .sidebar-scroll {
+    flex: 1;
+  }
+  .sidebar.expanded :is(.search-results, .route-results) {
+    max-height: none;
+    overflow: visible;
   }
 
   .address {
@@ -1526,8 +1550,8 @@ dialog::backdrop {
   .search-results {
     max-height: 34dvh;
   }
-  .sidebar[data-place="true"] .sidebar-scroll {
-    max-height: min(68dvh, calc(100dvh - 300px - var(--safe-bottom)));
+  .sidebar:not(.expanded)[data-place="true"] .sidebar-scroll {
+    max-height: 60dvh;
   }
   .place-categories {
     gap: 5px;
@@ -2124,7 +2148,7 @@ dialog::backdrop {
   .route-guidance-dock {
     left: 12px;
     right: 12px;
-    bottom: calc(56px + var(--safe-bottom));
+    bottom: var(--portrait-over-sheet);
     width: auto;
     transform: none;
     grid-template-columns: 52px minmax(60px, 1fr) 44px 76px;
@@ -2148,7 +2172,7 @@ dialog::backdrop {
   .location-pick-banner {
     left: 12px;
     right: 12px;
-    bottom: calc(56px + var(--safe-bottom));
+    bottom: var(--portrait-over-sheet);
   }
   [data-route-navigation="true"] #toast {
     top: calc(162px + var(--safe-top));
@@ -2169,9 +2193,10 @@ dialog::backdrop {
 
 /* Current point actions and a precise, explicitly confirmed map pin. */
 #location-options {
-  width: 44px;
-  height: 44px;
-  font-size: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  text-align: left;
 }
 .location-content p:empty {
   display: none;
@@ -2279,7 +2304,10 @@ dialog::backdrop {
     right: var(--landscape-right);
     height: 44px;
   }
-  .sidebar {
+  .sidebar,
+  .sidebar.expanded {
+    z-index: 10;
+    top: auto;
     left: var(--landscape-left);
     right: auto;
     bottom: var(--landscape-bottom);
@@ -2308,7 +2336,7 @@ dialog::backdrop {
     color: var(--muted);
   }
   .sidebar .sidebar-scroll,
-  .sidebar[data-place="true"] .sidebar-scroll {
+  .sidebar:not(.expanded)[data-place="true"] .sidebar-scroll {
     max-height: none;
     padding: 0 12px 12px;
     overscroll-behavior: contain;

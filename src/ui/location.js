@@ -532,7 +532,11 @@ export function bindLocation({
       : null;
   }
   $("#locate-open").onclick = locate;
-  $("#location-options").onclick = open;
+  $("#location-options").onclick = () => {
+    const settings = $("#settings-dialog");
+    if (settings?.open) settings.close();
+    open();
+  };
   $("#location-close").onclick = () => dialog.close();
   dialog.addEventListener("click", (e) => {
     if (e.target === dialog) dialog.close();

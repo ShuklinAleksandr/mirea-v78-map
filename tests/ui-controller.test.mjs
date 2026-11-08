@@ -188,12 +188,13 @@ function harness(file, exports, saved = {}) {
     },
   };
 }
-function experienceHarness(saved) {
+function experienceHarness(saved, visualViewport) {
   const h = harness(
     "../src/ui/experience.js",
     ["bindExperience", "readSaved"],
     saved,
   );
+  h.window.visualViewport = visualViewport;
   const api = h.bindExperience({
     state: { search: [] },
     scene: { setTheme() {}, setQuality() {}, setReducedMotion() {} },
@@ -342,7 +343,7 @@ test("the sheet can be swiped to the bottom, reopened and revealed by search/nav
   assert.equal(sheet.style.values.has("--sheet-drag"), false);
   handle.dispatch("click", { detail: 0 });
   assert.equal(sheet.classList.contains("minimized"), false);
-  assert.equal(sheet.classList.contains("expanded"), false);
+  assert.equal(sheet.classList.contains("expanded"), true);
   assert.equal(content.inert, false);
   h.expand(true);
   handle.dispatch("pointerdown", { clientY: 200, pointerId: 2 });
@@ -411,6 +412,26 @@ test("Android Back closes search suggestions before collapsing the sheet or leav
   assert.equal(h.element(".sidebar").classList.contains("expanded"), false);
 });
 
+test("the expanded sheet follows an overlay keyboard and releases its viewport offsets when collapsed", () => {
+  const visualViewport = Object.assign(new EventTarget(), {
+    scale: 1,
+    height: 500,
+    offsetTop: 24,
+  });
+  const h = experienceHarness(undefined, visualViewport);
+  const bounds = h.element(".sidebar").style.values;
+  h.expand(true);
+  assert.equal(bounds.get("--sheet-viewport-top"), "24px");
+  assert.equal(bounds.get("--sheet-viewport-bottom"), "320px");
+  visualViewport.height = 844;
+  visualViewport.offsetTop = 0;
+  visualViewport.dispatchEvent(new Event("resize"));
+  assert.equal(bounds.get("--sheet-viewport-bottom"), "0px");
+  h.expand(false);
+  assert.equal(bounds.has("--sheet-viewport-top"), false);
+  assert.equal(bounds.has("--sheet-viewport-bottom"), false);
+});
+
 test("malformed saved arrays/settings cannot prevent startup or favorite/history controls", () => {
   for (const value of ["{}", '"broken"', "12", "null"]) {
     const h = experienceHarness({
@@ -432,7 +453,10 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
     theme: "system",
     quality: "auto",
     motion: false,
+    headingFollow: true,
   });
+  h.element("#heading-follow-setting").onchange({ target: { checked: false } });
+  assert.equal(JSON.parse(h.store.get("atlas:settings")).headingFollow, false);
 });
 
 test("canceling a route during worker calculation cannot restore its path", async () => {
@@ -1213,6 +1237,25 @@ async function liveRouteHarness(options = {}) {
   h.element("#route-dock-next").dispatch("click");
   return h;
 }
+
+test("route heading is paused with map following and restored by recenter", async () => {
+  let state;
+  const h = await liveRouteHarness({
+    onLocate() {
+      if (state) state.locationTracking.following = true;
+    },
+  });
+  state = h.state;
+  assert.equal(h.isFollowingHeading(), true);
+  state.locationTracking.following = false;
+  assert.equal(h.isFollowingHeading(), false);
+  h.element("#route-dock-recenter").dispatch("click");
+  assert.equal(h.isFollowingHeading(), true);
+  state.floor = { id: "off-route-floor" };
+  assert.equal(h.isFollowingHeading(), false);
+  h.clear();
+  assert.equal(h.isFollowingHeading(), false);
+});
 
 test("live GPS advances to upcoming instructions and arrival without opening the sheet or creating a demonstration", async () => {
   const h = await liveRouteHarness();

@@ -75,14 +75,43 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     sidebar.classList.toggle("dragging", false);
     sidebar.style.removeProperty("--sheet-drag");
   };
+  const visualViewport = window.visualViewport;
+  const updateVisibleBounds = () => {
+    // On browsers with an overlay keyboard, fixed elements still use the
+    // layout viewport. The visual viewport gives the area left for results.
+    if (
+      sheetState !== "expanded" ||
+      !mobile() ||
+      landscape() ||
+      !visualViewport ||
+      visualViewport.scale !== 1
+    ) {
+      sidebar.style.removeProperty("--sheet-viewport-top");
+      sidebar.style.removeProperty("--sheet-viewport-bottom");
+      return;
+    }
+    const top = Math.max(0, visualViewport.offsetTop);
+    const layoutHeight = document.documentElement.clientHeight || innerHeight;
+    const bottom = Math.max(0, layoutHeight - visualViewport.height - top);
+    sidebar.style.setProperty("--sheet-viewport-top", `${Math.round(top)}px`);
+    sidebar.style.setProperty(
+      "--sheet-viewport-bottom",
+      `${Math.round(bottom)}px`,
+    );
+  };
   const setSheetState = (next) => {
     sheetState = next;
     clearDrag();
     const minimized = next === "minimized" && mobile();
     sidebar.classList.toggle("expanded", next === "expanded");
     sidebar.classList.toggle("minimized", minimized);
-    if (minimized && content.contains(document.activeElement))
-      document.activeElement.blur();
+    const active = document.activeElement;
+    if (
+      content.contains(active) &&
+      (minimized ||
+        (mobile() && next !== "expanded" && active?.matches("input, textarea")))
+    )
+      active.blur();
     content.inert = minimized;
     content.setAttribute("aria-hidden", minimized);
     handle.setAttribute(
@@ -97,6 +126,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
           ? "Свернуть панель"
           : "Развернуть панель",
     );
+    updateVisibleBounds();
   };
   const expand = (value) => setSheetState(value ? "expanded" : "peek");
   handle.onclick = (event) => {
@@ -110,13 +140,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       setSheetState(sheetState === "minimized" ? "expanded" : "minimized");
       return;
     }
-    setSheetState(
-      sheetState === "minimized"
-        ? "peek"
-        : sheetState === "expanded"
-          ? "peek"
-          : "expanded",
-    );
+    setSheetState(sheetState === "expanded" ? "peek" : "expanded");
   };
   handle.addEventListener("pointerdown", (e) => {
     if (
@@ -170,10 +194,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
           ? "peek"
           : "minimized",
       );
-    else
-      setSheetState(
-        start.state === "minimized" && -dy < 120 ? "peek" : "expanded",
-      );
+    else setSheetState("expanded");
   };
   handle.addEventListener("pointerup", (e) => finishDrag(e));
   handle.addEventListener("pointercancel", (e) => finishDrag(e, true));
@@ -197,6 +218,8 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       !mobile() && sheetState === "minimized" ? "peek" : sheetState,
     );
   });
+  visualViewport?.addEventListener("resize", updateVisibleBounds);
+  visualViewport?.addEventListener("scroll", updateVisibleBounds);
   setSheetState("peek");
   const themeQuery = matchMedia("(prefers-color-scheme: dark)");
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
@@ -204,6 +227,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     theme: "system",
     quality: "auto",
     motion: motionQuery.matches,
+    headingFollow: true,
   });
   if (!["system", "light", "dark"].includes(settings.theme))
     settings.theme = "system";
@@ -218,11 +242,13 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     scene.setTheme(dark ? "dark" : "light");
     scene.setReducedMotion(settings.motion);
     scene.setQuality(settings.quality);
+    scene.setHeadingFollow?.(settings.headingFollow);
     writeSaved("settings", settings);
   }
   $("#theme-setting").value = settings.theme;
   $("#quality-setting").value = settings.quality;
   $("#motion-setting").checked = settings.motion;
+  $("#heading-follow-setting").checked = settings.headingFollow;
   $("#theme-setting").onchange = (e) => {
     settings.theme = e.target.value;
     applySettings();
@@ -234,6 +260,11 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   $("#motion-setting").onchange = (e) => {
     settings.motion = e.target.checked;
     applySettings();
+  };
+  $("#heading-follow-setting").onchange = (e) => {
+    settings.headingFollow = e.target.checked;
+    scene.setHeadingFollow?.(settings.headingFollow);
+    writeSaved("settings", settings);
   };
   themeQuery.addEventListener("change", applySettings);
   applySettings();
