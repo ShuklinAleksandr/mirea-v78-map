@@ -550,6 +550,20 @@ function revealMap() {
   if (innerWidth <= 700 || isCompactLandscape(innerWidth, innerHeight))
     experience?.minimize?.();
 }
+function defaultBuildingFloor(floors, building = state.building) {
+  if (!building) return null;
+  return (
+    floors.find((f) => floorPhysical(f, building) === 3) ||
+    floors.reduce(
+      (highest, f) =>
+        !highest ||
+        floorPhysical(f, building) > floorPhysical(highest, building)
+          ? f
+          : highest,
+      null,
+    )
+  );
+}
 function chooseBuilding(b) {
   cancelPendingNavigation();
   state.building = b;
@@ -563,6 +577,7 @@ function chooseBuilding(b) {
   }
   const fs = availableFloors();
   const candidate =
+    defaultBuildingFloor(fs, b) ||
     fs.find((f) => f.id === state.floor?.id) ||
     fs.find((f) => floorPhysical(f, b) === 2) ||
     fs.find((f) => f.level === 1) ||
@@ -962,6 +977,7 @@ function openInterior() {
   if (state.mode === "floor" && state.floor) return true;
   const fs = availableFloors();
   const f =
+    defaultBuildingFloor(fs) ||
     fs.find((f) => floorPhysical(f) === 2) ||
     fs.find((f) => f.level === 1) ||
     fs[0];
