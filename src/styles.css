@@ -39,6 +39,8 @@ summary {
 }
 button {
   cursor: pointer;
+  /* Repeated map controls must not trigger Safari's page double-tap zoom. */
+  touch-action: manipulation;
   color: inherit;
   border: 0;
   background: none;

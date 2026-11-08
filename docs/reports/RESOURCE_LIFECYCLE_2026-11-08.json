@@ -1,0 +1,99 @@
+{
+  "evidence": "Node/Three attached-resource disposal lifecycle; no WebGL renderer allocation, Safari or physical Android memory claim",
+  "floorViews": 26,
+  "passesPerProjection": 3,
+  "totalFloorBuilds": 156,
+  "transitions": 162,
+  "observedDisposed": {
+    "g": 1419,
+    "m": 1419,
+    "i": 84
+  },
+  "maxLive": {
+    "g": 21,
+    "m": 21,
+    "i": 1,
+    "labels": 137,
+    "cache": 6
+  },
+  "repeatedCountsStable": true,
+  "routeChecks": [
+    {
+      "pass": 0,
+      "floorId": "v-78-floor0",
+      "routeLabels": 2,
+      "labels": 44,
+      "allFloorPolygons": 292
+    },
+    {
+      "pass": 0,
+      "floorId": "v-78-floor1",
+      "routeLabels": 2,
+      "labels": 47,
+      "allFloorPolygons": 605
+    },
+    {
+      "pass": 1,
+      "floorId": "v-78-floor0",
+      "routeLabels": 2,
+      "labels": 44,
+      "allFloorPolygons": 292
+    },
+    {
+      "pass": 1,
+      "floorId": "v-78-floor1",
+      "routeLabels": 2,
+      "labels": 47,
+      "allFloorPolygons": 605
+    },
+    {
+      "pass": 2,
+      "floorId": "v-78-floor0",
+      "routeLabels": 2,
+      "labels": 44,
+      "allFloorPolygons": 292
+    },
+    {
+      "pass": 2,
+      "floorId": "v-78-floor1",
+      "routeLabels": 2,
+      "labels": 47,
+      "allFloorPolygons": 605
+    }
+  ],
+  "sourceUnchanged": true,
+  "finalLiveModelChildren": 0,
+  "finalActiveLabels": 0,
+  "cycles": [
+    {
+      "plan": false,
+      "pass": 0,
+      "heapUsedAfterExplicitGc": 28214936
+    },
+    {
+      "plan": false,
+      "pass": 1,
+      "heapUsedAfterExplicitGc": 28358528
+    },
+    {
+      "plan": false,
+      "pass": 2,
+      "heapUsedAfterExplicitGc": 28433072
+    },
+    {
+      "plan": true,
+      "pass": 0,
+      "heapUsedAfterExplicitGc": 28362112
+    },
+    {
+      "plan": true,
+      "pass": 1,
+      "heapUsedAfterExplicitGc": 28372872
+    },
+    {
+      "plan": true,
+      "pass": 2,
+      "heapUsedAfterExplicitGc": 28443168
+    }
+  ]
+}

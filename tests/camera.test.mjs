@@ -37,6 +37,65 @@ function cameraHarness() {
   };
 }
 
+function animatedCameraHarness() {
+  return Object.assign(Object.create(AtlasScene.prototype), cameraHarness(), {
+    callbacks: {},
+    host: { dataset: {} },
+    renderer: { info: {}, render() {} },
+    invalidate() {
+      this.dirty = true;
+    },
+    updateNavigationHeading() {
+      return false;
+    },
+    updateRoute() {},
+    updateLabels() {},
+    updateUserLocationScale() {},
+    applyProjectionStyle() {},
+    stats() {
+      return {};
+    },
+  });
+}
+
+for (const plan of [false, true]) {
+  test(`${plan ? "2D" : "3D"}: a repeated camera fit cancels an obsolete tween and draws the changed scene once`, () => {
+    const view = animatedCameraHarness();
+    if (plan) view.setProjection(true);
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    view.moveCamera(position.clone().addScalar(10), target.clone());
+    assert.ok(view.transition, "fixture has an obsolete destination");
+    view.moveCamera(position.clone().addScalar(1e-8), target.clone());
+    assert.equal(view.transition, null);
+    assert.equal(view.dirty, true, "new floor or selection still needs paint");
+    assert.equal(view.animate(performance.now()), false);
+    assert.equal(view.renderedFrames, 1);
+    assert.equal(view.animate(performance.now() + 650), false);
+    assert.equal(view.renderedFrames, 1, "no stationary animation tail");
+    assert.ok(view.camera.position.distanceTo(position) < 1e-6);
+    assert.ok(view.controls.target.distanceTo(target) < 1e-6);
+  });
+}
+
+test("a changed camera position or target retains the real motion tween", () => {
+  for (const change of ["position", "target"]) {
+    const view = animatedCameraHarness();
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    (change === "position" ? position : target).x += 0.01;
+    view.moveCamera(position, target);
+    assert.ok(view.transition, `${change} change is not a no-op`);
+    const start = view.transition.start;
+    assert.equal(view.animate(start + 325), true);
+    assert.ok(view.transition, "real movement continues between endpoints");
+    view.animate(start + 650);
+    assert.equal(view.transition, null);
+    assert.ok(view.camera.position.distanceTo(position) < 1e-6);
+    assert.ok(view.controls.target.distanceTo(target) < 1e-6);
+  }
+});
+
 test("entering a floor keeps the exterior camera scale and clears the old fit", () => {
   const view = Object.assign(
     Object.create(AtlasScene.prototype),

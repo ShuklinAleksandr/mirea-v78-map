@@ -2659,7 +2659,12 @@ export class AtlasScene {
   }
   moveCamera(position, target, animate = true) {
     this.invalidate();
-    if (!animate || this.reducedMotion) {
+    // A repeated fit still needs one frame for the new floor/selection, but an
+    // unchanged camera must not keep rendering a 650 ms stationary tween.
+    const unchanged =
+      this.camera.position.distanceToSquared(position) <= 1e-12 &&
+      this.controls.target.distanceToSquared(target) <= 1e-12;
+    if (!animate || this.reducedMotion || unchanged) {
       this.transition = null;
       this.camera.position.copy(position);
       this.controls.target.copy(target);
