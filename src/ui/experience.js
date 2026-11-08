@@ -4,9 +4,13 @@ import { isCompactLandscape } from "./map-viewport.js";
 import { getBundledMapPackage, nativeShareLink } from "../mobile.js";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
+import { variantStorageKey } from "./variant.js";
+import { bindInterfaceControls } from "./interface-controls.js";
 export const readSaved = (key, fallback) => {
   try {
-    const value = JSON.parse(localStorage.getItem(`atlas:${key}`));
+    const value = JSON.parse(
+      localStorage.getItem(variantStorageKey(`atlas:${key}`)),
+    );
     if (value == null) return fallback;
     if (Array.isArray(fallback))
       return Array.isArray(value)
@@ -30,7 +34,10 @@ export const readSaved = (key, fallback) => {
 };
 export const writeSaved = (key, value) => {
   try {
-    localStorage.setItem(`atlas:${key}`, JSON.stringify(value));
+    localStorage.setItem(
+      variantStorageKey(`atlas:${key}`),
+      JSON.stringify(value),
+    );
   } catch {
     /* Storage is optional. */
   }
@@ -41,7 +48,7 @@ export async function shareView(hash, toast) {
   const url =
     native || desktop
       ? nativeShareLink(hash)
-      : `${location.origin}${location.pathname}${hash}`;
+      : `${location.origin}${location.pathname}${location.search || ""}${hash}`;
   const title = "МИРЭА · Вернадского, 78";
   try {
     if (desktop?.shareLink) {
@@ -240,8 +247,9 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   function applyFrameRate() {
     scene.setFrameRate?.(
       settings.frameRate === "auto"
-        ? autoFrameRate
+        ? (scene.qualityProfile?.autoFrameRate ?? autoFrameRate)
         : Number(settings.frameRate),
+      { automatic: settings.frameRate === "auto" },
     );
   }
   function applyGraphics() {
@@ -292,6 +300,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   applySettings();
   $("#settings-open").onclick = () => $("#settings-dialog").showModal();
   $("#settings-close").onclick = () => $("#settings-dialog").close();
+  bindInterfaceControls();
   $("#settings-dialog").addEventListener("click", (e) => {
     if (e.target === $("#settings-dialog")) e.target.close();
   });

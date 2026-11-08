@@ -5,6 +5,7 @@ import vm from "node:vm";
 import { resolveInitialView } from "../src/data/navigation.js";
 import { geometryEvidence, resolveRoom } from "../src/data/utils.js";
 import { getHallAdjacencyView } from "../src/map/hall-adjacency.js";
+import { entranceHint } from "../src/data/entrance-hints.js";
 import {
   placeDescription,
   placeLocation,
@@ -84,7 +85,13 @@ const controller = [
   section("function selectRoom(", '$("#overview").onclick'),
 ].join("\n");
 
-function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
+function harness({
+  stairMarkers = [],
+  actualUI = false,
+  landmarks = {},
+  nextInterface = false,
+  withExperience = false,
+} = {}) {
   const campuses = ["a", "b", "c"].map((id) => ({
     id,
     title: id,
@@ -122,6 +129,7 @@ function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
     loading: 0,
   };
   const elements = new Map();
+  const createdElements = [];
   const $ = (selector) => {
     if (!elements.has(selector))
       elements.set(selector, {
@@ -137,6 +145,9 @@ function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
         },
         remove() {},
         append() {},
+        after() {},
+        before() {},
+        querySelector: (child) => $(`${selector} ${child}`),
         querySelectorAll: () => [],
         getBoundingClientRect: () => ({ top: 624, right: 366, height: 220 }),
       });
@@ -155,6 +166,8 @@ function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
     placeLocation,
     presentPlaceIdentity,
     getHallAdjacencyView,
+    entranceHint,
+    isNextInterface: () => nextInterface,
     placeLandmarks: { hints: landmarks },
     presentStairIdentity,
     getJSON(url) {
@@ -203,6 +216,21 @@ function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
     escape: String,
     icon: () => "",
     document: {
+      createElement(tagName) {
+        const element = {
+          tagName,
+          children: [],
+          after() {},
+          before(child) {
+            this.beforeElement = child;
+          },
+          append(child) {
+            this.children.push(child);
+          },
+        };
+        createdElements.push(element);
+        return element;
+      },
       querySelectorAll(selector) {
         if (selector !== "[data-target]") return [];
         targetButtons = [
@@ -214,6 +242,10 @@ function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
     matchMedia: () => ({ matches: true }),
     renderFloors() {},
     routes: { syncView() {}, changedCampus() {} },
+    readSaved: (_key, fallback) => fallback,
+    experience: withExperience
+      ? { remember() {}, expand() {}, favorite() {} }
+      : undefined,
     userPosition: {
       cancelPicking() {
         context.scene.locationPicking = false;
@@ -232,6 +264,7 @@ function harness({ stairMarkers = [], actualUI = false, landmarks = {} } = {}) {
     $,
     errors,
     calls,
+    createdElements,
     scene: context.scene,
     roomFor,
     load: (id) => context.loadCampus(id),
@@ -560,6 +593,55 @@ test("a room callback without an active floor is harmless", () => {
   const h = harness();
   assert.doesNotThrow(() => h.select(h.roomFor("a")));
   assert.equal(h.state.selected, null);
+});
+
+test("Next G-424-1 card opens its confirmed entrance room while Classic retains its card", async () => {
+  const campus = manifest.campuses.find((item) => item.id === "v-78");
+  const meta = campus.floors.find((item) => item.id === "v-78-floor3");
+  const floor = JSON.parse(
+    readFileSync(new URL(`../public${meta.url}`, import.meta.url), "utf8"),
+  );
+  const rooms = ["v-78--floor-3--cux", "v-78--floor-3--cvi"].map((id) => ({
+    ...floor.polygons.find((room) => room.id === id),
+    campusId: campus.id,
+    floorId: floor.id,
+  }));
+  const original = JSON.stringify(floor);
+  for (const nextInterface of [false, true]) {
+    const h = harness({ nextInterface, withExperience: true, actualUI: true });
+    Object.assign(h.state, {
+      campus,
+      floorData: [floor],
+      search: rooms,
+    });
+    assert.equal(await h.navigatePlace(rooms[0]), true);
+    assert.match(h.$("#room-card").innerHTML, /Г-424-1/);
+    const hint = h.createdElements.find(
+      (element) => element.className === "entrance-hint",
+    );
+    if (!nextInterface) {
+      assert.equal(hint, undefined);
+      continue;
+    }
+    assert.match(hint.innerHTML, /Вход через Г-424/);
+    assert.match(hint.innerHTML, /положение внутренней двери ещё уточняется/);
+    const actions = h.createdElements.find(
+      (element) => element.className === "room-actions",
+    );
+    assert.equal(actions.beforeElement, hint);
+    assert.equal(hint.children.length, 1);
+    assert.equal(hint.children[0].textContent, "Показать Г-424");
+    assert.equal(await hint.children[0].onclick(), true);
+    assert.equal(h.state.selected.id, rooms[1].id);
+    assert.equal(h.state.floor.id, "v-78-floor3");
+    assert.equal(h.state.building, "Г");
+    assert.match(h.$("#focus-floor-status").innerHTML, /4 этаж · корпус Г/);
+  }
+  assert.equal(
+    JSON.stringify(floor),
+    original,
+    "the hint does not edit map geometry",
+  );
 });
 
 test("a user-confirmed hall facility shows physical floor 2 without assigning building A", () => {

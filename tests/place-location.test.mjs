@@ -19,6 +19,7 @@ import {
 import {
   rankNearbyPlaces,
   nearbyDistanceLabel,
+  canRankNearbyRoutes,
 } from "../src/data/nearby-places.js";
 import { escape } from "../src/ui/dom.js";
 import { getFloorMarkers } from "../src/data/utils.js";
@@ -322,6 +323,8 @@ test("category search rows expose facility location and a separate numbered land
     placeCategory,
     rankNearbyPlaces,
     nearbyDistanceLabel,
+    canRankNearbyRoutes,
+    isNextInterface: () => false,
     placeLocation,
     presentPlaceIdentity,
     placeLandmarks: generated,

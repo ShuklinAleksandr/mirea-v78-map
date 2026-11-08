@@ -6,6 +6,11 @@ import { makeCurrentRouteEndpoint } from "../data/current-route-origin.js";
 import { isCurrentUserLocation } from "../data/user-location.js";
 import { createRouteTracker } from "../data/route-tracking.js";
 import { createRouteTrackingSurfaceGuard } from "../data/route-tracking-surface.js";
+import { findNextPlaces } from "../data/next-place-search.js";
+import { placeLocation, presentPlaceIdentity } from "../data/place-location.js";
+import placeLandmarks from "../data/place-landmarks.json" with { type: "json" };
+import { isNextInterface } from "./variant.js";
+import { nextRouteReadout } from "./next-route.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -50,6 +55,7 @@ export function bindRoutes({
   onConfirmFloor,
   onPauseFollowing,
 }) {
+  const nextInterface = isNextInterface();
   let from = null,
     to = null,
     route = null,
@@ -282,16 +288,30 @@ export function bindRoutes({
     };
   function candidates(key) {
     activeInput = key;
-    const q = norm($("#route-" + key).value);
+    const query = $("#route-" + key).value;
+    const q = norm(query);
     const list = $("#route-results");
-    const records = state.search
-      .filter((r) => r.label && (!q || norm(r.label).includes(q)))
-      .sort(
-        (a, b) =>
-          (norm(b.label) === q) - (norm(a.label) === q) ||
-          (b.campusId === state.campus.id) - (a.campusId === state.campus.id) ||
-          a.label.localeCompare(b.label, "ru", { numeric: true }),
-      )
+    const records = (
+      nextInterface
+        ? findNextPlaces(state.search, {
+            query,
+            campusId: state.campus?.id,
+            building: state.building,
+            floorId: state.floor?.id,
+            physicalLevel: state.floor?.buildingLevels?.[state.building],
+            manifest: state.manifest,
+          })
+        : state.search
+            .filter((r) => r.label && (!q || norm(r.label).includes(q)))
+            .sort(
+              (a, b) =>
+                (norm(b.label) === q) - (norm(a.label) === q) ||
+                (b.campusId === state.campus.id) -
+                  (a.campusId === state.campus.id) ||
+                a.label.localeCompare(b.label, "ru", { numeric: true }),
+            )
+    )
+      .filter((record) => record.label)
       .slice(0, 30);
     list.innerHTML = records.length
       ? records
@@ -299,10 +319,17 @@ export function bindRoutes({
             const c = state.manifest.campuses.find((c) => c.id === r.campusId);
             const f = c?.floors.find((f) => f.id === r.floorId);
             const level = f?.buildingLevels?.[r.building];
+            if (nextInterface) {
+              const identity = presentPlaceIdentity(r, f);
+              const location = placeLocation(identity, f, placeLandmarks.hints);
+              return `<button role="option" data-id="${escape(r.id)}"><span class="result-icon">${icon(r.kind === "stairs" ? "stair" : "pin", 17)}</span><span><b>${escape(identity.label)}</b><small>${escape(location.summary)}</small>${location.landmark ? `<small>${escape(location.landmark)}</small>` : ""}</span></button>`;
+            }
             return `<button role="option" data-id="${escape(r.id)}"><span class="result-icon">${icon("pin", 17)}</span><span><b>${escape(r.label)}</b><small>${escape(c?.title)}${r.building ? ` · корпус ${escape(r.building)}` : ""}${level != null ? ` · ${level} этаж` : ""}</small></span></button>`;
           })
           .join("")
-      : '<div class="search-empty">Ничего не найдено. Попробуйте номер аудитории.</div>';
+      : nextInterface
+        ? '<div class="search-empty">Ничего не найдено. Попробуйте номер аудитории или категорию: еда, туалеты, гардероб.</div>'
+        : '<div class="search-empty">Ничего не найдено. Попробуйте номер аудитории.</div>';
     list.hidden = false;
     $("#route-" + key).setAttribute("aria-expanded", "true");
     for (const b of list.querySelectorAll("button"))
@@ -372,9 +399,14 @@ export function bindRoutes({
       return landscapeMapPadding();
     const mobile = innerWidth <= 700;
     const padding = mobile
-      ? { top: 164, bottom: 0, left: 64, right: 64 }
+      ? nextInterface && guiding
+        ? { top: 124, bottom: 0, left: 16, right: 64 }
+        : { top: 164, bottom: 0, left: 64, right: 64 }
       : { top: 100, bottom: 110, left: 390, right: 80 };
-    if (mobile) {
+    if (
+      mobile &&
+      !(nextInterface && route && $(".sidebar").classList.contains("minimized"))
+    ) {
       const panel = $(".sidebar").getBoundingClientRect();
       padding.bottom = Math.max(
         0,
@@ -544,8 +576,11 @@ export function bindRoutes({
   }
   function renderDock() {
     const dock = $("#route-guidance-dock");
-    if (document.body)
+    if (document.body) {
       document.body.dataset.routeNavigation = String(Boolean(route && guiding));
+      document.body.dataset.routeAvailable = String(Boolean(route));
+    }
+    if (nextInterface) scene.setNavigationMode?.(Boolean(route && guiding));
     if (!dock) return;
     dock.hidden = !route;
     if (!route) {
@@ -554,7 +589,50 @@ export function bindRoutes({
     }
     dock.classList.toggle("route-guidance-dock", true);
     const finalStep = stepIndex === route.steps.length - 1;
-    dock.innerHTML = `<div class="route-dock-header"><small class="route-dock-meta" id="route-dock-meta"></small><button type="button" class="route-dock-close icon-button" id="route-dock-close" aria-label="Закрыть маршрут">${icon("close", 18)}</button></div><strong class="route-dock-instruction" id="route-dock-instruction" aria-live="polite"></strong><small class="route-dock-note" id="route-dock-note">${guiding ? "Переключайте шаги, когда дойдёте до указанного места" : "Путь по карте · расстояние и время приблизительные"}</small><div class="route-dock-controls"><button type="button" class="route-dock-previous" id="route-dock-previous" aria-label="Предыдущий шаг" ${!guiding || stepIndex === 0 ? "hidden" : ""}>Назад</button><button type="button" class="route-dock-next primary-button" id="route-dock-next">${guiding ? (finalStep ? "Завершить" : "Далее") : "В путь"}${icon("arrow", 17)}</button></div><div class="route-dock-secondary"><button type="button" id="route-dock-recenter" class="route-dock-recenter" aria-label="Вернуться к текущему шагу" title="Вернуться к текущему шагу">${icon("route", 20)}<span>К шагу</span></button><button type="button" id="route-dock-details" class="route-dock-details">${icon("route", 16)}${guiding ? "Весь маршрут" : "Изменить"}</button></div>`;
+    dock.innerHTML = `${nextInterface ? '<button type="button" id="route-dock-open" class="route-dock-open" aria-label="Открыть маршрут и поиск" aria-controls="sheet-content">Маршрут и поиск</button>' : ""}<div class="route-dock-header"><small class="route-dock-meta" id="route-dock-meta"></small><button type="button" class="route-dock-close icon-button" id="route-dock-close" aria-label="Закрыть маршрут">${icon("close", 18)}</button></div>${nextInterface ? '<span class="next-route-symbol" id="route-dock-symbol" aria-hidden="true"></span>' : ""}<strong class="route-dock-instruction" id="route-dock-instruction" aria-live="polite"></strong>${nextInterface ? '<span class="next-route-distance" id="route-dock-distance" hidden></span>' : ""}<small class="route-dock-note" id="route-dock-note">${guiding ? "Переключайте шаги, когда дойдёте до указанного места" : "Путь по карте · расстояние и время приблизительные"}</small>${nextInterface ? '<button type="button" id="route-dock-context" class="route-dock-context primary-button" hidden></button>' : ""}<div class="route-dock-controls"><button type="button" class="route-dock-previous" id="route-dock-previous" aria-label="Предыдущий шаг" ${!guiding || stepIndex === 0 ? "hidden" : ""}>Назад</button><button type="button" class="route-dock-next primary-button" id="route-dock-next">${guiding ? (finalStep ? "Завершить" : "Далее") : "В путь"}${icon("arrow", 17)}</button></div><div class="route-dock-secondary"><button type="button" id="route-dock-recenter" class="route-dock-recenter" aria-label="Вернуться к текущему шагу" title="Вернуться к текущему шагу">${icon("route", 20)}<span>К шагу</span></button><button type="button" id="route-dock-details" class="route-dock-details">${icon("route", 16)}${guiding ? "Весь маршрут" : "Изменить"}</button></div>`;
+    if (nextInterface) {
+      const open = () => {
+        pausePreview(false);
+        panel(true);
+        experience.expand(true);
+      };
+      const grip = $("#route-dock-open");
+      grip?.addEventListener("click", open);
+      let touch;
+      grip?.addEventListener("pointerdown", (event) => {
+        if (
+          event.isPrimary === false ||
+          (event.button != null && event.button !== 0)
+        )
+          return;
+        touch = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        grip.setPointerCapture?.(event.pointerId);
+      });
+      grip?.addEventListener("pointerup", (event) => {
+        if (!touch || touch.id !== event.pointerId) return;
+        const { x, y } = touch;
+        touch = null;
+        if (grip.hasPointerCapture?.(event.pointerId))
+          grip.releasePointerCapture(event.pointerId);
+        if (
+          y - event.clientY > 24 &&
+          y - event.clientY > Math.abs(x - event.clientX)
+        )
+          open();
+      });
+      grip?.addEventListener("pointercancel", () => {
+        touch = null;
+      });
+      $("#route-dock-context")?.addEventListener("click", () => {
+        const action = $("#route-dock-context").dataset.action;
+        if (action === "floor") {
+          const picker = $("#next-floor-open");
+          if (picker?.click) picker.click();
+          else onRefineLocation?.();
+        } else if (action === "refine") onRefineLocation?.();
+        else if (action === "locate") onLocate?.();
+      });
+    }
     $("#route-dock-next")?.addEventListener("click", () => {
       if (!route) return;
       if (!guiding) startGuidance();
@@ -671,6 +749,74 @@ export function bindRoutes({
       );
       recenter.innerHTML = `${icon("locate", 20)}<span>Ко мне</span>`;
     }
+    if (nextInterface) {
+      const step = route.steps[stepIndex];
+      const targetSection = step?.targetFloorId
+        ? guide.sections.find(
+            (section, index) =>
+              index > guideSection && section.floorId === step.targetFloorId,
+          )
+        : null;
+      const transitionLevel = targetSection
+        ? route.segments[targetSection.sourceSegmentIndex]?.nodes?.[0]
+            ?.physicalLevel
+        : null;
+      const view = nextRouteReadout({
+        route,
+        to,
+        guiding,
+        automatic,
+        previewing,
+        stepIndex,
+        liveProgress,
+        userLocation: state.userLocation,
+        following: state.locationTracking?.following,
+        transitionLevel,
+      });
+      if (meta) meta.textContent = view.meta;
+      if (note) note.textContent = view.note;
+      if (previous) previous.hidden = true;
+      if (next) {
+        next.hidden = !view.showNext;
+        next.innerHTML = `${escape(view.nextLabel)}${icon("arrow", 17)}`;
+        next.classList.toggle("primary-button", !view.contextAction);
+      }
+      if (recenter) {
+        recenter.hidden = !view.showRecenter;
+        if (guiding)
+          recenter.innerHTML = `${icon("locate", 18)}<span>Продолжить ведение</span>`;
+      }
+      const distance = $("#route-dock-distance");
+      if (distance) {
+        distance.hidden = !view.distance;
+        distance.textContent = view.distance;
+      }
+      const symbol = $("#route-dock-symbol");
+      if (symbol) {
+        symbol.hidden = !guiding;
+        symbol.dataset.direction = view.direction;
+        symbol.innerHTML = icon(
+          view.direction === "stairs"
+            ? "stair"
+            : view.direction === "arrive"
+              ? "pin"
+              : "arrow",
+          28,
+        );
+      }
+      const context = $("#route-dock-context");
+      if (context) {
+        const available =
+          view.contextAction === "refine"
+            ? onRefineLocation
+            : view.contextAction === "locate"
+              ? onLocate
+              : view.contextAction === "floor";
+        context.hidden = !view.contextAction || !available;
+        context.dataset.action = view.contextAction || "";
+        context.textContent = view.contextLabel || "";
+      }
+    }
   }
   function renderProgress() {
     $("#route-panel").dataset.guiding = String(guiding);
@@ -728,6 +874,7 @@ export function bindRoutes({
     if (!sample || !route) return;
     $("#route-panel").dataset.guiding = String(guiding);
     if (document.body) document.body.dataset.routeNavigation = String(guiding);
+    if (nextInterface) scene.setNavigationMode?.(Boolean(route && guiding));
     const label = $("#route-progress-label");
     if (label)
       label.textContent = `Участок ${guideSection + 1} из ${guide.sections.length} · ${Math.round(sample.progress * 100)}%`;

@@ -6,6 +6,13 @@ import { makeCurrentRouteEndpoint } from "../src/data/current-route-origin.js";
 import { isCurrentUserLocation } from "../src/data/user-location.js";
 import { createRouteTracker } from "../src/data/route-tracking.js";
 import { createRouteTrackingSurfaceGuard } from "../src/data/route-tracking-surface.js";
+import { findNextPlaces } from "../src/data/next-place-search.js";
+import {
+  placeLocation,
+  presentPlaceIdentity,
+} from "../src/data/place-location.js";
+import placeLandmarks from "../src/data/place-landmarks.json" with { type: "json" };
+import { nextRouteReadout } from "../src/ui/next-route.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -14,7 +21,7 @@ import {
 
 // Exercise production controller transitions with DOM/WebGL/Worker as boundaries.
 // This does not emulate layout: browser and device visual checks remain separate.
-function harness(file, exports, saved = {}) {
+function harness(file, exports, saved = {}, options = {}) {
   const elements = new Map();
   const store = new Map(Object.entries(saved));
   function element(selector) {
@@ -108,6 +115,14 @@ function harness(file, exports, saved = {}) {
     isCurrentUserLocation,
     createRouteTracker,
     createRouteTrackingSurfaceGuard,
+    findNextPlaces,
+    placeLocation,
+    presentPlaceIdentity,
+    placeLandmarks,
+    nextRouteReadout,
+    isNextInterface: () => options.nextInterface === true,
+    variantStorageKey: (key) => key,
+    bindInterfaceControls: () => {},
     createRouteGuidance,
     sampleRouteGuidance,
     guidanceAnchorForStep,
@@ -204,6 +219,7 @@ function experienceHarness(saved, visualViewport) {
   return { ...h, ...api };
 }
 function routeHarness({
+  nextInterface = false,
   chooseFloor: chooseFloorOverride,
   getUserOrigin,
   onLocate,
@@ -211,7 +227,12 @@ function routeHarness({
   onConfirmFloor,
   onPauseFollowing,
 } = {}) {
-  const h = harness("../src/ui/routes.js", ["bindRoutes"]);
+  const h = harness(
+    "../src/ui/routes.js",
+    ["bindRoutes"],
+    {},
+    { nextInterface },
+  );
   const state = {
     campus: { id: "a" },
     loading: 1,
@@ -223,7 +244,11 @@ function routeHarness({
   const guidanceCalls = [];
   const guidanceOptions = [];
   const sheetCalls = [];
+  const navigationModes = [];
   const scene = {
+    setNavigationMode(active) {
+      navigationModes.push(active);
+    },
     clearRoute() {},
     setRoute(route) {
       draws.push(route);
@@ -290,6 +315,7 @@ function routeHarness({
     guidanceCalls,
     guidanceOptions,
     sheetCalls,
+    navigationModes,
     room,
     result,
   };
@@ -987,6 +1013,63 @@ test("the route camera reserves the compact card's actual area, and a manual ori
   assert.equal(h.getEndpoints().from, null);
 });
 
+test("Next dock opens route details without discarding the path and enables navigation visuals only while guiding", async () => {
+  const h = routeHarness({ nextInterface: true });
+  await buildPreview(h);
+  const route = h.getRoute();
+  const endpoints = h.getEndpoints();
+  assert.equal(h.document.body.dataset.routeAvailable, "true");
+  assert.equal(h.navigationModes.at(-1), false);
+  h.element("#route-dock-open").dispatch("click");
+  assert.equal(h.sheetCalls.at(-1), "expanded");
+  assert.equal(h.getRoute(), route);
+  assert.deepEqual(h.getEndpoints(), endpoints);
+  h.element("#route-dock-next").dispatch("click");
+  assert.equal(h.navigationModes.at(-1), true);
+  h.clear();
+  assert.equal(h.navigationModes.at(-1), false);
+  assert.equal(h.document.body.dataset.routeAvailable, "false");
+});
+
+test("Next route endpoint search shares food categories while Classic preserves its label-only candidates", () => {
+  for (const nextInterface of [false, true]) {
+    const h = routeHarness({ nextInterface });
+    h.state.search = [
+      {
+        id: "food",
+        label: "Буфет",
+        kind: "cafeteria",
+        campusId: "a",
+        floorId: "a-floor1",
+        building: "Г",
+      },
+      {
+        id: "room",
+        label: "Г-209",
+        kind: "room",
+        campusId: "a",
+        floorId: "a-floor1",
+        building: "Г",
+      },
+    ];
+    h.state.manifest.campuses = [
+      {
+        id: "a",
+        title: "Кампус",
+        floors: [{ id: "a-floor1", buildingLevels: { Г: 2 } }],
+      },
+    ];
+    h.element("#route-to").value = "еда";
+    h.element("#route-to").oninput();
+    const markup = h.element("#route-results").innerHTML;
+    if (nextInterface) {
+      assert.match(markup, /Буфет/);
+      assert.match(markup, /Корпус Г · 2 этаж/);
+      assert.doesNotMatch(markup, /Г-209/);
+    } else assert.match(markup, /Ничего не найдено/);
+  }
+});
+
 test("a step with an unavailable destination floor cannot claim arrival or discard the previous instruction", async () => {
   const h = routeHarness({
     chooseFloor(id, state) {
@@ -1256,6 +1339,33 @@ test("route heading is paused with map following and restored by recenter", asyn
   assert.equal(h.isFollowingHeading(), false);
   h.clear();
   assert.equal(h.isFollowingHeading(), false);
+});
+
+test("Next tracking hides manual controls only for reliable GPS and surfaces a working refinement action", async () => {
+  let refinements = 0;
+  const h = await liveRouteHarness({
+    nextInterface: true,
+    onRefineLocation() {
+      refinements++;
+    },
+  });
+  h.emitGps([0, 0]);
+  h.emitGps([1, 0]);
+  assert.equal(h.element("#route-dock-next").hidden, true);
+  assert.equal(h.element("#route-dock-recenter").hidden, true);
+  assert.equal(h.element("#route-dock-context").hidden, true);
+  assert.equal(h.element("#route-dock-previous").hidden, true);
+  assert.match(h.element("#route-dock-distance").textContent, /м/);
+  const instruction = h.element("#route-dock-instruction").textContent;
+  h.emitGps([2, 0], { accuracyMeters: 40, accuracyRadiusMap: 40 });
+  assert.equal(h.element("#route-dock-next").hidden, false);
+  assert.equal(h.element("#route-dock-context").textContent, "Уточнить точку");
+  assert.equal(h.element("#route-dock-context").hidden, false);
+  assert.equal(h.element("#route-dock-distance").hidden, true);
+  assert.equal(h.element("#route-dock-instruction").textContent, instruction);
+  h.element("#route-dock-context").dispatch("click");
+  assert.equal(refinements, 1);
+  assert.ok(h.getRoute());
 });
 
 test("live GPS advances to upcoming instructions and arrival without opening the sheet or creating a demonstration", async () => {

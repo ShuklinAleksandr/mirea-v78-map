@@ -1,7 +1,9 @@
 import { Capacitor, SystemBars, SystemBarsStyle } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { variantStorageKey } from "./ui/variant.js";
+import { resolveAssetUrl } from "./data/client.js";
 
-const VIEW_KEY = "mirea:last-native-view:v1";
+const VIEW_KEY = variantStorageKey("mirea:last-native-view:v1");
 const LINK_KEYS = new Set([
   "campus",
   "building",
@@ -123,6 +125,6 @@ export async function initMobileShell() {
 export async function getBundledMapPackage() {
   if (!Capacitor.isNativePlatform() && !globalThis.window?.mireaDesktop)
     return null;
-  const response = await fetch("/mobile-package.json");
+  const response = await fetch(resolveAssetUrl("/mobile-package.json"));
   return response.ok ? response.json() : null;
 }

@@ -32,6 +32,11 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createRenderLifecycle } from "./render-lifecycle.js";
 import { mapQuality } from "./quality.js";
+import { createAdaptiveQuality } from "./adaptive-quality.js";
+import {
+  navigationLookAhead,
+  styleNavigationWalls,
+} from "./navigation-view.js";
 import {
   bindMapTouchRotation,
   configureMapTouchControls,
@@ -60,7 +65,7 @@ const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
 const HEADING_DEADBAND = (2 * Math.PI) / 180;
 const LABEL_OBSTACLES =
-  ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit";
+  ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit,#next-floor-open";
 const shapes = (polygon) => {
   if (!polygon.points || polygon.points.length < 3) return null;
   const s = new THREE.Shape(
@@ -125,6 +130,11 @@ export class AtlasScene {
   constructor(host, callbacks = {}) {
     this.host = host;
     this.callbacks = callbacks;
+    this.interfaceVariant =
+      callbacks.interfaceVariant === "next" ? "next" : "classic";
+    this.adaptiveQuality =
+      this.interfaceVariant === "next" ? createAdaptiveQuality() : null;
+    this.navigationMode = false;
     this.mode = "overview";
     this.plan = false;
     this.labelsOn = true;
@@ -287,6 +297,7 @@ export class AtlasScene {
       ...options,
       render: (time) => this.animate(time),
       onPause: () => {
+        this.adaptiveQuality?.suspend();
         this.renderPausedAt = performance.now();
         this.mouseEvent = null;
       },
@@ -308,12 +319,32 @@ export class AtlasScene {
     if (shadows) this.renderer.shadowMap.needsUpdate = true;
     this.renderLifecycle?.requestFrame();
   }
-  setFrameRate(fps) {
+  setFrameRate(fps, { automatic = false } = {}) {
+    this.automaticFrameRate = automatic;
     if (!Number.isFinite(fps) || fps < 1 || fps > 240) fps = 60;
     if (fps === this.frameRateLimit) return;
     this.frameRateLimit = fps;
     this.renderLifecycle?.setFrameRate(fps);
     this.invalidate();
+  }
+  setNavigationMode(active) {
+    const next = this.interfaceVariant === "next" && Boolean(active);
+    if (next === this.navigationMode) return;
+    this.navigationMode = next;
+    this.applyNavigationStyle();
+    this.invalidate();
+  }
+  applyNavigationStyle() {
+    if (this.interfaceVariant !== "next") return;
+    styleNavigationWalls(
+      this.navigationWalls,
+      Boolean(
+        this.navigationMode &&
+          this.mode === "floor" &&
+          !this.plan &&
+          !this.stackDisplay,
+      ),
+    );
   }
   setCleanMap(enabled) {
     const cleanMap = Boolean(enabled);
@@ -843,8 +874,23 @@ export class AtlasScene {
     const [x, z] = this.userLocation.point;
     const y = this.userLocationLayer.position.y;
     const radius = 12;
+    const [leadX, leadZ] = navigationLookAhead({
+      enabled:
+        this.navigationMode &&
+        this.headingFollowEnabled &&
+        this.callbacks?.shouldFollowHeading?.(),
+      bearing: this.navigationBearing,
+      headingTimestamp: this.userHeading?.timestamp,
+      now: Date.now(),
+      maxAge: USER_HEADING_MAX_AGE_MS,
+    });
     this.fit(
-      [x - radius, z - radius, x + radius, z + radius],
+      [
+        x + leadX - radius,
+        z + leadZ - radius,
+        x + leadX + radius,
+        z + leadZ + radius,
+      ],
       true,
       padding || this.callbacks.getViewportPadding?.(),
       { targetY: y, verticalBounds: [y - 1, y + 2] },
@@ -1017,6 +1063,7 @@ export class AtlasScene {
       ...this.deviceQuality,
       pixelRatio: devicePixelRatio,
       plan: this.plan,
+      adaptiveLevel: this.adaptiveQuality?.level ?? 0,
     });
     if (this.renderer.getPixelRatio() !== this.qualityProfile.pixelRatio)
       this.renderer.setPixelRatio(this.qualityProfile.pixelRatio);
@@ -1043,6 +1090,7 @@ export class AtlasScene {
   setQuality(quality = "auto") {
     const hadDetail = this.qualityProfile.detail;
     this.quality = quality;
+    this.adaptiveQuality?.reset();
     this.applyProjectionStyle();
     if (
       this.campus &&
@@ -1108,6 +1156,7 @@ export class AtlasScene {
     if (focus) this.focusRoute({ padding, paddingBottom });
   }
   clearRoute({ rebuild = true } = {}) {
+    this.setNavigationMode(false);
     const hadRoute = Boolean(this.route);
     this.setRouteGuidance(null);
     this.route = null;
@@ -1690,6 +1739,7 @@ export class AtlasScene {
     this.buildingOverview = false;
     this.routeLayers = [];
     this.routeStages = [];
+    this.navigationWalls = [];
     cleanup(this.model);
     cleanup(this.context);
     cleanup(this.selection);
@@ -1838,6 +1888,7 @@ export class AtlasScene {
     this.applyTheme();
     this.refreshRoute();
     this.refreshUserLocation();
+    this.applyNavigationStyle();
   }
   addPlanFootprints(footprints) {
     const geometries = footprints.map((p) => flatGeometry(p)).filter(Boolean);
@@ -2114,6 +2165,7 @@ export class AtlasScene {
     mesh.computeBoundingSphere();
     this.model.add(mesh);
     // Thin dark caps make the floor plan readable even at a distant zoom.
+    (this.navigationWalls ??= []).push(mesh);
     const vertices = [];
     for (const w of valid)
       vertices.push(
@@ -2126,16 +2178,17 @@ export class AtlasScene {
       );
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-    this.model.add(
-      new THREE.LineSegments(
-        g,
-        new THREE.LineBasicMaterial({
-          color: 0x63776f,
-          transparent: true,
-          opacity: 0.75,
-        }),
-      ),
+    const caps = new THREE.LineSegments(
+      g,
+      new THREE.LineBasicMaterial({
+        color: 0x63776f,
+        transparent: true,
+        opacity: 0.75,
+      }),
     );
+    this.model.add(caps);
+    this.navigationWalls.push(caps);
+    this.applyNavigationStyle();
   }
   addConnections(floor) {
     const batches = new Map(),
@@ -2933,6 +2986,10 @@ export class AtlasScene {
     }
   }
   animate(time = performance.now()) {
+    const measuredAt =
+      this.adaptiveQuality && this.quality === "auto"
+        ? performance.now()
+        : null;
     if (this.transition) {
       const t = THREE.MathUtils.clamp(
           (time - this.transition.start) / 650,
@@ -2964,6 +3021,7 @@ export class AtlasScene {
       this.lastHover = time;
       this.mouseEvent = null;
     }
+    let rendered = false;
     if (this.dirty) {
       this.dirty = false;
       this.camera.updateMatrixWorld();
@@ -2971,6 +3029,7 @@ export class AtlasScene {
       this.updateLabels();
       this.updateUserLocationScale();
       this.renderer.render(this.scene, this.camera);
+      rendered = true;
       this.renderedFrames = (this.renderedFrames || 0) + 1;
       this.callbacks.onFrame?.(
         this.renderer.info,
@@ -2988,6 +3047,25 @@ export class AtlasScene {
     }
     // Momentum, compass easing and camera transitions may continue after the
     // event that woke the scene. A static frame doesn't keep the loop alive.
+    const continuous = Boolean(
+      this.transition || headingMoved || controlsMoved === true,
+    );
+    if (measuredAt != null) {
+      const changed = this.adaptiveQuality.observe({
+        time,
+        cost: performance.now() - measuredAt,
+        active: rendered && continuous,
+        frameRate: this.frameRateLimit,
+      });
+      if (changed != null) {
+        this.applyProjectionStyle();
+        if (this.automaticFrameRate)
+          this.setFrameRate(this.qualityProfile.autoFrameRate, {
+            automatic: true,
+          });
+        this.invalidate(true);
+      }
+    }
     return Boolean(
       this.transition ||
         headingMoved ||
@@ -3006,6 +3084,13 @@ export class AtlasScene {
       pixelRatio: this.renderer.getPixelRatio?.() ?? 1,
       shadows: Boolean(this.renderer.shadowMap.enabled),
       shadowSize: this.qualityProfile?.shadowSize ?? 0,
+      adaptiveLevel: this.adaptiveQuality?.level ?? 0,
+      navigationWallsTransparent: Boolean(
+        this.navigationMode &&
+          this.mode === "floor" &&
+          !this.plan &&
+          !this.stackDisplay,
+      ),
       renderedFrames: this.renderedFrames,
       drawCalls: this.renderer.info.render.calls,
       triangles: this.renderer.info.render.triangles,

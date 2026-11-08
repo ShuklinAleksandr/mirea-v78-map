@@ -1,6 +1,14 @@
 import { $, escape } from "./ui/dom.js";
 import { icon } from "./ui/icons.js";
 import { layout } from "./ui/layout.js";
+import {
+  initializeInterface,
+  getInterfaceVariant,
+  isNextInterface,
+  getInterfaceStorage,
+} from "./ui/variant.js";
+import "./ui/interface-comparison.css";
+import "./ui/next-route.css";
 import { bindBuildingRooms } from "./ui/building-rooms.js";
 import "./ui/building-rooms.css";
 import { getJSON } from "./data/client.js";
@@ -27,6 +35,7 @@ import {
 } from "./map/stairs.js";
 import { AtlasScene } from "./map/scene.js";
 import { getHallAdjacencyView } from "./map/hall-adjacency.js";
+import { entranceHint } from "./data/entrance-hints.js";
 import { pickLocationSurface } from "./map/location-view.js";
 import { getBuildingFloorView } from "./map/building-view.js";
 import { isCompactLandscape, landscapeMapPadding } from "./ui/map-viewport.js";
@@ -47,6 +56,7 @@ const state = {
   locationTracking: null,
 };
 $("#app").innerHTML = layout;
+initializeInterface();
 bindBuildingRooms({ state, navigateRoom });
 
 const searchUI = bindSearch({
@@ -66,7 +76,11 @@ const searchUI = bindSearch({
 let scene, experience, routes, userPosition;
 try {
   scene = new AtlasScene($("#viewport"), {
-    getViewportPadding: () => roomPadding(),
+    interfaceVariant: getInterfaceVariant(),
+    getViewportPadding: () =>
+      isNextInterface() && routes?.getRoute()
+        ? routes.getViewportPadding()
+        : roomPadding(),
     shouldFollowHeading: () => routes?.isFollowingHeading(),
     getResizePadding: () =>
       routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),
@@ -128,6 +142,7 @@ if (scene) {
       }),
   });
   userPosition = bindLocation({
+    surveyStorage: getInterfaceStorage(),
     state,
     scene,
     experience,
@@ -233,6 +248,31 @@ function renderFloors() {
       if (scene.locationPicking) experience.minimize();
       else experience.expand(false);
     };
+  if (isNextInterface()) {
+    const picker = $("#next-floor-open");
+    picker.hidden = state.mode !== "floor";
+    picker.innerHTML = `${icon("layers", 18)}<span>${railBuilding ? `Корпус ${escape(railBuilding)} · ${floorPhysical(state.floor || {}, railBuilding)} этаж` : `Уровень плана ${state.floor?.level ?? ""}`}</span>${icon("down", 16)}`;
+    $("#next-floor-title").textContent = railBuilding
+      ? `Корпус ${railBuilding} · этажи`
+      : "Уровни карты";
+    $("#next-floor-list").innerHTML = railFloors
+      .slice()
+      .reverse()
+      .map(
+        (f) =>
+          `<button type="button" data-next-floor="${escape(f.id)}" aria-pressed="${state.floor?.id === f.id}"><span>${railBuilding ? `${floorPhysical(f, railBuilding)} этаж` : `Уровень плана ${f.level}`}</span>${state.floor?.id === f.id ? "<small>На экране</small>" : ""}</button>`,
+      )
+      .join("");
+    $("#next-floor-rooms").hidden = !state.building;
+    for (const button of $("#next-floor-list").querySelectorAll("button"))
+      button.onclick = () => {
+        $("#next-floor-dialog").close();
+        const original = [...$("#floor-rail").querySelectorAll("button")].find(
+          (item) => item.dataset.railFloor === button.dataset.nextFloor,
+        );
+        original?.click();
+      };
+  }
 }
 function updateUI() {
   if (
@@ -490,7 +530,7 @@ function roomPadding() {
   const panel = $(".sidebar").getBoundingClientRect();
   return innerWidth <= 700
     ? {
-        top: 164,
+        top: isNextInterface() ? 180 : 164,
         bottom: Math.max(0, innerHeight - panel.top + 16),
         left: 64,
         right: 64,
@@ -657,6 +697,22 @@ function selectRoom(room, focus = true) {
     utilities.className = "room-utilities";
     utilities.innerHTML = `<button id="room-favorite">${icon("star", 16)}${readSaved("favorites", []).includes(indexed.id) ? "В избранном" : "В избранное"}</button><button id="room-share">${icon("share", 16)}Поделиться</button>`;
     actions.after(utilities);
+    const entrance = isNextInterface() ? entranceHint(indexed) : null;
+    if (entrance) {
+      const hint = document.createElement("div");
+      hint.className = "entrance-hint";
+      hint.innerHTML = `<strong>${escape(entrance.label)}</strong><p>${escape(entrance.note)}</p>`;
+      const via = state.search.find((item) => item.id === entrance.viaRoomId);
+      if (via) {
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "secondary-button";
+        open.textContent = `Показать ${entrance.viaLabel}`;
+        open.onclick = () => navigateRoom(via);
+        hint.append(open);
+      }
+      actions.before(hint);
+    }
     if (!displayOnly)
       $("#room-from").onclick = () => {
         if (userPosition.setPlace(indexed)) {
@@ -712,6 +768,15 @@ async function navigateRoom(r) {
 }
 
 $("#overview").onclick = overview;
+$("#next-floor-open").onclick = () => $("#next-floor-dialog").showModal();
+$("#next-floor-close").onclick = () => $("#next-floor-dialog").close();
+$("#next-floor-dialog").addEventListener("click", (event) => {
+  if (event.target === $("#next-floor-dialog")) event.target.close();
+});
+$("#next-floor-rooms").onclick = () => {
+  $("#next-floor-dialog").close();
+  $("#building-rooms-open").click();
+};
 $(".brand").onclick = (e) => {
   e.preventDefault();
   overview();

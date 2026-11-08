@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import { variantStorageKey } from "../src/ui/variant.js";
+import { resolveAssetUrl } from "../src/data/client.js";
 
 // The production shell runs here with native APIs and DOM as boundaries.
 // Real keyboard/safe-area rendering still requires a device or emulator.
@@ -33,6 +35,8 @@ function shell({
     mutations;
   if (saved) store.set("mirea:last-native-view:v1", saved);
   const sandbox = {
+    variantStorageKey,
+    resolveAssetUrl,
     Capacitor: {
       getPlatform: () => platform,
       isNativePlatform: () => platform !== "web",

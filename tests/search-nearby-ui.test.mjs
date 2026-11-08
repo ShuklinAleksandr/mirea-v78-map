@@ -11,13 +11,15 @@ import {
 import {
   rankNearbyPlaces,
   nearbyDistanceLabel,
+  canRankNearbyRoutes,
 } from "../src/data/nearby-places.js";
+import { findNextPlaces } from "../src/data/next-place-search.js";
 import {
   placeLocation,
   presentPlaceIdentity,
 } from "../src/data/place-location.js";
 
-function harness() {
+function harness(nextInterface = false) {
   class Element {
     children = [];
     hidden = false;
@@ -115,6 +117,9 @@ function harness() {
     placeCategory,
     rankNearbyPlaces,
     nearbyDistanceLabel,
+    canRankNearbyRoutes,
+    findNextPlaces,
+    isNextInterface: () => nextInterface,
     placeLocation,
     presentPlaceIdentity,
     placeLandmarks: { hints: {} },
@@ -166,6 +171,59 @@ function harness() {
 }
 
 const turn = () => new Promise((resolve) => setImmediate(resolve));
+
+test("Next sends a free corridor pin to route ranking and keeps an honest fallback on failure", async () => {
+  const h = harness(true);
+  h.state.userLocation = {
+    source: "manual",
+    campusId: "v-78",
+    floorId: "f1",
+    building: "А",
+    point: [11, 0],
+    placeId: null,
+  };
+  h.$("#search").value = "еда";
+  const request = h.api.refresh();
+  assert.equal(h.messages.length, 1);
+  assert.equal(h.messages[0].interfaceMode, "next");
+  assert.equal(h.messages[0].position.placeId, null);
+  h.fail(h.messages[0].id);
+  await request;
+  assert.match(h.$("#results").children[0].innerHTML, /по прямой/u);
+  assert.match(h.$("#results").children[1].innerHTML, /1 м по прямой/u);
+});
+
+test("Next routes reliable GPS searches but keeps imprecise GPS out of the worker", async () => {
+  const h = harness(true);
+  h.state.userLocation = {
+    source: "gps",
+    campusId: "v-78",
+    floorId: "f1",
+    building: "А",
+    physicalLevel: 1,
+    floorEvidence: "manual-view-selection",
+    point: [11, 0],
+    accuracyMeters: 30,
+    timestamp: Date.now(),
+    trackingStatus: "live",
+  };
+  h.$("#search").value = "еда";
+  await h.api.refresh();
+  assert.equal(h.messages.length, 0);
+  h.state.userLocation.accuracyMeters = 5;
+  const request = h.api.refresh();
+  assert.equal(h.messages.length, 1);
+  const entry = {
+    room: h.state.search[1],
+    reachable: true,
+    distanceKind: "route",
+    distanceMeters: 15,
+  };
+  h.reply(h.messages[0].id, { mode: "routes", items: [entry], nearest: entry });
+  await request;
+  assert.match(h.$("#results").children[0].innerHTML, /Ближайшие по пути/u);
+  assert.match(h.$("#results").children[1].innerHTML, /15 м пешком/u);
+});
 
 test("category dropdown shows several places immediately and keeps a working location action", async () => {
   const h = harness();
