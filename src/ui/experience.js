@@ -1,11 +1,16 @@
 import { $, escape } from "./dom.js";
 import { icon } from "./icons.js";
+import { isCompactLandscape } from "./map-viewport.js";
 import { getBundledMapPackage, nativeShareLink } from "../mobile.js";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
+import { variantStorageKey } from "./variant.js";
+import { bindInterfaceControls } from "./interface-controls.js";
 export const readSaved = (key, fallback) => {
   try {
-    const value = JSON.parse(localStorage.getItem(`atlas:${key}`));
+    const value = JSON.parse(
+      localStorage.getItem(variantStorageKey(`atlas:${key}`)),
+    );
     if (value == null) return fallback;
     if (Array.isArray(fallback))
       return Array.isArray(value)
@@ -29,7 +34,10 @@ export const readSaved = (key, fallback) => {
 };
 export const writeSaved = (key, value) => {
   try {
-    localStorage.setItem(`atlas:${key}`, JSON.stringify(value));
+    localStorage.setItem(
+      variantStorageKey(`atlas:${key}`),
+      JSON.stringify(value),
+    );
   } catch {
     /* Storage is optional. */
   }
@@ -40,7 +48,7 @@ export async function shareView(hash, toast) {
   const url =
     native || desktop
       ? nativeShareLink(hash)
-      : `${location.origin}${location.pathname}${hash}`;
+      : `${location.origin}${location.pathname}${location.search || ""}${hash}`;
   const title = "МИРЭА · Вернадского, 78";
   try {
     if (desktop?.shareLink) {
@@ -68,30 +76,113 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   let sheetState = "peek",
     drag = null,
     suppressDragClick = false;
-  const mobile = () => innerWidth <= 700;
+  const landscape = () => isCompactLandscape(innerWidth, innerHeight);
+  const mobile = () => innerWidth <= 700 || landscape();
   const clearDrag = () => {
     sidebar.classList.toggle("dragging", false);
     sidebar.style.removeProperty("--sheet-drag");
   };
+  const visualViewport = window.visualViewport;
+  let editingInput = null;
+  let editingField = "";
+  let resultPointer = null;
+  let resultReleaseTimer = null;
+  const clearResultPointer = () => {
+    resultPointer = null;
+    if (resultReleaseTimer != null) clearTimeout(resultReleaseTimer);
+    resultReleaseTimer = null;
+  };
+  const editingResults = () =>
+    $(editingField === "search" ? "#results" : "#route-results");
+  let restingWidth = innerWidth;
+  let restingHeight = Math.max(
+    innerHeight,
+    document.documentElement.clientHeight || 0,
+  );
+  const updateVisibleBounds = () => {
+    // Safari can blur an input with relatedTarget=null and dismiss its keyboard
+    // between pointerdown and click. Keep the hit target in place until click;
+    // this also holds the short-viewport grid during the keyboard animation.
+    if (resultPointer && sheetState === "expanded") return;
+    const layoutHeight = Math.max(
+      innerHeight,
+      document.documentElement.clientHeight || 0,
+    );
+    // Android adjustResize shrinks the layout viewport as well as the visual
+    // viewport. Keep the pre-keyboard height, but never compare portrait and
+    // landscape heights. Input editing itself remains a reliable CSS signal
+    // even when an orientation change happens with the keyboard already open.
+    if (Math.abs(innerWidth - restingWidth) > 80) {
+      restingWidth = innerWidth;
+      restingHeight = layoutHeight;
+    } else if (!editingInput) {
+      restingHeight = Math.max(restingHeight, layoutHeight);
+    }
+    const editing = Boolean(editingInput) && mobile();
+    sidebar.dataset.inputEditing = String(editing);
+    sidebar.dataset.editingField = editing ? editingField : "";
+    const unzoomed = !visualViewport || visualViewport.scale === 1;
+    const visibleHeight = visualViewport?.height ?? layoutHeight;
+    sidebar.dataset.shortViewport = String(
+      editing && unzoomed && visibleHeight < 180,
+    );
+    sidebar.dataset.keyboardOpen = String(
+      editing && unzoomed && restingHeight - visibleHeight > 80,
+    );
+    // Safari's overlay keyboard leaves fixed elements in the layout viewport.
+    // Apply visual bounds in BOTH orientations; native adjustResize naturally
+    // gives a zero bottom inset with the smaller available height.
+    if (sheetState !== "expanded" || !mobile() || !unzoomed) {
+      sidebar.style.removeProperty("--sheet-viewport-top");
+      sidebar.style.removeProperty("--sheet-viewport-bottom");
+      sidebar.style.removeProperty("--sheet-viewport-height");
+      return;
+    }
+    const top = Math.max(0, visualViewport?.offsetTop ?? 0);
+    const bottom = Math.max(0, layoutHeight - visibleHeight - top);
+    sidebar.style.setProperty("--sheet-viewport-top", `${Math.round(top)}px`);
+    sidebar.style.setProperty(
+      "--sheet-viewport-bottom",
+      `${Math.round(bottom)}px`,
+    );
+    sidebar.style.setProperty(
+      "--sheet-viewport-height",
+      `${Math.round(visibleHeight)}px`,
+    );
+  };
   const setSheetState = (next) => {
     sheetState = next;
+    if (next !== "expanded") {
+      clearResultPointer();
+      editingInput = null;
+      editingField = "";
+    }
     clearDrag();
     const minimized = next === "minimized" && mobile();
     sidebar.classList.toggle("expanded", next === "expanded");
     sidebar.classList.toggle("minimized", minimized);
-    if (minimized && content.contains(document.activeElement))
-      document.activeElement.blur();
+    const active = document.activeElement;
+    if (
+      content.contains(active) &&
+      (minimized ||
+        (mobile() && next !== "expanded" && active?.matches("input, textarea")))
+    )
+      active.blur();
     content.inert = minimized;
     content.setAttribute("aria-hidden", minimized);
-    handle.setAttribute("aria-expanded", next === "expanded");
+    handle.setAttribute(
+      "aria-expanded",
+      next === "expanded" || (landscape() && !minimized),
+    );
     handle.setAttribute(
       "aria-label",
       minimized
         ? "Открыть поиск и маршрут"
-        : next === "expanded"
+        : next === "expanded" || landscape()
           ? "Свернуть панель"
           : "Развернуть панель",
     );
+    updateVisibleBounds();
   };
   const expand = (value) => setSheetState(value ? "expanded" : "peek");
   handle.onclick = (event) => {
@@ -101,13 +192,11 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       return;
     }
     suppressDragClick = false;
-    setSheetState(
-      sheetState === "minimized"
-        ? "peek"
-        : sheetState === "expanded"
-          ? "peek"
-          : "expanded",
-    );
+    if (landscape()) {
+      setSheetState(sheetState === "minimized" ? "expanded" : "minimized");
+      return;
+    }
+    setSheetState(sheetState === "expanded" ? "peek" : "expanded");
   };
   handle.addEventListener("pointerdown", (e) => {
     if (
@@ -161,10 +250,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
           ? "peek"
           : "minimized",
       );
-    else
-      setSheetState(
-        start.state === "minimized" && -dy < 120 ? "peek" : "expanded",
-      );
+    else setSheetState("expanded");
   };
   handle.addEventListener("pointerup", (e) => finishDrag(e));
   handle.addEventListener("pointercancel", (e) => finishDrag(e, true));
@@ -184,21 +270,133 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   });
   window.addEventListener("resize", () => {
     drag = null;
-    clearDrag();
-    if (!mobile() && sheetState === "minimized") setSheetState("peek");
+    setSheetState(
+      !mobile() && sheetState === "minimized" ? "peek" : sheetState,
+    );
   });
+  for (const selector of ["#search", "#route-from", "#route-to"]) {
+    const input = $(selector);
+    input.addEventListener("focus", () => {
+      clearResultPointer();
+      editingInput = input;
+      editingField = selector.slice(1);
+      if (mobile()) {
+        // A previously scrolled sheet must not leave its input/results above
+        // the keyboard. This scrolls only the sheet, never the map or page.
+        content.scrollTop = 0;
+        setSheetState("expanded");
+      } else updateVisibleBounds();
+    });
+    input.addEventListener("blur", (event) => {
+      if (
+        editingInput === input &&
+        !resultPointer &&
+        !editingResults().contains(event.relatedTarget)
+      ) {
+        editingInput = null;
+        editingField = "";
+      }
+      updateVisibleBounds();
+    });
+  }
+  for (const selector of ["#results", "#route-results"]) {
+    const results = $(selector);
+    results.addEventListener("mousedown", (event) => {
+      const button = event.target?.closest?.("button");
+      if (event.button === 0 && button && results.contains(button))
+        // A completed touch tap can generate this compatibility mouse event
+        // in Safari. Keep the input focused until the result's real click.
+        // Do not cancel pointerdown/touchstart: native list scrolling must work.
+        event.preventDefault();
+    });
+    results.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (
+          !editingInput ||
+          results !== editingResults() ||
+          event.isPrimary === false ||
+          (event.button != null && event.button !== 0)
+        )
+          return;
+        clearResultPointer();
+        resultPointer = { id: event.pointerId, input: editingInput };
+      },
+      { passive: true },
+    );
+    results.addEventListener("focusout", (event) => {
+      if (
+        editingInput &&
+        !resultPointer &&
+        event.relatedTarget !== editingInput &&
+        !editingResults().contains(event.relatedTarget)
+      ) {
+        editingInput = null;
+        editingField = "";
+        updateVisibleBounds();
+      }
+    });
+  }
+  const releaseResultPointer = (event) => {
+    if (!resultPointer || event.pointerId !== resultPointer.id) return;
+    const pending = resultPointer;
+    if (resultReleaseTimer != null) clearTimeout(resultReleaseTimer);
+    // Native click follows pointerup in the same event task. No preventDefault,
+    // pointer capture or synthetic click: vertical result scrolling stays native.
+    resultReleaseTimer = setTimeout(() => {
+      if (resultPointer !== pending) return;
+      resultPointer = null;
+      resultReleaseTimer = null;
+      const active = document.activeElement;
+      if (
+        editingInput === pending.input &&
+        active !== editingInput &&
+        !editingResults().contains(active)
+      ) {
+        editingInput = null;
+        editingField = "";
+      }
+      updateVisibleBounds();
+    }, 0);
+  };
+  window.addEventListener("pointerup", releaseResultPointer, true);
+  window.addEventListener("pointercancel", releaseResultPointer, true);
+  visualViewport?.addEventListener("resize", updateVisibleBounds);
+  visualViewport?.addEventListener("scroll", updateVisibleBounds);
   setSheetState("peek");
   const themeQuery = matchMedia("(prefers-color-scheme: dark)");
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const settings = readSaved("settings", {
     theme: "system",
-    quality: "auto",
+    quality: "balanced",
+    frameRate: "auto",
     motion: motionQuery.matches,
+    headingFollow: true,
   });
   if (!["system", "light", "dark"].includes(settings.theme))
     settings.theme = "system";
-  if (!["auto", "low", "high"].includes(settings.quality))
-    settings.quality = "auto";
+  if (!["auto", "low", "balanced", "high"].includes(settings.quality))
+    settings.quality = "balanced";
+  if (!["auto", "30", "60"].includes(settings.frameRate))
+    settings.frameRate = "auto";
+  const migrateQualityDefault = readSaved("quality-default-version", 0) < 1;
+  // The old startup saved "auto" even when nobody chose it. Reset that legacy
+  // value once per interface profile; subsequent explicit "auto" is retained.
+  if (migrateQualityDefault && settings.quality === "auto")
+    settings.quality = "balanced";
+  let autoFrameRate = 60;
+  function applyFrameRate() {
+    scene.setFrameRate?.(
+      settings.frameRate === "auto"
+        ? (scene.qualityProfile?.autoFrameRate ?? autoFrameRate)
+        : Number(settings.frameRate),
+      { automatic: settings.frameRate === "auto" },
+    );
+  }
+  function applyGraphics() {
+    autoFrameRate = scene.setQuality(settings.quality)?.autoFrameRate ?? 60;
+    applyFrameRate();
+  }
   function applySettings() {
     const dark =
       settings.theme === "dark" ||
@@ -207,28 +405,44 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     document.documentElement.dataset.reducedMotion = String(settings.motion);
     scene.setTheme(dark ? "dark" : "light");
     scene.setReducedMotion(settings.motion);
-    scene.setQuality(settings.quality);
+    scene.setHeadingFollow?.(settings.headingFollow);
     writeSaved("settings", settings);
   }
   $("#theme-setting").value = settings.theme;
   $("#quality-setting").value = settings.quality;
+  $("#frame-rate-setting").value = settings.frameRate;
   $("#motion-setting").checked = settings.motion;
+  $("#heading-follow-setting").checked = settings.headingFollow;
   $("#theme-setting").onchange = (e) => {
     settings.theme = e.target.value;
     applySettings();
   };
   $("#quality-setting").onchange = (e) => {
     settings.quality = e.target.value;
-    applySettings();
+    applyGraphics();
+    writeSaved("settings", settings);
+  };
+  $("#frame-rate-setting").onchange = (e) => {
+    settings.frameRate = e.target.value;
+    applyFrameRate();
+    writeSaved("settings", settings);
   };
   $("#motion-setting").onchange = (e) => {
     settings.motion = e.target.checked;
     applySettings();
   };
+  $("#heading-follow-setting").onchange = (e) => {
+    settings.headingFollow = e.target.checked;
+    scene.setHeadingFollow?.(settings.headingFollow);
+    writeSaved("settings", settings);
+  };
   themeQuery.addEventListener("change", applySettings);
+  applyGraphics();
   applySettings();
+  if (migrateQualityDefault) writeSaved("quality-default-version", 1);
   $("#settings-open").onclick = () => $("#settings-dialog").showModal();
   $("#settings-close").onclick = () => $("#settings-dialog").close();
+  bindInterfaceControls();
   $("#settings-dialog").addEventListener("click", (e) => {
     if (e.target === $("#settings-dialog")) e.target.close();
   });

@@ -8,6 +8,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
+import { stripJpegMetadata } from "./jpeg-metadata.mjs";
 
 export const RELEASE_CAMPUS_ID = "v-78";
 
@@ -184,7 +185,13 @@ export async function createReleaseData(publicDirectory) {
     sourceCount: images.length,
     images,
   });
-  for (const photo of images) await addAsset(photo.file, "data/photos/");
+  for (const photo of images) {
+    await addAsset(photo.file, "data/photos/");
+    if (/\.jpe?g$/i.test(photo.file)) {
+      const filename = assetPath(photo.file);
+      files.set(filename, stripJpegMetadata(files.get(filename)));
+    }
+  }
 
   const references = new Set();
   for (const document of documents) localAssetReferences(document, references);

@@ -206,10 +206,12 @@ test("pin placement temporarily pans in 3D and restores ordinary map controls", 
   assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.PAN);
   assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_PAN);
   assert.equal(view.controls.enableRotate, false);
+  assert.equal(view.controls.enableTouchRotate, false);
   view.setLocationPicking(false);
   assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.ROTATE);
-  assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_ROTATE);
+  assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_PAN);
   assert.equal(view.controls.enableRotate, true);
+  assert.equal(view.controls.enableTouchRotate, true);
   view.plan = true;
   view.setLocationPicking(true);
   view.setLocationPicking(false);
@@ -305,4 +307,84 @@ test("heading updates reuse arrow geometry and expire without touching GPS posit
   });
   assert.equal(arrow.visible, false);
   assert.equal(view.userLocationLayer.userData.headingPresentation, null);
+});
+
+for (const plan of [true, false]) {
+  test(`route heading turns the ${plan ? "plan" : "3D camera"} without shifting the location marker`, (t) => {
+    const { view } = viewHarness();
+    t.after(() => {
+      view.setUserHeading(null);
+      view.setUserLocation(null);
+    });
+    view.plan = plan;
+    if (!plan) {
+      view.camera = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+      view.camera.position.set(-2, 30, 29);
+    } else view.camera.position.set(-2, 100, -3);
+    view.controls.target.set(-2, 0, -3);
+    const aimCamera = () => {
+      view.camera.lookAt(view.controls.target);
+      view.camera.updateMatrixWorld(true);
+    };
+    aimCamera();
+    view.setUserLocation(gps([1, 2]));
+    const marker = view.userLocationLayer.position.clone();
+    const before = marker.clone().project(view.camera);
+    const distance = view.camera.position.distanceTo(view.controls.target);
+    view.reducedMotion = true;
+    view.callbacks.shouldFollowHeading = () => true;
+    view.setHeadingFollow(true);
+    view.setUserHeading({
+      source: "compass",
+      degrees: 90,
+      timestamp: Date.now(),
+      reference: "true",
+    });
+    view.updateNavigationHeading(16);
+    aimCamera();
+    const after = marker.clone().project(view.camera);
+    near(after.x, before.x);
+    near(after.y, before.y);
+    near(view.camera.position.distanceTo(view.controls.target), distance);
+    assert.deepEqual(view.userLocation.point, [1, 2]);
+    const [x, z] = presentUserHeading(
+      view.userHeading,
+      view.userLocation,
+    ).vector;
+    const forward = new THREE.Vector3(x, 0, z);
+    assert.ok(marker.clone().add(forward).project(view.camera).y > after.y);
+  });
+}
+
+test("compass turns take the short arc and stop after manual pause or heading loss", (t) => {
+  const { view } = viewHarness();
+  t.after(() => view.setUserHeading(null));
+  let following = true;
+  view.callbacks.shouldFollowHeading = () => following;
+  view.setHeadingFollow(true);
+  const heading = {
+    source: "compass",
+    degrees: 180,
+    timestamp: Date.now(),
+    reference: "true",
+  };
+  view.setUserHeading(heading);
+  const [x, z] = presentUserHeading(heading).vector;
+  const bearing = Math.atan2(-x, -z);
+  const initial = bearing - (2 * Math.PI - 0.35);
+  view.camera.up.set(-Math.sin(initial), 0, -Math.cos(initial));
+  const before = view.camera.up.clone();
+  view.updateNavigationHeading(16);
+  const difference = view.camera.up.angleTo(before);
+  assert.ok(difference > 0 && difference < 0.1, `smoothed turn: ${difference}`);
+  assert.ok(view.camera.up.angleTo(new THREE.Vector3(x, 0, z)) < 0.35);
+
+  const paused = view.camera.up.clone();
+  following = false;
+  view.updateNavigationHeading(32);
+  assert.deepEqual(view.camera.up.toArray(), paused.toArray());
+  following = true;
+  view.setUserHeading({ ...heading, timestamp: Date.now() - 5001 });
+  view.updateNavigationHeading(48);
+  assert.deepEqual(view.camera.up.toArray(), paused.toArray());
 });

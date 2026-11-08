@@ -6,6 +6,22 @@ import { makeCurrentRouteEndpoint } from "../src/data/current-route-origin.js";
 import { isCurrentUserLocation } from "../src/data/user-location.js";
 import { createRouteTracker } from "../src/data/route-tracking.js";
 import { createRouteTrackingSurfaceGuard } from "../src/data/route-tracking-surface.js";
+import { findNextPlaces } from "../src/data/next-place-search.js";
+import {
+  placeLocation,
+  presentPlaceIdentity,
+} from "../src/data/place-location.js";
+import placeLandmarks from "../src/data/place-landmarks.json" with { type: "json" };
+import { nextRouteReadout, partialRouteInfo } from "../src/ui/next-route.js";
+import {
+  variantStorageKey,
+  migrateInterfaceStorage,
+} from "../src/ui/variant.js";
+import {
+  isCompactLandscape,
+  measuredPortraitPadding,
+  measuredLandscapePadding,
+} from "../src/ui/map-viewport.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -14,9 +30,14 @@ import {
 
 // Exercise production controller transitions with DOM/WebGL/Worker as boundaries.
 // This does not emulate layout: browser and device visual checks remain separate.
-function harness(file, exports, saved = {}) {
+function harness(file, exports, saved = {}, options = {}) {
   const elements = new Map();
   const store = new Map(Object.entries(saved));
+  const persistedStorage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => store.set(key, value),
+  };
+  migrateInterfaceStorage(persistedStorage);
   function element(selector) {
     if (elements.has(selector)) return elements.get(selector);
     const listeners = new Map(),
@@ -78,6 +99,37 @@ function harness(file, exports, saved = {}) {
         return [];
       },
       getBoundingClientRect() {
+        const width = options.width ?? 390;
+        const height = options.height ?? 844;
+        if (selector === ".sidebar")
+          return {
+            left: 0,
+            right: width,
+            width,
+            top: height - 500,
+            bottom: height,
+            height: 500,
+          };
+        if (
+          [".map-top", "#campus-overview", "#settings-open"].includes(selector)
+        )
+          return {
+            left: 16,
+            right: width - 16,
+            width: width - 32,
+            top: 16,
+            bottom: 64,
+            height: 48,
+          };
+        if ([".map-tools", "#next-floor-open"].includes(selector))
+          return {
+            left: width - 52,
+            right: width - 8,
+            width: 44,
+            top: 80,
+            bottom: 124,
+            height: 44,
+          };
         return { height: selector === "#sheet-toggle" ? 44 : 500 };
       },
     };
@@ -86,6 +138,8 @@ function harness(file, exports, saved = {}) {
   }
   const workerMessages = [];
   const animationFrames = new Map();
+  const timers = new Map();
+  let nextTimer = 0;
   const resizeObservers = [];
   let nextAnimationFrame = 0;
   let currentWorker;
@@ -108,16 +162,23 @@ function harness(file, exports, saved = {}) {
     isCurrentUserLocation,
     createRouteTracker,
     createRouteTrackingSurfaceGuard,
+    findNextPlaces,
+    placeLocation,
+    presentPlaceIdentity,
+    placeLandmarks,
+    nextRouteReadout,
+    partialRouteInfo,
+    isNextInterface: () => options.nextInterface === true,
+    variantStorageKey: (key) =>
+      variantStorageKey(key, options.nextInterface ? "next" : "classic"),
+    bindInterfaceControls: () => {},
     createRouteGuidance,
     sampleRouteGuidance,
     guidanceAnchorForStep,
     getBundledMapPackage: async () => null,
     nativeShareLink: () => "",
     matchMedia: () => ({ matches: false, addEventListener() {} }),
-    localStorage: {
-      getItem: (key) => store.get(key) ?? null,
-      setItem: (key, value) => store.set(key, value),
-    },
+    localStorage: persistedStorage,
     document: {
       body: { dataset: {} },
       documentElement: { dataset: {} },
@@ -132,9 +193,48 @@ function harness(file, exports, saved = {}) {
         return clock ?? Date.now();
       }
     },
-    innerWidth: 390,
-    innerHeight: 844,
+    innerWidth: options.width ?? 390,
+    innerHeight: options.height ?? 844,
+    isCompactLandscape,
+    portraitMapPadding: () =>
+      measuredPortraitPadding(
+        sandbox.innerWidth,
+        sandbox.innerHeight,
+        mapRectangles({
+          top: ".map-top",
+          back: "#campus-overview",
+          settings: "#settings-open",
+          floorPicker: "#next-floor-open",
+          tools: ".map-tools",
+          sidebar: ".sidebar",
+          dock: "#route-guidance-dock",
+          location: "#location-pick-banner",
+        }),
+      ),
+    landscapeMapPadding: () =>
+      measuredLandscapePadding(
+        sandbox.innerWidth,
+        sandbox.innerHeight,
+        mapRectangles({
+          top: ".map-top",
+          status: ".focus-floor-status",
+          floorPicker: "#next-floor-open",
+          floors: "#floor-rail",
+          tools: ".map-tools",
+          sidebar: ".sidebar",
+          dock: "#route-guidance-dock",
+          location: "#location-pick-banner",
+        }),
+      ),
     location: { hash: "" },
+    setTimeout(callback) {
+      const id = ++nextTimer;
+      timers.set(id, callback);
+      return id;
+    },
+    clearTimeout(id) {
+      timers.delete(id);
+    },
     requestAnimationFrame(callback) {
       const id = ++nextAnimationFrame;
       animationFrames.set(id, callback);
@@ -152,6 +252,14 @@ function harness(file, exports, saved = {}) {
       }
     },
   };
+  function mapRectangles(selectors) {
+    return Object.fromEntries(
+      Object.entries(selectors).map(([name, selector]) => {
+        const el = element(selector);
+        return [name, el.hidden ? null : el.getBoundingClientRect()];
+      }),
+    );
+  }
   const source = readFileSync(new URL(file, import.meta.url), "utf8")
     .replace(/^import[\s\S]*?;\n/gm, "")
     .replace(/export /g, "")
@@ -170,6 +278,12 @@ function harness(file, exports, saved = {}) {
     setNow(value) {
       clock = value;
     },
+    setViewport(width, height) {
+      sandbox.innerWidth = width;
+      sandbox.innerHeight = height;
+      sandbox.document.documentElement.clientHeight = height;
+      sandbox.window.dispatchEvent(new Event("resize"));
+    },
     tick(timestamp) {
       const next = animationFrames.entries().next().value;
       if (!next) return false;
@@ -178,6 +292,11 @@ function harness(file, exports, saved = {}) {
       return true;
     },
     animationFrames,
+    flushTimers() {
+      const pending = [...timers.values()];
+      timers.clear();
+      for (const callback of pending) callback();
+    },
     resize() {
       for (const { target, callback } of resizeObservers)
         callback([{ target }]);
@@ -187,29 +306,45 @@ function harness(file, exports, saved = {}) {
     },
   };
 }
-function experienceHarness(saved) {
+function experienceHarness(saved, visualViewport, options = {}) {
   const h = harness(
     "../src/ui/experience.js",
     ["bindExperience", "readSaved"],
     saved,
+    options,
   );
+  h.window.visualViewport = visualViewport;
+  const qualityCalls = [];
   const api = h.bindExperience({
     state: { search: [] },
-    scene: { setTheme() {}, setQuality() {}, setReducedMotion() {} },
+    scene: {
+      setTheme() {},
+      setQuality(value) {
+        qualityCalls.push(value);
+      },
+      setReducedMotion() {},
+    },
     navigateRoom() {},
     toast() {},
   });
-  return { ...h, ...api };
+  return { ...h, ...api, qualityCalls };
 }
 function routeHarness({
+  nextInterface = false,
   chooseFloor: chooseFloorOverride,
   getUserOrigin,
   onLocate,
   onRefineLocation,
   onConfirmFloor,
   onPauseFollowing,
+  onFloorContext,
 } = {}) {
-  const h = harness("../src/ui/routes.js", ["bindRoutes"]);
+  const h = harness(
+    "../src/ui/routes.js",
+    ["bindRoutes"],
+    {},
+    { nextInterface },
+  );
   const state = {
     campus: { id: "a" },
     loading: 1,
@@ -221,12 +356,20 @@ function routeHarness({
   const guidanceCalls = [];
   const guidanceOptions = [];
   const sheetCalls = [];
+  const navigationModes = [];
+  const overviewCalls = [];
+  const toasts = [];
   const scene = {
+    setNavigationMode(active) {
+      navigationModes.push(active);
+    },
     clearRoute() {},
     setRoute(route) {
       draws.push(route);
     },
-    setRouteOverview() {},
+    setRouteOverview(value) {
+      overviewCalls.push(value);
+    },
     setRouteGuidance(sample, options) {
       guidanceCalls.push(sample);
       guidanceOptions.push(options);
@@ -239,6 +382,7 @@ function routeHarness({
     onRefineLocation,
     onConfirmFloor,
     onPauseFollowing,
+    onFloorContext,
     scene,
     loadCampus: async (id) => {
       state.campus = { id };
@@ -252,7 +396,9 @@ function routeHarness({
       return true;
     },
     closeRoom() {},
-    toast() {},
+    toast(message) {
+      toasts.push(message);
+    },
     updateUI() {},
     saveView() {},
     experience: {
@@ -288,6 +434,9 @@ function routeHarness({
     guidanceCalls,
     guidanceOptions,
     sheetCalls,
+    navigationModes,
+    overviewCalls,
+    toasts,
     room,
     result,
   };
@@ -341,7 +490,7 @@ test("the sheet can be swiped to the bottom, reopened and revealed by search/nav
   assert.equal(sheet.style.values.has("--sheet-drag"), false);
   handle.dispatch("click", { detail: 0 });
   assert.equal(sheet.classList.contains("minimized"), false);
-  assert.equal(sheet.classList.contains("expanded"), false);
+  assert.equal(sheet.classList.contains("expanded"), true);
   assert.equal(content.inert, false);
   h.expand(true);
   handle.dispatch("pointerdown", { clientY: 200, pointerId: 2 });
@@ -410,6 +559,26 @@ test("Android Back closes search suggestions before collapsing the sheet or leav
   assert.equal(h.element(".sidebar").classList.contains("expanded"), false);
 });
 
+test("the expanded sheet follows an overlay keyboard and releases its viewport offsets when collapsed", () => {
+  const visualViewport = Object.assign(new EventTarget(), {
+    scale: 1,
+    height: 500,
+    offsetTop: 24,
+  });
+  const h = experienceHarness(undefined, visualViewport);
+  const bounds = h.element(".sidebar").style.values;
+  h.expand(true);
+  assert.equal(bounds.get("--sheet-viewport-top"), "24px");
+  assert.equal(bounds.get("--sheet-viewport-bottom"), "320px");
+  visualViewport.height = 844;
+  visualViewport.offsetTop = 0;
+  visualViewport.dispatchEvent(new Event("resize"));
+  assert.equal(bounds.get("--sheet-viewport-bottom"), "0px");
+  h.expand(false);
+  assert.equal(bounds.has("--sheet-viewport-top"), false);
+  assert.equal(bounds.has("--sheet-viewport-bottom"), false);
+});
+
 test("malformed saved arrays/settings cannot prevent startup or favorite/history controls", () => {
   for (const value of ["{}", '"broken"', "12", "null"]) {
     const h = experienceHarness({
@@ -426,12 +595,17 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
     "atlas:settings": '{"theme":7,"motion":"bad","quality":"unknown"}',
   });
   assert.equal(JSON.stringify(h.readSaved("favorites", [])), '["a"]');
-  const settings = JSON.parse(h.store.get("atlas:settings"));
+  const settingsKey = variantStorageKey("atlas:settings");
+  const settings = JSON.parse(h.store.get(settingsKey));
   assert.deepEqual(settings, {
     theme: "system",
-    quality: "auto",
+    quality: "balanced",
+    frameRate: "auto",
     motion: false,
+    headingFollow: true,
   });
+  h.element("#heading-follow-setting").onchange({ target: { checked: false } });
+  assert.equal(JSON.parse(h.store.get(settingsKey)).headingFollow, false);
 });
 
 test("canceling a route during worker calculation cannot restore its path", async () => {
@@ -793,18 +967,18 @@ test("guidance supplies the actual mobile panel occupation after its controls ex
   const panel = h.element("#route-panel");
   h.element(".sidebar").getBoundingClientRect = () =>
     panel.dataset.guiding === "true"
-      ? { height: 590, top: 254 }
-      : { height: 340, top: 504 };
+      ? { height: 590, top: 254, bottom: 844, left: 0, right: 390, width: 390 }
+      : { height: 340, top: 504, bottom: 844, left: 0, right: 390, width: 390 };
   await buildPreview(h);
   assert.equal(panel.dataset.guiding, "false");
-  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 356);
+  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 352);
   h.element("#route-dock-next").dispatch("click");
   h.element("#route-preview-play").dispatch("click");
   assert.equal(panel.dataset.guiding, "true");
   h.tick(0);
   assert.deepEqual(
     { ...h.guidanceOptions.at(-1).padding },
-    { top: 164, bottom: 606, left: 64, right: 64 },
+    { top: 76, bottom: 602, left: 16, right: 64 },
   );
   h.element("#route-clear").onclick();
   assert.equal(panel.dataset.guiding, "false");
@@ -822,10 +996,14 @@ test("resizing a paused guidance panel updates padding without returning from an
   const distance = h.guidanceCalls.at(-1).distance;
   h.element(".sidebar").getBoundingClientRect = () => ({
     top: 400,
+    bottom: 844,
+    left: 0,
+    right: 390,
+    width: 390,
     height: 444,
   });
   h.resize();
-  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 460);
+  assert.equal(h.guidanceOptions.at(-1).padding.bottom, 456);
   assert.equal(h.guidanceCalls.at(-1).distance, distance);
   assert.equal(h.animationFrames.size, 0);
   const callCount = h.guidanceCalls.length;
@@ -939,11 +1117,18 @@ test("the route camera reserves the compact card's actual area, and a manual ori
   const h = routeHarness();
   h.element("#route-guidance-dock").getBoundingClientRect = () => ({
     top: 630,
+    left: 16,
+    right: 374,
+    width: 358,
     bottom: 780,
     height: 150,
   });
   h.element(".sidebar").getBoundingClientRect = () => ({
     top: 800,
+    bottom: 844,
+    left: 0,
+    right: 390,
+    width: 390,
     height: 44,
   });
   const calls = h.sheetCalls.length;
@@ -959,6 +1144,63 @@ test("the route camera reserves the compact card's actual area, and a manual ori
   h.element("#route-dock-close").dispatch("click");
   assert.equal(h.getRoute(), null);
   assert.equal(h.getEndpoints().from, null);
+});
+
+test("Next dock opens route details without discarding the path and enables navigation visuals only while guiding", async () => {
+  const h = routeHarness({ nextInterface: true });
+  await buildPreview(h);
+  const route = h.getRoute();
+  const endpoints = h.getEndpoints();
+  assert.equal(h.document.body.dataset.routeAvailable, "true");
+  assert.equal(h.navigationModes.at(-1), false);
+  h.element("#route-dock-open").dispatch("click");
+  assert.equal(h.sheetCalls.at(-1), "expanded");
+  assert.equal(h.getRoute(), route);
+  assert.deepEqual(h.getEndpoints(), endpoints);
+  h.element("#route-dock-next").dispatch("click");
+  assert.equal(h.navigationModes.at(-1), true);
+  h.clear();
+  assert.equal(h.navigationModes.at(-1), false);
+  assert.equal(h.document.body.dataset.routeAvailable, "false");
+});
+
+test("Next route endpoint search shares food categories while Classic preserves its label-only candidates", () => {
+  for (const nextInterface of [false, true]) {
+    const h = routeHarness({ nextInterface });
+    h.state.search = [
+      {
+        id: "food",
+        label: "Буфет",
+        kind: "cafeteria",
+        campusId: "a",
+        floorId: "a-floor1",
+        building: "Г",
+      },
+      {
+        id: "room",
+        label: "Г-209",
+        kind: "room",
+        campusId: "a",
+        floorId: "a-floor1",
+        building: "Г",
+      },
+    ];
+    h.state.manifest.campuses = [
+      {
+        id: "a",
+        title: "Кампус",
+        floors: [{ id: "a-floor1", buildingLevels: { Г: 2 } }],
+      },
+    ];
+    h.element("#route-to").value = "еда";
+    h.element("#route-to").oninput();
+    const markup = h.element("#route-results").innerHTML;
+    if (nextInterface) {
+      assert.match(markup, /Буфет/);
+      assert.match(markup, /Корпус Г · 2 этаж/);
+      assert.doesNotMatch(markup, /Г-209/);
+    } else assert.match(markup, /Ничего не найдено/);
+  }
 });
 
 test("a step with an unavailable destination floor cannot claim arrival or discard the previous instruction", async () => {
@@ -1186,6 +1428,7 @@ async function liveRouteHarness(options = {}) {
       text: "У аудитории",
     },
   ];
+  options.configureRoute?.(h);
   const pending = h.build();
   h.reply(h.result);
   await pending;
@@ -1212,6 +1455,52 @@ async function liveRouteHarness(options = {}) {
   h.element("#route-dock-next").dispatch("click");
   return h;
 }
+
+test("route heading is paused with map following and restored by recenter", async () => {
+  let state;
+  const h = await liveRouteHarness({
+    onLocate() {
+      if (state) state.locationTracking.following = true;
+    },
+  });
+  state = h.state;
+  assert.equal(h.isFollowingHeading(), true);
+  state.locationTracking.following = false;
+  assert.equal(h.isFollowingHeading(), false);
+  h.element("#route-dock-recenter").dispatch("click");
+  assert.equal(h.isFollowingHeading(), true);
+  state.floor = { id: "off-route-floor" };
+  assert.equal(h.isFollowingHeading(), false);
+  h.clear();
+  assert.equal(h.isFollowingHeading(), false);
+});
+
+test("Next tracking hides manual controls only for reliable GPS and surfaces a working refinement action", async () => {
+  let refinements = 0;
+  const h = await liveRouteHarness({
+    nextInterface: true,
+    onRefineLocation() {
+      refinements++;
+    },
+  });
+  h.emitGps([0, 0]);
+  h.emitGps([1, 0]);
+  assert.equal(h.element("#route-dock-next").hidden, true);
+  assert.equal(h.element("#route-dock-recenter").hidden, true);
+  assert.equal(h.element("#route-dock-context").hidden, true);
+  assert.equal(h.element("#route-dock-previous").hidden, true);
+  assert.match(h.element("#route-dock-distance").textContent, /м/);
+  const instruction = h.element("#route-dock-instruction").textContent;
+  h.emitGps([2, 0], { accuracyMeters: 40, accuracyRadiusMap: 40 });
+  assert.equal(h.element("#route-dock-next").hidden, false);
+  assert.equal(h.element("#route-dock-context").textContent, "Уточнить точку");
+  assert.equal(h.element("#route-dock-context").hidden, false);
+  assert.equal(h.element("#route-dock-distance").hidden, true);
+  assert.equal(h.element("#route-dock-instruction").textContent, instruction);
+  h.element("#route-dock-context").dispatch("click");
+  assert.equal(refinements, 1);
+  assert.ok(h.getRoute());
+});
 
 test("live GPS advances to upcoming instructions and arrival without opening the sheet or creating a demonstration", async () => {
   const h = await liveRouteHarness();
@@ -1278,6 +1567,79 @@ test("live navigation holds poor or stale positions and retains actual GPS coord
   h.locationChanged();
   assert.match(h.element("#route-dock-note").textContent, /Нет свежего GPS/);
   assert.equal(h.element("#route-dock-instruction").textContent, instruction);
+});
+
+test("live floor context receives only accepted fresh route samples while following, without moving or confirming GPS", async () => {
+  const contexts = [];
+  let confirmations = 0;
+  const h = await liveRouteHarness({
+    onFloorContext(sample, nodes) {
+      contexts.push({ sample, nodes });
+    },
+    onConfirmFloor() {
+      confirmations++;
+    },
+    configureRoute(h) {
+      const segment = h.result.segments[0];
+      segment.nodes = segment.points.map((position) => ({
+        position,
+        floorId: segment.floorId,
+        building: "Г",
+        physicalLevel: 1,
+      }));
+    },
+  });
+  contexts.length = 0;
+  h.emitGps([0, 0]);
+  assert.equal(contexts.length, 0, "one observation is still acquiring");
+  h.emitGps([1, 0]);
+  assert.equal(contexts.length, 1);
+  assert.equal(contexts[0].sample.sourceSegmentIndex, 0);
+  assert.equal(contexts[0].sample.floorId, h.state.floor.id);
+  assert.equal(contexts[0].nodes, h.result.segments[0].nodes);
+  assert.deepEqual(
+    [...contexts[0].sample.position],
+    [0, 0],
+    "uses accepted route progress, not raw GPS coordinate",
+  );
+  h.locationChanged();
+  assert.equal(contexts.length, 1, "a UI refresh is not a new accepted fix");
+  h.state.locationTracking.following = false;
+  h.emitGps([2, 0]);
+  assert.equal(contexts.length, 1, "manual browsing retains camera context");
+  h.state.locationTracking.following = true;
+  h.state.selected = { id: "place-card" };
+  h.emitGps([3, 0]);
+  assert.equal(
+    contexts.length,
+    1,
+    "an explicitly selected place retains its context",
+  );
+  h.state.selected = null;
+  h.emitGps([4, 0], { accuracyMeters: 40 });
+  assert.equal(contexts.length, 1, "uncertain GPS cannot update context");
+  h.emitGps([5, 0]);
+  h.emitGps([6, 0]);
+  assert.equal(
+    contexts.length,
+    2,
+    "following resumes only after new accepted evidence",
+  );
+  const actualLocation = structuredClone(h.state.userLocation);
+  h.setNow(h.state.userLocation.timestamp + 11_000);
+  h.locationChanged();
+  assert.equal(
+    contexts.length,
+    2,
+    "expired samples retain the last known context",
+  );
+  assert.equal(confirmations, 0, "context is not automatic floor confirmation");
+  assert.deepEqual(h.state.userLocation, actualLocation);
+  assert.equal(
+    h.guidanceCalls.at(-1),
+    null,
+    "no demonstration camera or marker is introduced",
+  );
 });
 
 test("a GPS stair handoff waits for explicit floor confirmation and never switches floors from coordinates alone", async () => {
@@ -1418,4 +1780,650 @@ test("an unavailable destination keeps the honest graph explanation visible inst
   assert.match(h.element("#route-status").textContent, /Г-424-1.*вход/);
   assert.equal(h.sheetCalls.at(-1), "expanded");
   assert.equal(h.element("#route-guidance-dock").hidden, true);
+});
+
+test("the single interface uses balanced quality and migrates legacy auto only once", () => {
+  for (const nextInterface of [false, true]) {
+    const variant = nextInterface ? "next" : "classic";
+    const settingsKey = variantStorageKey("atlas:settings", variant);
+    const versionKey = variantStorageKey(
+      "atlas:quality-default-version",
+      variant,
+    );
+    const options = { nextInterface };
+    const fresh = experienceHarness({}, undefined, options);
+    assert.deepEqual(fresh.qualityCalls, ["balanced"]);
+    assert.equal(fresh.element("#quality-setting").value, "balanced");
+    assert.equal(fresh.store.get(versionKey), "1");
+
+    const preferences = {
+      quality: "auto",
+      theme: "dark",
+      frameRate: "30",
+      motion: true,
+      headingFollow: false,
+    };
+    const migrated = experienceHarness(
+      { [settingsKey]: JSON.stringify(preferences) },
+      undefined,
+      options,
+    );
+    assert.deepEqual(migrated.qualityCalls, ["balanced"]);
+    assert.deepEqual(JSON.parse(migrated.store.get(settingsKey)), {
+      ...preferences,
+      quality: "balanced",
+    });
+    assert.equal(migrated.store.get(versionKey), "1");
+
+    migrated
+      .element("#quality-setting")
+      .onchange({ target: { value: "auto" } });
+    const restarted = experienceHarness(
+      Object.fromEntries(migrated.store),
+      undefined,
+      options,
+    );
+    assert.deepEqual(
+      restarted.qualityCalls,
+      ["auto"],
+      "explicit auto after migration survives restart",
+    );
+    assert.equal(restarted.element("#quality-setting").value, "auto");
+
+    for (const quality of ["low", "balanced", "high"]) {
+      const existing = experienceHarness(
+        { [settingsKey]: JSON.stringify({ ...preferences, quality }) },
+        undefined,
+        options,
+      );
+      assert.deepEqual(existing.qualityCalls, [quality]);
+      assert.deepEqual(JSON.parse(existing.store.get(settingsKey)), {
+        ...preferences,
+        quality,
+      });
+    }
+  }
+});
+
+test("quality migration updates only the active Next settings and retains the Classic backup", () => {
+  const classic = "atlas:settings",
+    next = "atlas:next:atlas:settings";
+  const h = experienceHarness({
+    [classic]: '{"quality":"auto"}',
+    [next]: '{"quality":"auto"}',
+  });
+  assert.equal(JSON.parse(h.store.get(classic)).quality, "auto");
+  assert.equal(JSON.parse(h.store.get(next)).quality, "balanced");
+  assert.equal(h.store.get("atlas:next:atlas:quality-default-version"), "1");
+  const newUI = experienceHarness(Object.fromEntries(h.store), undefined, {
+    nextInterface: true,
+  });
+  assert.equal(JSON.parse(newUI.store.get(next)).quality, "balanced");
+  assert.equal(
+    newUI.store.get("atlas:next:atlas:quality-default-version"),
+    "1",
+  );
+});
+
+test("both route interfaces keep individual floors and transitions without an all-floor control", async () => {
+  for (const nextInterface of [false, true]) {
+    const h = routeHarness({ nextInterface });
+    const chips = ["a-floor1", "a-floor2"].map((floor) => ({
+      dataset: { routeFloor: floor },
+    }));
+    h.element("#route-floor-chips").children = chips;
+    h.result.segments = [1, 2].map((level) => ({
+      floorId: `a-floor${level}`,
+      points: [
+        [0, 0],
+        [10, 0],
+      ],
+      nodes: [{ physicalLevel: level }],
+    }));
+    h.result.steps = [
+      {
+        kind: "stairs",
+        floorId: "a-floor1",
+        position: [10, 0],
+        targetFloorId: "a-floor2",
+        text: "Поднимитесь на 2 этаж",
+      },
+      {
+        kind: "arrive",
+        floorId: "a-floor2",
+        position: [10, 0],
+        text: "Вы у аудитории",
+      },
+    ];
+    const pending = h.build();
+    h.reply(h.result);
+    await pending;
+    const content = h.element("#route-floor-chips").innerHTML;
+    assert.doesNotMatch(content, /route-all-floors|Все этажи/);
+    assert.match(content, /data-route-floor="a-floor1"/);
+    assert.match(content, /data-route-floor="a-floor2"/);
+    chips[1].onclick();
+    assert.equal(h.state.floor.id, "a-floor2");
+    chips[0].onclick();
+    assert.equal(h.state.floor.id, "a-floor1");
+    h.startGuidance();
+    h.element("#route-dock-next").dispatch("click");
+    assert.equal(
+      h.state.floor.id,
+      "a-floor2",
+      "the explicit staircase transition remains available",
+    );
+    assert.ok(h.overviewCalls.length > 0);
+    assert.ok(
+      h.overviewCalls.every((value) => value === false),
+      "no route action enables a stacked view",
+    );
+  }
+});
+
+test("search and route inputs keep suggestions within the visual viewport in both mobile orientations and variants", () => {
+  for (const nextInterface of [false, true]) {
+    for (const [width, height, keyboardHeight] of [
+      [390, 844, 344],
+      [844, 390, 190],
+    ]) {
+      for (const selector of ["#search", "#route-from", "#route-to"]) {
+        const viewport = Object.assign(new EventTarget(), {
+          scale: 1,
+          height,
+          offsetTop: 0,
+        });
+        const h = experienceHarness(undefined, viewport, {
+          nextInterface,
+          width,
+          height,
+        });
+        const sidebar = h.element(".sidebar");
+        const content = h.element(".sidebar-scroll");
+        content.scrollTop = 240;
+        h.minimize();
+        h.element(selector).dispatch("focus");
+        assert.equal(h.getSheetState(), "expanded");
+        assert.equal(
+          content.scrollTop,
+          0,
+          "sheet-local scroll reveals field and list",
+        );
+        assert.equal(sidebar.dataset.inputEditing, "true");
+        viewport.height = height - keyboardHeight;
+        viewport.offsetTop = 12;
+        viewport.dispatchEvent(new Event("resize"));
+        assert.equal(sidebar.style.values.get("--sheet-viewport-top"), "12px");
+        assert.equal(
+          sidebar.style.values.get("--sheet-viewport-bottom"),
+          `${keyboardHeight - 12}px`,
+        );
+        assert.equal(
+          sidebar.style.values.get("--sheet-viewport-height"),
+          `${height - keyboardHeight}px`,
+        );
+        assert.equal(sidebar.dataset.keyboardOpen, "true");
+        viewport.scale = 1.5;
+        viewport.dispatchEvent(new Event("resize"));
+        assert.equal(
+          sidebar.dataset.keyboardOpen,
+          "false",
+          "pinch zoom is not a keyboard",
+        );
+        assert.equal(
+          sidebar.style.values.has("--sheet-viewport-bottom"),
+          false,
+        );
+        viewport.scale = 1;
+        viewport.height = height;
+        viewport.offsetTop = 0;
+        h.element(selector).dispatch("blur");
+        viewport.dispatchEvent(new Event("resize"));
+        assert.equal(sidebar.dataset.inputEditing, "false");
+        assert.equal(sidebar.dataset.keyboardOpen, "false");
+        assert.equal(
+          sidebar.style.values.get("--sheet-viewport-bottom"),
+          "0px",
+        );
+        h.minimize();
+        assert.equal(
+          sidebar.style.values.has("--sheet-viewport-height"),
+          false,
+        );
+      }
+    }
+  }
+});
+
+test("native layout resize reserves the remaining input area without double-counting the keyboard", () => {
+  const h = experienceHarness(undefined, undefined);
+  const sidebar = h.element(".sidebar");
+  h.element("#search").dispatch("focus");
+  h.setViewport(390, 440);
+  assert.equal(h.getSheetState(), "expanded");
+  assert.equal(sidebar.dataset.keyboardOpen, "true");
+  assert.equal(sidebar.style.values.get("--sheet-viewport-bottom"), "0px");
+  assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "440px");
+  h.element("#search").dispatch("blur");
+  h.setViewport(844, 390);
+  h.element("#route-to").dispatch("focus");
+  assert.equal(sidebar.dataset.inputEditing, "true");
+  assert.equal(
+    sidebar.dataset.keyboardOpen,
+    "false",
+    "rotation alone is not a keyboard",
+  );
+  h.setViewport(844, 180);
+  assert.equal(sidebar.dataset.keyboardOpen, "true");
+  assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "180px");
+});
+
+test("keyboard suggestion navigation retains only its active field until leaving or choosing a result", () => {
+  for (const nextInterface of [false, true]) {
+    for (const field of ["search", "route-from", "route-to"]) {
+      const h = experienceHarness(undefined, undefined, {
+        nextInterface,
+        width: 844,
+        height: 390,
+      });
+      const input = h.element(`#${field}`);
+      const list = h.element(
+        field === "search" ? "#results" : "#route-results",
+      );
+      const firstResult = {};
+      list.contains = (node) => node === firstResult;
+      input.dispatch("focus");
+      input.dispatch("blur", { relatedTarget: firstResult });
+      const sidebar = h.element(".sidebar");
+      assert.equal(sidebar.dataset.inputEditing, "true");
+      assert.equal(sidebar.dataset.editingField, field);
+      list.dispatch("focusout", { relatedTarget: {} });
+      assert.equal(sidebar.dataset.inputEditing, "false");
+      assert.equal(sidebar.dataset.editingField, "");
+      input.dispatch("focus");
+      input.dispatch("blur", { relatedTarget: firstResult });
+      h.expand(false);
+      assert.equal(
+        sidebar.dataset.inputEditing,
+        "false",
+        "choosing a removed result cannot leave an editing layout behind",
+      );
+      assert.equal(sidebar.dataset.editingField, "");
+    }
+  }
+});
+
+test("a very short Safari keyboard viewport keeps its active field through rotation and clears compact editing on blur", () => {
+  for (const nextInterface of [false, true]) {
+    const viewport = Object.assign(new EventTarget(), {
+      scale: 1,
+      height: 844,
+      offsetTop: 0,
+    });
+    const h = experienceHarness(undefined, viewport, { nextInterface });
+    const sidebar = h.element(".sidebar");
+    h.element("#route-to").dispatch("focus");
+    viewport.height = 52;
+    h.setViewport(844, 390);
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(h.getSheetState(), "expanded");
+    assert.equal(sidebar.dataset.editingField, "route-to");
+    assert.equal(sidebar.dataset.shortViewport, "true");
+    assert.equal(sidebar.dataset.keyboardOpen, "true");
+    assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "52px");
+    viewport.scale = 1.5;
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(
+      sidebar.dataset.shortViewport,
+      "false",
+      "pinch zoom must not activate the tiny-keyboard layout",
+    );
+    viewport.scale = 1;
+    viewport.height = 180;
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(sidebar.dataset.shortViewport, "false");
+    viewport.height = 52;
+    viewport.dispatchEvent(new Event("resize"));
+    assert.equal(sidebar.dataset.shortViewport, "true");
+    h.element("#route-to").dispatch("blur");
+    assert.equal(sidebar.dataset.shortViewport, "false");
+    assert.equal(sidebar.dataset.inputEditing, "false");
+  }
+});
+
+test("Safari null-target blur cannot move a touched suggestion before its click in either interface", () => {
+  for (const nextInterface of [false, true]) {
+    for (const field of ["search", "route-from", "route-to"]) {
+      const viewport = Object.assign(new EventTarget(), {
+        scale: 1,
+        height: 52,
+        offsetTop: 0,
+      });
+      const h = experienceHarness(undefined, viewport, {
+        nextInterface,
+        width: 844,
+        height: 390,
+      });
+      const sidebar = h.element(".sidebar");
+      const input = h.element(`#${field}`);
+      const list = h.element(
+        field === "search" ? "#results" : "#route-results",
+      );
+      input.dispatch("focus");
+      let prevented = false;
+      list.scrollTop = 75;
+      list.dispatch("pointerdown", {
+        pointerId: 7,
+        preventDefault() {
+          prevented = true;
+        },
+      });
+      input.dispatch("blur", { relatedTarget: null });
+      viewport.height = 390;
+      viewport.dispatchEvent(new Event("resize"));
+      assert.equal(sidebar.dataset.inputEditing, "true");
+      assert.equal(sidebar.dataset.shortViewport, "true");
+      assert.equal(
+        sidebar.style.values.get("--sheet-viewport-height"),
+        "52px",
+        "keyboard dismissal must not move the tapped row",
+      );
+      assert.equal(list.scrollTop, 75);
+      assert.equal(
+        prevented,
+        false,
+        "native vertical scrolling is never prevented",
+      );
+      h.window.dispatchEvent(
+        Object.assign(new Event("pointerup"), { pointerId: 7 }),
+      );
+      assert.equal(
+        sidebar.dataset.editingField,
+        field,
+        "pointerup precedes the native click",
+      );
+      let clicked = false;
+      list.onclick = () => {
+        clicked = true;
+        h.expand(false);
+      };
+      list.dispatch("click");
+      h.flushTimers();
+      assert.equal(clicked, true);
+      assert.equal(sidebar.dataset.inputEditing, "false");
+      assert.equal(sidebar.dataset.shortViewport, "false");
+    }
+  }
+});
+
+test("suggestion pointer cleanup preserves route handoff and canceled native scrolling", () => {
+  const h = experienceHarness(undefined, undefined, {
+    width: 844,
+    height: 390,
+  });
+  const from = h.element("#route-from"),
+    to = h.element("#route-to");
+  const list = h.element("#route-results"),
+    sidebar = h.element(".sidebar");
+  from.dispatch("focus");
+  list.dispatch("pointerdown", { pointerId: 1 });
+  from.dispatch("blur", { relatedTarget: null });
+  h.window.dispatchEvent(
+    Object.assign(new Event("pointerup"), { pointerId: 1 }),
+  );
+  to.dispatch("focus");
+  h.document.activeElement = to;
+  h.flushTimers();
+  assert.equal(
+    sidebar.dataset.editingField,
+    "route-to",
+    "late cleanup cannot clear the next endpoint field",
+  );
+  list.scrollTop = 140;
+  list.dispatch("pointerdown", { pointerId: 2 });
+  h.window.dispatchEvent(
+    Object.assign(new Event("pointercancel"), { pointerId: 2 }),
+  );
+  h.flushTimers();
+  assert.equal(
+    sidebar.dataset.editingField,
+    "route-to",
+    "scroll cancellation leaves the focused input active",
+  );
+  assert.equal(list.scrollTop, 140);
+  list.dispatch("pointerdown", { pointerId: 3 });
+  to.dispatch("blur", { relatedTarget: null });
+  h.document.activeElement = null;
+  h.window.dispatchEvent(
+    Object.assign(new Event("pointercancel"), { pointerId: 3 }),
+  );
+  h.flushTimers();
+  assert.equal(
+    sidebar.dataset.inputEditing,
+    "false",
+    "an abandoned touch must not leave frozen editing state",
+  );
+});
+
+test("suggestion compatibility mousedown preserves input focus but leaves touch scrolling and other mouse buttons alone", () => {
+  for (const nextInterface of [false, true]) {
+    const h = experienceHarness(undefined, undefined, { nextInterface });
+    for (const selector of ["#results", "#route-results"]) {
+      const list = h.element(selector);
+      const button = {};
+      list.contains = (node) => node === button;
+      const target = { closest: (tag) => (tag === "button" ? button : null) };
+      let prevented = 0;
+      const preventDefault = () => prevented++;
+      list.dispatch("mousedown", { button: 0, target, preventDefault });
+      assert.equal(
+        prevented,
+        1,
+        "primary completed tap keeps the text input focused until click",
+      );
+      list.dispatch("mousedown", { button: 2, target, preventDefault });
+      list.dispatch("mousedown", {
+        button: 0,
+        target: { closest: () => null },
+        preventDefault,
+      });
+      list.dispatch("pointerdown", {
+        button: 0,
+        pointerId: 1,
+        target,
+        preventDefault,
+      });
+      list.dispatch("touchstart", { target, preventDefault });
+      assert.equal(
+        prevented,
+        1,
+        "right click, empty space and scroll initiation remain native",
+      );
+      let clicked = false;
+      list.onclick = () => {
+        clicked = true;
+      };
+      list.dispatch("click", { target });
+      assert.equal(clicked, true);
+    }
+  }
+});
+
+function configurePartialRoute(h, { manualOnly = false } = {}) {
+  const label = "Г-424-3";
+  const message = `Войдите в Г-424 и найдите ${label}. Положение внутренней двери пока не нанесено.`;
+  h.setEndpoint("to", { ...h.room("inside"), label });
+  h.result.partial = true;
+  h.result.requestedDestination = {
+    roomId: "inside",
+    label,
+    floorId: "a-floor1",
+  };
+  h.result.end = {
+    roomId: "parent",
+    label: "Г-424",
+    floorId: "a-floor1",
+    point: [12, 16],
+  };
+  h.result.lastLeg = {
+    kind: "inside-parent",
+    viaRoomId: "parent",
+    viaLabel: "Г-424",
+    label,
+    message,
+    geometryAvailable: false,
+  };
+  h.result.durationModel =
+    "Время и расстояние оценены только до входа в Г-424.";
+  const last = {
+    kind: "manual-entry",
+    floorId: "a-floor1",
+    position: [12, 16],
+    text: message,
+  };
+  if (manualOnly) {
+    h.result.segments = [
+      {
+        floorId: "a-floor1",
+        points: [[12, 16]],
+        nodes: [{ physicalLevel: 4, building: "Г", position: [12, 16] }],
+      },
+    ];
+    h.result.steps = [last];
+  } else {
+    h.result.steps[h.result.steps.length - 1] = last;
+  }
+}
+
+test("partial route preview and manual completion identify only the parent entrance in both dock variants", async () => {
+  for (const nextInterface of [false, true]) {
+    const h = routeHarness({ nextInterface });
+    h.result.distanceMeters = 20;
+    h.result.durationMinutes = 1;
+    h.result.segments = [
+      {
+        floorId: "a-floor1",
+        points: [
+          [0, 0],
+          [12, 16],
+        ],
+        nodes: [{ physicalLevel: 4, building: "Г" }],
+      },
+    ];
+    h.result.steps = [
+      {
+        kind: "start",
+        floorId: "a-floor1",
+        position: [0, 0],
+        text: "Начните здесь",
+      },
+      { kind: "arrive" },
+    ];
+    configurePartialRoute(h);
+    const pending = h.build();
+    h.reply(h.result);
+    await pending;
+    assert.match(
+      h.element("#route-status").textContent,
+      /до входа в Г-424; дальше — Г-424-3 внутри/,
+    );
+    assert.match(
+      h.element("#route-summary").innerHTML,
+      /только до входа в Г-424/,
+    );
+    assert.match(
+      h.element("#route-summary").innerHTML,
+      /внутри Г-424 пока не нанесён/,
+    );
+    assert.match(
+      h.element("#route-dock-instruction").textContent,
+      /до входа в Г-424; дальше — Г-424-3 внутри/,
+    );
+    assert.equal(h.getRoute().end.roomId, "parent");
+    assert.equal(h.getEndpoints().to.id, "inside");
+    h.element("#route-dock-next").dispatch("click");
+    h.element("#route-dock-next").dispatch("click");
+    assert.match(
+      h.element("#route-dock-instruction").textContent,
+      /Войдите в Г-424 и найдите Г-424-3/,
+    );
+    assert.match(h.element("#route-dock-next").innerHTML, /Закрыть маршрут/);
+    h.element("#route-dock-next").dispatch("click");
+    assert.equal(h.getRoute(), null);
+    assert.match(h.toasts.at(-1), /Маршрут до Г-424 завершён/);
+    assert.doesNotMatch(h.toasts.at(-1), /Вы пришли/);
+  }
+});
+
+test("GPS reaching the partial geometry keeps the manual interior instruction and never announces the inner room as reached", async () => {
+  for (const nextInterface of [false, true]) {
+    const h = await liveRouteHarness({
+      nextInterface,
+      configureRoute: configurePartialRoute,
+    });
+    for (const point of [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [6, 0],
+      [10, 0],
+      [12, 0],
+      [12, 2],
+      [12, 6],
+      [12, 10],
+      [12, 14],
+      [12, 15],
+      [12, 16],
+      [12, 16],
+    ])
+      h.emitGps(point);
+    assert.match(
+      h.element("#route-dock-instruction").textContent,
+      /Войдите в Г-424 и найдите Г-424-3/,
+    );
+    assert.doesNotMatch(
+      h.element("#route-dock-instruction").textContent,
+      /Вы пришли/,
+    );
+    assert.match(
+      h.element("#route-dock-note").textContent,
+      /По GPS — у входа в Г-424/,
+    );
+    assert.doesNotMatch(
+      h.element("#route-dock-note").textContent,
+      /у назначения|Г-424-3/,
+    );
+    if (nextInterface)
+      assert.equal(
+        h.element("#route-dock-symbol").dataset.direction,
+        "manual-entry",
+      );
+    assert.equal(h.guidanceCalls.at(-1), null);
+    assert.deepEqual(h.state.userLocation.point, [12, 16]);
+    h.element("#route-dock-next").dispatch("click");
+    assert.equal(h.getRoute(), null);
+    assert.match(h.toasts.at(-1), /Маршрут до Г-424 завершён/);
+  }
+});
+
+test("starting inside the parent shows a single manual instruction without drawing an interior connection", async () => {
+  const h = routeHarness({ nextInterface: true });
+  configurePartialRoute(h, { manualOnly: true });
+  const pending = h.build();
+  h.reply(h.result);
+  await pending;
+  assert.equal(h.getRoute().segments[0].points.length, 1);
+  h.element("#route-dock-next").dispatch("click");
+  assert.match(
+    h.element("#route-dock-instruction").textContent,
+    /Войдите в Г-424 и найдите Г-424-3/,
+  );
+  assert.match(
+    h.element("#route-dock-note").textContent,
+    /внутри Г-424 пока не нанесён/,
+  );
+  assert.equal(h.element("#route-dock-context").hidden, true);
+  assert.match(h.element("#route-dock-next").innerHTML, /Закрыть маршрут/);
+  h.element("#route-dock-next").dispatch("click");
+  assert.match(h.toasts.at(-1), /Маршрут до Г-424 завершён/);
 });

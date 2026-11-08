@@ -10,17 +10,29 @@ import lower from "../src/data/stair-scan-meshes/grand-lower.json" with { type: 
 import { AtlasScene } from "../src/map/scene.js";
 import { pointInLocationPolygon } from "../src/location.js";
 import {
-  createStaircase,
+  createStaircase as createDisplayedStaircase,
   getMapStairMarkers,
   stairLayoutFor,
-  getStairDisplayCutouts,
+  getStairDisplayCutouts as getDisplayedCutouts,
   withStairDisplayCutouts,
 } from "../src/map/stairs.js";
 import {
   createStairScanVisual,
+  getStairScanDisplayCutouts,
   stairScanBinding,
   scanBackedStairLayoutsForFloor,
 } from "../src/map/stair-scan-visual.js";
+import { stairScanDisplayTopology } from "../src/map/stair-scan-repair.js";
+
+// Preserve the observed renderer's forensic checks independently of the clean
+// structural default. These diagnostics are no longer the runtime stair mesh.
+const createStaircase = (marker, floor, assumptions, options = {}) =>
+  createDisplayedStaircase(marker, floor, assumptions, {
+    ...options,
+    observedRenderer: createStairScanVisual,
+  });
+const getStairDisplayCutouts = (floor) =>
+  getDisplayedCutouts(floor, { observedCutouts: getStairScanDisplayCutouts });
 
 const floor = (n) =>
   JSON.parse(
@@ -104,13 +116,16 @@ test("polished observed surfaces retain flat treads instead of rounding them int
   }
 });
 
-test("surface polishing leaves the observed central stairwell open", () => {
+test("the displayed scan repairs leave the observed central stairwell open", () => {
+  const display = stairScanDisplayTopology(standard);
+  assert.ok(display.holes > 0, "the display actually repairs some closed gaps");
+  assert.ok(display.isolatedTriangles > 0, "the display omits stray fragments");
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
     "position",
     new THREE.Float32BufferAttribute(standard.positions, 3),
   );
-  geometry.setIndex(standard.indices);
+  geometry.setIndex([...display.observedIndices, ...display.patchIndices]);
   const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.updateMatrixWorld(true);
@@ -152,7 +167,11 @@ test("accepted main upper uses the actual scan once and preserves its original f
       "no procedural stairs or enclosure under the scan",
     );
     assert.equal(group.userData.scanVisual.assetId, "grand-upper");
-    assert.equal(group.userData.scanVisual.synthesizedSurfaces, false);
+    assert.ok(group.userData.scanVisual.displayRepairs.displayedTriangles > 0);
+    assert.ok(
+      group.userData.scanVisual.displayRepairs.isolatedSourceTrianglesHidden >
+        0,
+    );
     assert.equal(
       group.userData.visualStepCounts.length,
       0,
@@ -229,6 +248,8 @@ test("each instance owns geometry and material, so rebuilding one floor cannot d
     assert.equal(mb.material.vertexColors, true);
     assert.equal(mb.material.color.getHex(), 0xffffff);
     assert.equal(mb.material.roughness, 0.9);
+    assert.equal(mb.material.polygonOffset, true);
+    assert.equal(mb.receiveShadow, false);
     assert.notEqual(ma.geometry.attributes.color, mb.geometry.attributes.color);
   } finally {
     dispose(a);
@@ -236,9 +257,9 @@ test("each instance owns geometry and material, so rebuilding one floor cannot d
   }
 });
 
-test("scan display tones distinguish observed treads from risers without using source RGB or changing geometry", () => {
+test("scan display tones distinguish treads from risers without applying source RGB", () => {
   const stone = new THREE.Color(0xd7e0e5),
-    riser = new THREE.Color(0x9eacb6);
+    riser = new THREE.Color(0xb9c7d1);
   const item = resolve(2, "v-78-floor2-photo-stair-wide-hall");
   const before = JSON.stringify(upper);
   const group = createStaircase(item.marker, item.floor);
@@ -254,7 +275,7 @@ test("scan display tones distinguish observed treads from risers without using s
       transitionVertices = 0;
     const expected = new THREE.Color();
     for (let i = 0; i < colors.count; i++) {
-      const y = normals.getY(i);
+      const y = Math.abs(normals.getY(i));
       expected.copy(riser).lerp(stone, THREE.MathUtils.smoothstep(y, 0.5, 0.9));
       for (const [actual, target] of [
         [colors.getX(i), expected.r],

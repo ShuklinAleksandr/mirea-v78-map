@@ -602,7 +602,7 @@ export function createExterior(
 }
 
 /** Render available OSM features as context, kept independent of the measured plan. */
-export function createMapContext(data) {
+export function createMapContext(data, { plan = false, detail = true } = {}) {
   const group = new THREE.Group();
   group.name = "OSM context — approximate alignment";
   if (!data) return { group, pickables: [] };
@@ -610,6 +610,8 @@ export function createMapContext(data) {
     pathGeoms = [],
     grassGeoms = [],
     sportsGeoms = [];
+  const contextMaterial = (color) =>
+    plan ? new THREE.MeshBasicMaterial({ color }) : material(color);
   for (const p of data.roads || []) {
     const target = ["footway", "path", "pedestrian", "steps"].includes(p.kind)
       ? pathGeoms
@@ -620,7 +622,9 @@ export function createMapContext(data) {
         dx = b[0] - a[0],
         dz = b[1] - a[1],
         len = Math.hypot(dx, dz);
-      const g = new THREE.BoxGeometry(len, 0.025, p.width || 3);
+      const g = plan
+        ? new THREE.PlaneGeometry(len, p.width || 3).rotateX(-Math.PI / 2)
+        : new THREE.BoxGeometry(len, 0.025, p.width || 3);
       g.rotateY(-Math.atan2(dz, dx));
       g.translate((a[0] + b[0]) / 2, -0.16, (a[1] + b[1]) / 2);
       target.push(g);
@@ -632,14 +636,20 @@ export function createMapContext(data) {
     g.translate(0, -0.19, 0);
     (p.kind === "sport" ? sportsGeoms : grassGeoms).push(g);
   }
-  merged(roadGeoms, material(0xc9d0c8), group, { shadow: false });
-  merged(pathGeoms, material(0xe1e3d9), group, { shadow: false });
-  merged(grassGeoms, material(0xd7e1c8), group, { shadow: false });
-  merged(sportsGeoms, material(0xc7d8bd), group, { shadow: false });
+  merged(roadGeoms, contextMaterial(0xc9d0c8), group, { shadow: false });
+  merged(pathGeoms, contextMaterial(0xe1e3d9), group, { shadow: false });
+  merged(grassGeoms, contextMaterial(0xd7e1c8), group, { shadow: false });
+  merged(sportsGeoms, contextMaterial(0xc7d8bd), group, { shadow: false });
   const pickables = [];
   for (const b of data.buildings || []) {
-    const geos = b.polygons.map((p) => solid(p, b.height, b.base || 0));
-    const mesh = merged(geos, material(0xd2d2c4), group);
+    const geos = b.polygons.map((p) =>
+      plan
+        ? new THREE.ShapeGeometry(shape(p)).rotateX(-Math.PI / 2)
+        : solid(p, b.height, b.base || 0),
+    );
+    const mesh = merged(geos, contextMaterial(0xd2d2c4), group, {
+      shadow: !plan,
+    });
     if (mesh) {
       mesh.userData.external = b;
       pickables.push(mesh);
@@ -654,16 +664,22 @@ export function createMapContext(data) {
       group.add(line);
     }
   }
-  for (const tree of data.trees || []) {
-    const p = tree.position || tree.center;
-    if (!p) continue;
-    const crown = new THREE.Mesh(
+  const trees = (data.trees || [])
+    .map((tree) => tree.position || tree.center)
+    .filter(Boolean);
+  if (!plan && detail && trees.length) {
+    const crowns = new THREE.InstancedMesh(
       new THREE.IcosahedronGeometry(2.1, 1),
       material(0xc2d0ad),
+      trees.length,
     );
-    crown.position.set(p[0], 3.1, p[1]);
-    crown.castShadow = true;
-    group.add(crown);
+    const transform = new THREE.Matrix4();
+    trees.forEach(([x, z], i) =>
+      crowns.setMatrixAt(i, transform.makeTranslation(x, 3.1, z)),
+    );
+    crowns.castShadow = true;
+    crowns.computeBoundingSphere();
+    group.add(crowns);
   }
   return { group, pickables };
 }

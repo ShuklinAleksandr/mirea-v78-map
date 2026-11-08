@@ -1,13 +1,29 @@
 import { $, escape } from "./ui/dom.js";
 import { icon } from "./ui/icons.js";
 import { layout } from "./ui/layout.js";
+import {
+  initializeInterface,
+  getInterfaceVariant,
+  isNextInterface,
+  getInterfaceStorage,
+} from "./ui/variant.js";
+import "./ui/interface-comparison.css";
+import "./ui/next-route.css";
+import { bindBuildingRooms } from "./ui/building-rooms.js";
+import "./ui/building-rooms.css";
 import { getJSON } from "./data/client.js";
 import { loadBootstrapData } from "./data/bootstrap.js";
 import { resolveInitialView } from "./data/navigation.js";
+import { mergedFloorView } from "./data/floor-view.js";
+import {
+  resolveFloorContext,
+  resolveRouteFloorContext,
+} from "./data/floor-context.js";
 import { bindSearch } from "./ui/search.js";
 import { bindExperience, readSaved, shareView } from "./ui/experience.js";
 import { bindRoutes } from "./ui/routes.js";
 import { bindLocation } from "./ui/location.js";
+import { bindCleanMap } from "./ui/clean-map.js";
 import { resolveRoom, geometryEvidence } from "./data/utils.js";
 import {
   placeDescription,
@@ -24,8 +40,14 @@ import {
 } from "./map/stairs.js";
 import { AtlasScene } from "./map/scene.js";
 import { getHallAdjacencyView } from "./map/hall-adjacency.js";
+import { entranceHint } from "./data/entrance-hints.js";
 import { pickLocationSurface } from "./map/location-view.js";
 import { getBuildingFloorView } from "./map/building-view.js";
+import {
+  isCompactLandscape,
+  landscapeMapPadding,
+  portraitMapPadding,
+} from "./ui/map-viewport.js";
 
 const state = {
   campus: null,
@@ -40,9 +62,19 @@ const state = {
   search: [],
   loading: 0,
   userLocation: null,
+  floorContext: null,
   locationTracking: null,
+  neighborsPreference: null,
 };
+let floorContextTimer = null;
+let floorContextOwner = "camera";
 $("#app").innerHTML = layout;
+initializeInterface();
+bindBuildingRooms({
+  state,
+  navigateRoom,
+  getBuilding: () => floorContextBuilding(),
+});
 
 const searchUI = bindSearch({
   state,
@@ -61,20 +93,25 @@ const searchUI = bindSearch({
 let scene, experience, routes, userPosition;
 try {
   scene = new AtlasScene($("#viewport"), {
-    getViewportPadding: () => roomPadding(),
+    interfaceVariant: getInterfaceVariant(),
+    getViewportPadding: () =>
+      isNextInterface() && routes?.getRoute()
+        ? routes.getViewportPadding()
+        : roomPadding(),
+    shouldFollowHeading: () => routes?.isFollowingHeading(),
+    getResizePadding: () =>
+      routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),
     onMapInteraction: () => {
+      floorContextOwner = "camera";
       routes?.pauseGuidance?.();
       userPosition?.pauseFollowing();
     },
+    onFrame: () => queueCameraFloorContext(),
     onRoom: (r) => selectRoom(r),
     onPositionPickPreview: () => userPosition?.previewPicking(),
     onBuilding: (b) => chooseBuilding(b),
     onRouteFloor: (id) =>
-      routes?.getRoute()
-        ? scene.routeOverview
-          ? routes.focusStackFloor(id)
-          : routes.showFloor(id)
-        : chooseFloor(id),
+      routes?.getRoute() ? routes.showFloor(id) : chooseFloor(id),
     onEmpty: () => dismissRoom(),
     onUncertainty: () => toast("Положение этого участка требует уточнения"),
     onExternal: (b) => showExternal(b),
@@ -91,6 +128,7 @@ try {
   );
 }
 if (scene) {
+  bindCleanMap(scene, () => userPosition?.cancelPicking());
   experience = bindExperience({ state, scene, navigateRoom, toast });
   routes = bindRoutes({
     state,
@@ -105,6 +143,14 @@ if (scene) {
     getUserOrigin: () => userPosition?.routeOrigin(),
     onLocate: () => userPosition?.locate(),
     onPauseFollowing: () => userPosition?.pauseFollowing(),
+    onFloorContext: (sample, nodes) => {
+      if (sample.floorId !== state.floor?.id) return;
+      floorContextOwner = "route";
+      const context =
+        resolveRouteFloorContext(state.floor, sample.position, nodes) ||
+        resolveFloorContext(state.floor, sample.position);
+      applyFloorContext(context, "route");
+    },
     onConfirmFloor: (selection) => userPosition?.confirmRouteFloor(selection),
     onRefineLocation: () =>
       userPosition?.beginPicking({
@@ -119,6 +165,7 @@ if (scene) {
       }),
   });
   userPosition = bindLocation({
+    surveyStorage: getInterfaceStorage(),
     state,
     scene,
     experience,
@@ -156,6 +203,7 @@ if (scene) {
     },
     onChange: () => {
       searchUI.refreshPosition?.();
+      refreshLocationFloorContext();
       routes?.locationChanged?.();
       if (state.campus) updateUI();
     },
@@ -181,6 +229,80 @@ function toast(text) {
 function floorPhysical(f, building = state.building) {
   return f.buildingLevels?.[building] ?? f.level;
 }
+function floorContextBuilding() {
+  const contextual =
+    state.floorContext && state.floorContext.floorId === state.floor?.id
+      ? state.floorContext.building
+      : null;
+  return (
+    contextual ||
+    placeLocation(state.selected, state.floor).building ||
+    state.building ||
+    null
+  );
+}
+function applyFloorContext(context, source) {
+  if (!context?.building || !state.floor || state.mode !== "floor") return;
+  if (
+    state.floorContext?.floorId === state.floor.id &&
+    state.floorContext.building === context.building
+  )
+    return;
+  state.floorContext = { ...context, floorId: state.floor.id, source };
+  // This changes the physical-floor readout, never the current plan, geometry,
+  // camera, GPS fix, or route. Connecting corridors keep the last clear context.
+  renderFloors();
+  renderFocusedFloorStatus();
+}
+function refreshLocationFloorContext() {
+  const location = state.userLocation;
+  if (
+    !location?.point ||
+    !state.floor ||
+    location.campusId !== state.campus?.id ||
+    (location.floorId && location.floorId !== state.floor.id)
+  )
+    return;
+  if (location.source === "gps") {
+    if (
+      !state.locationTracking?.following ||
+      location.trackingStatus !== "live" ||
+      !Number.isFinite(location.timestamp) ||
+      Date.now() - location.timestamp > 15000 ||
+      !Number.isFinite(location.accuracyRadiusMap)
+    )
+      return;
+  }
+  floorContextOwner = "location";
+  applyFloorContext(
+    resolveFloorContext(state.floor, location.point, {
+      accuracy: location.source === "gps" ? location.accuracyRadiusMap : 0,
+    }),
+    "location",
+  );
+}
+function queueCameraFloorContext() {
+  if (floorContextTimer !== null || state.mode !== "floor") return;
+  floorContextTimer = setTimeout(() => {
+    floorContextTimer = null;
+    if (
+      !scene ||
+      floorContextOwner !== "camera" ||
+      !state.floor ||
+      state.mode !== "floor" ||
+      scene.transition ||
+      scene.locationPicking ||
+      (state.locationTracking?.following && state.locationTracking?.enabled) ||
+      routes?.isFollowingHeading?.()
+    )
+      return;
+    const point = scene.floorFocusPoint(roomPadding());
+    applyFloorContext(
+      resolveFloorContext(scene.locationFloor || state.floor, point),
+      "camera",
+    );
+  }, 150);
+}
 function floorName(f, building = state.building) {
   return building ? `${floorPhysical(f, building)} этаж` : `Уровень ${f.level}`;
 }
@@ -197,7 +319,7 @@ function renderFloors() {
   const routeBuilding = activeRoute?.segments.find(
     (s) => s.floorId === state.floor?.id,
   )?.nodes[0]?.building;
-  const railBuilding = state.building || routeBuilding;
+  const railBuilding = floorContextBuilding() || routeBuilding;
   const railFloors = state.campus.floors.filter(
     (f) => !railBuilding || Object.hasOwn(f.buildingLevels || {}, railBuilding),
   );
@@ -215,15 +337,55 @@ function renderFloors() {
   for (const button of $("#floor-rail").querySelectorAll("button"))
     button.onclick = () => {
       const id = button.dataset.railFloor;
-      if (activeRoute?.segments.some((s) => s.floorId === id))
-        scene.routeOverview ? routes.focusStackFloor(id) : routes.showFloor(id);
-      else {
+      if (activeRoute?.segments.some((s) => s.floorId === id)) {
+        routes.showFloor(id);
+        floorContextOwner = "selection";
+        applyFloorContext(
+          {
+            building: railBuilding,
+            physicalLevel: floorPhysical(state.floor, railBuilding),
+          },
+          "selection",
+        );
+      } else {
         state.building = railBuilding || null;
         chooseFloor(id);
       }
       if (scene.locationPicking) experience.minimize();
-      else experience.expand(false);
+      else if (experience.getSheetState?.() !== "minimized")
+        experience.expand(false);
     };
+  {
+    const picker = $("#next-floor-open");
+    picker.hidden = state.mode !== "floor";
+    const number = floorPhysical(state.floor || {}, railBuilding);
+    const description = railBuilding
+      ? `Корпус ${railBuilding} · ${number} этаж`
+      : `Уровень плана ${state.floor?.level ?? ""}`;
+    picker.innerHTML = `${icon("layers", 18)}<span class="floor-picker-number" aria-hidden="true">${number === -1 ? "Ц" : (number ?? "—")}</span><span class="floor-picker-description">${escape(description)}</span><span class="floor-picker-chevron">${icon("down", 16)}</span>`;
+    picker.setAttribute("aria-label", `Выбрать этаж. ${description}`);
+    picker.title = description;
+    $("#next-floor-title").textContent = railBuilding
+      ? `Корпус ${railBuilding} · этажи`
+      : "Уровни карты";
+    $("#next-floor-list").innerHTML = railFloors
+      .slice()
+      .reverse()
+      .map(
+        (f) =>
+          `<button type="button" data-next-floor="${escape(f.id)}" aria-label="${railBuilding ? `${floorPhysical(f, railBuilding)} этаж корпуса ${escape(railBuilding)}` : `Уровень плана ${f.level}`}" aria-pressed="${state.floor?.id === f.id}"><span class="floor-option-number">${floorPhysical(f, railBuilding) === -1 ? "Ц" : floorPhysical(f, railBuilding)}</span><span class="floor-option-description">${railBuilding ? `${floorPhysical(f, railBuilding)} этаж` : `Уровень плана ${f.level}`}</span>${state.floor?.id === f.id ? "<small>На экране</small>" : ""}</button>`,
+      )
+      .join("");
+    $("#next-floor-rooms").hidden = !railBuilding;
+    for (const button of $("#next-floor-list").querySelectorAll("button"))
+      button.onclick = () => {
+        $("#next-floor-dialog").close();
+        const original = [...$("#floor-rail").querySelectorAll("button")].find(
+          (item) => item.dataset.railFloor === button.dataset.nextFloor,
+        );
+        original?.click();
+      };
+  }
 }
 function updateUI() {
   if (
@@ -241,26 +403,15 @@ function updateUI() {
   $("#breadcrumb").innerHTML =
     `${escape(state.campus.title)} <span>/</span> ${escape(building)}${state.mode === "floor" ? ` <span>/</span> ${floorName(state.floor)}` : ""}`;
   $("#overview").classList.toggle("active", state.mode === "overview");
-  $("#nav-stack").classList.toggle(
-    "active",
-    Boolean(scene.routeOverview || scene.buildingOverview),
-  );
-  const activeRoute = routes?.getRoute?.();
-  $("#nav-stack").hidden =
-    !state.building &&
-    new Set(activeRoute?.segments?.map((segment) => segment.floorId) || [])
-      .size < 2;
+  $("#campus-overview").hidden = !state.building && state.mode !== "floor";
   $("#facades").closest("label").hidden = state.mode !== "overview";
   $("#context").closest("label").hidden = state.mode !== "overview";
   $("#neighbors").closest("label").hidden =
     state.mode !== "floor" || !state.building;
-  if (scene.routeOverview || scene.buildingOverview) {
-    $("#nav-inside").classList.remove("active");
-    $("#nav-outside").classList.remove("active");
-  }
   $("#exterior-actions").hidden = state.mode !== "overview";
   for (const b of $("#buildings").children)
     b.classList.toggle("active", b.dataset.building === (state.building || ""));
+  $("#building-rooms-open").hidden = !state.building;
   $("#view-eyebrow").textContent =
     state.mode === "overview" ? "ПРОСТРАНСТВО УНИВЕРСИТЕТА" : "ВНУТРИ КАМПУСА";
   $("#view-title").innerHTML =
@@ -302,15 +453,18 @@ function updateUI() {
 
   const touch = matchMedia("(pointer: coarse)").matches;
   $("#interaction-hint").textContent = touch
-    ? scene.plan
-      ? "Один палец — перемещение · два — масштаб"
-      : "Один палец — перемещение · два — поворот и масштаб"
+    ? "Один палец — перемещение · щипок — масштаб · разворот двух пальцев — поворот"
     : scene.plan
       ? "Перетаскивание — перемещение · колесо — масштаб"
       : "Перетаскивание — вращение · ПКМ — перемещение · колесо — масштаб";
   renderFloors();
+  renderFocusedFloorStatus();
+  routes?.syncView();
+}
+function renderFocusedFloorStatus() {
   const selectedLocation = placeLocation(state.selected, state.floor);
-  const focusBuilding = selectedLocation.building || state.building;
+  const focusBuilding = floorContextBuilding();
+  const building = state.building ? `Корпус ${state.building}` : "Все корпуса";
   const focusLocation = focusBuilding
     ? placeLocation({ building: focusBuilding }, state.floor)
     : selectedLocation;
@@ -323,10 +477,20 @@ function updateUI() {
         : focusLocation.physicalLevel != null
           ? `${focusLocation.physicalLevel} этаж · корпус уточняется`
           : `Уровень плана ${state.floor.level}`
-      : "Обзор кампуса";
+      : state.building
+        ? building
+        : "Обзор кампуса";
   $("#focus-floor-status").innerHTML =
     `${icon("layers", 16)}<span>${escape(level)}</span>`;
-  routes?.syncView();
+  if (state.mode === "floor" && focusBuilding) {
+    const focusedBuilding = `Корпус ${focusBuilding}`;
+    const focusedFloor = floorName(state.floor, focusBuilding);
+    $("#breadcrumb").innerHTML =
+      `${escape(state.campus.title)} <span>/</span> ${escape(focusedBuilding)} <span>/</span> ${focusedFloor}`;
+    $("#view-title").innerHTML =
+      `${escape(focusedBuilding)}<span class="title-level">${focusedFloor}</span>`;
+    $("#caption-title").textContent = `${focusedBuilding} · ${focusedFloor}`;
+  }
 }
 function cancelPendingNavigation() {
   state.loading++;
@@ -348,6 +512,7 @@ async function loadCampus(id, { navigationToken = null } = {}) {
     state.search = withConfirmedStairSearch(state.search, floors);
     state.building = null;
     state.floor = null;
+    state.floorContext = null;
     state.mode = "overview";
     $("#address").textContent = campus.address;
     const buildings = [
@@ -381,9 +546,28 @@ async function loadCampus(id, { navigationToken = null } = {}) {
     return false;
   }
 }
+function revealMap() {
+  if (innerWidth <= 700 || isCompactLandscape(innerWidth, innerHeight))
+    experience?.minimize?.();
+}
+function defaultBuildingFloor(floors, building = state.building) {
+  if (!building) return null;
+  return (
+    floors.find((f) => floorPhysical(f, building) === 3) ||
+    floors.reduce(
+      (highest, f) =>
+        !highest ||
+        floorPhysical(f, building) > floorPhysical(highest, building)
+          ? f
+          : highest,
+      null,
+    )
+  );
+}
 function chooseBuilding(b) {
   cancelPendingNavigation();
   state.building = b;
+  revealMap();
   if (state.mode === "overview") {
     closeRoom();
     scene.setOverview(b);
@@ -393,6 +577,7 @@ function chooseBuilding(b) {
   }
   const fs = availableFloors();
   const candidate =
+    defaultBuildingFloor(fs, b) ||
     fs.find((f) => f.id === state.floor?.id) ||
     fs.find((f) => floorPhysical(f, b) === 2) ||
     fs.find((f) => f.level === 1) ||
@@ -402,17 +587,39 @@ function chooseBuilding(b) {
     if (scene.locationPicking) experience.minimize();
   }
 }
-function chooseFloor(id, { fit = true, navigationToken = null } = {}) {
+function chooseFloor(
+  id,
+  {
+    fit = true,
+    preserveViewport = false,
+    navigationToken = null,
+    showNeighbors,
+  } = {},
+) {
   if (navigationToken == null) cancelPendingNavigation();
   else if (navigationToken !== state.loading) return false;
   busy(false);
   const floor = state.floorData.find((f) => f.id === id);
   if (!floor) return false;
-  state.floor = { ...floor, ...state.campus.floors.find((f) => f.id === id) };
+  if (typeof showNeighbors === "boolean") {
+    scene.neighborsOn = showNeighbors;
+    $("#neighbors").checked = showNeighbors;
+  }
+  state.floor = mergedFloorView(
+    floor,
+    state.campus.floors.find((f) => f.id === id),
+  );
   state.mode = "floor";
+  floorContextOwner = "selection";
+  state.floorContext = state.building
+    ? { floorId: floor.id, building: state.building, source: "selection" }
+    : null;
   closeRoom();
   const keepPicking = Boolean(scene.locationPicking);
-  scene.setFloor(state.floor, state.building, { fit });
+  scene.setFloor(state.floor, state.building, {
+    fit: fit && !preserveViewport,
+  });
+  if (preserveViewport) scene.keepFloorViewport();
   if (keepPicking) scene.setLocationPicking(true);
   updateUI();
   saveView();
@@ -422,10 +629,12 @@ function overview() {
   cancelPendingNavigation();
   userPosition?.cancelPicking();
   if (!state.campus) return;
+  revealMap();
   busy(false);
   state.mode = "overview";
   state.building = null;
   state.floor = null;
+  state.floorContext = null;
   closeRoom();
   scene.setOverview();
   updateUI();
@@ -466,20 +675,17 @@ function dismissRoom() {
   }
 }
 function roomPadding() {
+  if (document.body?.dataset.cleanMap === "true")
+    return { top: 64, bottom: 16, left: 16, right: 16 };
+  if (isCompactLandscape(innerWidth, innerHeight)) return landscapeMapPadding();
+  if (innerWidth <= 700) return portraitMapPadding();
   const panel = $(".sidebar").getBoundingClientRect();
-  return innerWidth <= 700
-    ? {
-        top: 164,
-        bottom: Math.max(0, innerHeight - panel.top + 16),
-        left: 64,
-        right: 64,
-      }
-    : {
-        top: 110,
-        bottom: 90,
-        left: Math.max(390, panel.right + 24),
-        right: 90,
-      };
+  return {
+    top: 110,
+    bottom: 90,
+    left: Math.max(390, panel.right + 24),
+    right: 90,
+  };
 }
 const kindNames = {
   room: "Аудитория",
@@ -504,6 +710,14 @@ function selectRoom(room, focus = true) {
     state.floor,
   );
   state.selected = room;
+  floorContextOwner = "selection";
+  const selectedBuilding = placeLocation(room, state.floor).building;
+  if (selectedBuilding)
+    state.floorContext = {
+      floorId: state.floor.id,
+      building: selectedBuilding,
+      source: "selection",
+    };
   const card = $("#room-card");
   card.hidden = false;
   $(".sidebar").dataset.place = "true";
@@ -636,6 +850,22 @@ function selectRoom(room, focus = true) {
     utilities.className = "room-utilities";
     utilities.innerHTML = `<button id="room-favorite">${icon("star", 16)}${readSaved("favorites", []).includes(indexed.id) ? "В избранном" : "В избранное"}</button><button id="room-share">${icon("share", 16)}Поделиться</button>`;
     actions.after(utilities);
+    const entrance = isNextInterface() ? entranceHint(indexed) : null;
+    if (entrance) {
+      const hint = document.createElement("div");
+      hint.className = "entrance-hint";
+      hint.innerHTML = `<strong>${escape(entrance.label)}</strong><p>${escape(entrance.note)}</p>`;
+      const via = state.search.find((item) => item.id === entrance.viaRoomId);
+      if (via) {
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "secondary-button";
+        open.textContent = `Показать ${entrance.viaLabel}`;
+        open.onclick = () => navigateRoom(via);
+        hint.append(open);
+      }
+      actions.before(hint);
+    }
     if (!displayOnly)
       $("#room-from").onclick = () => {
         if (userPosition.setPlace(indexed)) {
@@ -691,6 +921,16 @@ async function navigateRoom(r) {
 }
 
 $("#overview").onclick = overview;
+$("#campus-overview").onclick = overview;
+$("#next-floor-open").onclick = () => $("#next-floor-dialog").showModal();
+$("#next-floor-close").onclick = () => $("#next-floor-dialog").close();
+$("#next-floor-dialog").addEventListener("click", (event) => {
+  if (event.target === $("#next-floor-dialog")) event.target.close();
+});
+$("#next-floor-rooms").onclick = () => {
+  $("#next-floor-dialog").close();
+  $("#building-rooms-open").click();
+};
 $(".brand").onclick = (e) => {
   e.preventDefault();
   overview();
@@ -734,59 +974,29 @@ $("#street-view").onclick = () => {
 };
 $("#aerial-view").onclick = () => scene.fit();
 function openInterior() {
-  if (
-    state.mode === "floor" &&
-    state.floor &&
-    !scene.routeOverview &&
-    !scene.buildingOverview
-  )
-    return true;
+  if (state.mode === "floor" && state.floor) return true;
   const fs = availableFloors();
   const f =
+    defaultBuildingFloor(fs) ||
     fs.find((f) => floorPhysical(f) === 2) ||
     fs.find((f) => f.level === 1) ||
     fs[0];
-  if (f) chooseFloor(f.id);
+  if (!f) return false;
+  return chooseFloor(f.id, {
+    preserveViewport: state.mode === "overview",
+    // The outside building is a camera focus, not a request to remove the rest
+    // of this source plan. A later explicit visibility choice wins in this session.
+    showNeighbors: state.neighborsPreference ?? true,
+  });
 }
 $("#neighbors").onchange = () => {
-  scene.neighborsOn = $("#neighbors").checked;
+  state.neighborsPreference = $("#neighbors").checked;
+  scene.neighborsOn = state.neighborsPreference;
   if (state.mode === "floor")
     scene.setFloor(state.floor, state.building, { fit: false });
 };
 $("#nav-outside").onclick = overview;
 $("#nav-inside").onclick = openInterior;
-$("#nav-stack").onclick = () => {
-  if (routes?.getRoute()) {
-    $("#route-all-floors")?.click();
-    return;
-  }
-  if (!state.building) {
-    toast("Выберите корпус на карте или в панели поиска");
-    experience.expand(true);
-    return;
-  }
-  if (!state.floor) openInterior();
-  scene.setBuildingOverview?.(state.building, {
-    padding:
-      innerWidth <= 700
-        ? {
-            top: 170,
-            bottom: Math.min(
-              $(".sidebar").getBoundingClientRect().height + 24,
-              innerHeight * 0.55,
-            ),
-            left: 30,
-            right: 70,
-          }
-        : { top: 100, bottom: 110, left: 390, right: 80 },
-  });
-  updateUI();
-  $("#nav-stack").classList.add("active");
-  $("#nav-inside").classList.remove("active");
-  $("#focus-floor-status").innerHTML =
-    `${icon("layers", 16)}<span>Корпус ${escape(state.building)} · этажи</span><small>Высоты приблизительные</small>`;
-  saveView();
-};
 $("#open-interior").onclick = openInterior;
 new ResizeObserver(() => {
   if (state.selected && state.mode === "floor")
@@ -798,6 +1008,7 @@ document.addEventListener("click", (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
+  if (document.body.dataset.cleanMap === "true") return;
   if (
     e.key === "/" &&
     !["INPUT", "SELECT"].includes(document.activeElement.tagName) &&

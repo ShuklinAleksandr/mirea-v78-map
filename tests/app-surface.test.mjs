@@ -52,3 +52,25 @@ test("Android keeps GPS and compass but has no production Wi-Fi scanner or scan 
     });
   }
 });
+
+test("the map exposes single-floor controls without an all-floors entry", async () => {
+  assert.doesNotMatch(layout, /nav-stack|Все этажи/iu);
+  assert.match(layout, /id="nav-inside"/u);
+  assert.match(layout, /id="floor-rail"/u);
+  const app = await read("src/app.js");
+  assert.doesNotMatch(app, /nav-stack|focusStackFloor|setBuildingOverview/u);
+});
+
+test("campus return remains accessible while all interface choice controls are removed", () => {
+  const header = layout.split("</header>")[0];
+  assert.doesNotMatch(header, /interface-badge|Классика|Новая/u);
+  assert.match(header, /id="campus-overview"[^>]*hidden/u);
+  assert.match(header, /Все корпуса/u);
+  assert.doesNotMatch(
+    layout,
+    /interface-classic|interface-next|interface-current|interface-choices|Классика|сборка для сравнения/u,
+  );
+  assert.match(layout, /id="mode-toggle"/u);
+  assert.match(layout, /id="nav-outside"/u);
+  assert.match(layout, /id="nav-inside"/u);
+});

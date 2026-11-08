@@ -278,6 +278,57 @@ test("route clearing and floor rebuilds preserve the current marker with explici
   view.setUserLocation(null);
 });
 
+test("a route on a short screen keeps useful markers clear of the dock and hides unrelated labels", (t) => {
+  const view = harness();
+  const { element } = withLabelDocument(t, view);
+  view.host.clientWidth = 680;
+  view.host.clientHeight = 320;
+  view.plan = true;
+  document.querySelectorAll = () => [
+    {
+      getBoundingClientRect: () => ({
+        x: 450,
+        y: 240,
+        width: 210,
+        height: 75,
+      }),
+    },
+  ];
+  const makeLabel = (id, kind, text, x, z) => {
+    const el = element();
+    el.textContent = text;
+    return { el, id, kind, position: new THREE.Vector3(x, 0.5, z) };
+  };
+  const room = makeLabel("room-1", "room", "Г-209", -10, -8);
+  const stair = makeLabel("stair-1", "stairs", "ЛК1", 10, -8);
+  const start = makeLabel("route-0", "route", "Старт", -10, 14);
+  const end = makeLabel("route-1", "route", "Назначение", 10, 14);
+  const route = { group: new THREE.Group() };
+  route.group.add(new THREE.Object3D());
+  view.roomLabels = [room, stair, start, end];
+  view.selectedId = room.id;
+  view.routeLayer = route;
+  view.updateLabels();
+  assert.equal(start.el.style.display, "block");
+  assert.equal(end.el.style.display, "none");
+  assert.equal(room.el.style.display, "none");
+  assert.equal(stair.el.style.display, "none");
+
+  view.setCleanMap(true);
+  view.updateLabels();
+  assert.equal(start.el.style.display, "block");
+
+  view.routeLayer = null;
+  view.roomLabels = [room, stair];
+  view.updateLabels();
+  assert.equal(room.el.style.display, "none");
+
+  view.setCleanMap(false);
+  view.updateLabels();
+  assert.equal(room.el.style.display, "block");
+  assert.equal(stair.el.style.display, "block");
+});
+
 test("GPS is shown in every map view without assigning the viewed floor", (t) => {
   const view = harness();
   withLabelDocument(t, view);

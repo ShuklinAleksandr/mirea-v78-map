@@ -10,8 +10,11 @@ import { placeLocation, presentPlaceIdentity } from "../data/place-location.js";
 import {
   rankNearbyPlaces,
   nearbyDistanceLabel,
+  canRankNearbyRoutes,
 } from "../data/nearby-places.js";
 import placeLandmarks from "../data/place-landmarks.json" with { type: "json" };
+import { isNextInterface } from "./variant.js";
+import { findNextPlaces } from "../data/next-place-search.js";
 
 export function bindSearch({
   state,
@@ -20,6 +23,8 @@ export function bindSearch({
   onLocate,
   getPosition,
 }) {
+  const nextInterface = isNextInterface();
+  const interfaceMode = nextInterface ? "next" : "classic";
   let category = null,
     expanded = false,
     revision = 0,
@@ -64,7 +69,13 @@ export function bindSearch({
       const timer = setTimeout(() => finish(null), 15000);
       pending.set(id, finish);
       try {
-        worker.postMessage({ id, records, position, manifest: state.manifest });
+        worker.postMessage({
+          id,
+          records,
+          position,
+          manifest: state.manifest,
+          interfaceMode,
+        });
       } catch {
         finish(null);
       }
@@ -82,7 +93,7 @@ export function bindSearch({
     const floor = campus?.floors.find((floor) => floor.id === room.floorId);
     const identity = presentPlaceIdentity(room, floor);
     const location = placeLocation(identity, floor, placeLandmarks.hints);
-    button.innerHTML = `<span class="result-icon">${icon(room.kind === "stairs" ? "stair" : "pin", 17)}</span><span><b>${escape(identity.label)}</b><small>${escape(location.summary)}</small>${location.landmark ? `<small>${escape(location.landmark)}</small>` : ""}${entry ? `<small class="nearby-distance">${escape(nearbyDistanceLabel(entry))}</small>` : ""}</span>${icon("arrow", 14)}`;
+    button.innerHTML = `<span class="result-icon">${icon(room.kind === "stairs" ? "stair" : "pin", 17)}</span><span><b>${escape(identity.label)}</b><small>${escape(location.summary)}</small>${location.landmark ? `<small>${escape(location.landmark)}</small>` : ""}${entry ? `<small class="nearby-distance">${escape(nearbyDistanceLabel(entry, { compact: nextInterface }))}</small>` : ""}</span>${icon("arrow", 14)}`;
     button.onclick = () => {
       close();
       $("#search").blur();
@@ -98,6 +109,8 @@ export function bindSearch({
     intro.className = "nearby-intro";
     const positionKnown = ranking.mode !== "no-location";
     intro.innerHTML = `<b>${ranking.nearest ? (ranking.mode === "routes" ? "Ближайшие по маршруту" : "Ближайшие по прямой") : "Места на карте"}</b><p>${!positionKnown ? "Укажите, где вы сейчас, чтобы найти ближайшее место." : !ranking.nearest ? "Расстояние от вашей точки не подтверждено. Можно открыть места на карте." : ranking.mode === "routes" ? "Пути сравниваются по данным карты; доступность на месте уточняйте." : ranking.floorContext === "view" ? "На выбранном этаже карты. Проходы и лестницы в расстоянии не учтены." : "На вашем отмеченном этаже. Расстояние по прямой, проходы не учтены."}</p>`;
+    if (nextInterface)
+      intro.innerHTML = `<b>${ranking.nearest ? (ranking.mode === "routes" ? "Ближайшие по пути" : "Ближайшие по прямой") : "Места на карте"}</b><p>${!positionKnown ? "Укажите своё место, чтобы сравнить расстояния." : !ranking.nearest ? "Путь от этой точки не подтверждён." : ranking.mode === "routes" ? "С учётом проходов и лестниц на карте." : "По прямой на выбранном этаже; проходы не учтены."}</p>`;
     if (
       (!positionKnown || !ranking.nearest) &&
       typeof onLocate === "function"
@@ -148,11 +161,19 @@ export function bindSearch({
       $("#search-status").textContent = "";
       return;
     }
-    const matches = findPlaces(state.search, {
+    const options = {
       query,
       category,
       floorId: state.floor?.id,
-    });
+    };
+    const matches = nextInterface
+      ? findNextPlaces(state.search, {
+          ...options,
+          campusId: state.campus?.id,
+          building: state.building,
+          manifest: state.manifest,
+        })
+      : findPlaces(state.search, options);
     const nearbyCategory = category || categoryForPlaceQuery(query);
     if (!matches.length) {
       results.innerHTML = /unifood|унифуд|юнифуд/iu.test(query)
@@ -167,12 +188,9 @@ export function bindSearch({
       let ranking = rankNearbyPlaces(matches, {
         position,
         manifest: state.manifest,
+        interfaceMode,
       });
-      if (
-        position?.source === "manual" &&
-        position.placeId &&
-        position.floorId
-      ) {
+      if (canRankNearbyRoutes(position, { interfaceMode })) {
         results.innerHTML =
           '<div class="search-empty">Ищем ближайшее место…</div>';
         results.hidden = false;

@@ -2,6 +2,14 @@ import { getSurveyBlockedEdges } from "./survey-routing.js";
 import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
 import { isCurrentUserLocation } from "./user-location.js";
 import { placeLocation } from "./place-location.js";
+import {
+  makeCurrentRouteEndpoint,
+  attachCurrentRouteEndpoint,
+} from "./current-route-origin.js";
+import {
+  ROUTE_TRACKING_MAX_ACCURACY_METERS,
+  ROUTE_TRACKING_MAX_AGE_MS,
+} from "./route-tracking.js";
 
 const prepared = new WeakMap();
 const circulation = new Set(["entrance", "circulation", "corridor", "hall"]);
@@ -46,8 +54,31 @@ class MinHeap {
   }
 }
 
-function prepare(graph) {
+function prepare(graph, baseGraph = null) {
   if (prepared.has(graph)) return prepared.get(graph);
+  if (baseGraph) {
+    // The source graph's adjacency is cached. Only two snapshot nodes and the
+    // validated local connector/partial edges need extending for this query.
+    const base = prepare(baseGraph);
+    const nodes = new Map(base.nodes);
+    const adjacency = new Map(base.adjacency);
+    for (const node of graph.nodes.slice(baseGraph.nodes.length)) {
+      nodes.set(node.id, node);
+      adjacency.set(node.id, []);
+    }
+    const append = (from, id, edge) => {
+      adjacency.set(from, [...(adjacency.get(from) || []), { id, edge }]);
+    };
+    for (const edge of graph.edges.slice(baseGraph.edges.length)) {
+      if (!edge.eligible || !nodes.has(edge.from) || !nodes.has(edge.to))
+        continue;
+      append(edge.from, edge.to, edge);
+      if (edge.bidirectional) append(edge.to, edge.from, edge);
+    }
+    const value = { nodes, adjacency };
+    prepared.set(graph, value);
+    return value;
+  }
   const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
   const adjacency = new Map(graph.nodes.map((node) => [node.id, []]));
   const blocked = new Set([
@@ -74,8 +105,9 @@ function prepare(graph) {
 }
 
 /** One search over existing directed edges. Candidate facilities can be entered
- * but never crossed to reach another facility. No coordinate-to-graph snapping. */
-export function rankGraphPlaces(records, position, graph) {
+ * but never crossed to reach another facility. Free-point origins must already
+ * have passed the production route algorithm's local connector checks. */
+export function rankGraphPlaces(records, position, graph, baseGraph = null) {
   const origin = graph?.rooms?.[position?.placeId];
   if (
     !origin ||
@@ -85,8 +117,9 @@ export function rankGraphPlaces(records, position, graph) {
     graph.status === "unavailable"
   )
     return null;
-  const { nodes, adjacency } = prepare(graph);
+  const { nodes, adjacency } = prepare(graph, baseGraph);
   if (!nodes.has(origin.nodeId)) return null;
+  const originAreaId = origin.originAreaId || position.placeId;
   const targets = new Set(
     records
       .filter(
@@ -108,14 +141,14 @@ export function rankGraphPlaces(records, position, graph) {
       const room = graph.rooms[node.areaId];
       if (
         room &&
-        node.areaId !== position.placeId &&
+        node.areaId !== originAreaId &&
         !targets.has(node.areaId) &&
         !circulation.has(room.kind)
       )
         continue;
       if (
         currentRoom &&
-        currentNode.areaId !== position.placeId &&
+        currentNode.areaId !== originAreaId &&
         targets.has(currentNode.areaId) &&
         !circulation.has(currentRoom.kind) &&
         node.areaId !== currentNode.areaId
@@ -182,17 +215,71 @@ export function rankGraphPlaces(records, position, graph) {
   };
 }
 
+/** Next uses live coordinates only at the same quality threshold as route
+ * progression. A manually picked point needs no GPS accuracy claim. */
+export function canRankNearbyRoutes(
+  position,
+  { interfaceMode = "classic", now = Date.now() } = {},
+) {
+  if (!position?.floorId || !isCurrentUserLocation(position, now)) return false;
+  if (interfaceMode !== "next")
+    return position.source === "manual" && Boolean(position.placeId);
+  if (
+    position.source === "gps" &&
+    (!Number.isFinite(position.accuracyMeters) ||
+      position.accuracyMeters < 0 ||
+      position.accuracyMeters > ROUTE_TRACKING_MAX_ACCURACY_METERS ||
+      now - position.timestamp > ROUTE_TRACKING_MAX_AGE_MS)
+  )
+    return false;
+  return makeCurrentRouteEndpoint(position, { now }).ok;
+}
+
+function rankNextGraphPlaces(records, position, graph, sourceFloor, now) {
+  if (!canRankNearbyRoutes(position, { interfaceMode: "next", now }))
+    return null;
+  if (position.source === "manual" && position.placeId) {
+    const fromRoom = rankGraphPlaces(records, position, graph);
+    if (fromRoom) return fromRoom;
+  }
+  if (!graph?.nodes?.length || graph.status === "unavailable" || !sourceFloor)
+    return null;
+  const snapshot = makeCurrentRouteEndpoint(position, { now });
+  if (!snapshot.ok) return null;
+  const attached = attachCurrentRouteEndpoint(
+    graph,
+    snapshot.endpoint,
+    sourceFloor,
+    "nearby",
+  );
+  if (!attached.ok) return null;
+  return rankGraphPlaces(
+    records,
+    { ...position, placeId: attached.endpoint.id },
+    attached.graph,
+    graph,
+  );
+}
+
 function floorFor(manifest, room) {
   return manifest?.campuses
     ?.find((campus) => campus.id === room?.campusId)
     ?.floors?.find((floor) => floor.id === room?.floorId);
 }
 
-/** A point without a verified room attachment only supports a straight-line
- * comparison on a known physical floor, never an indoor route claim. */
+/** Classic retains room-only routing. Next can use the same validated free
+ * point attachment as route construction; rejected attachments stay explicit
+ * straight-line comparisons on a known physical floor. */
 export function rankNearbyPlaces(
   records,
-  { position, manifest, graph, now = Date.now() } = {},
+  {
+    position,
+    manifest,
+    graph,
+    sourceFloor,
+    interfaceMode = "classic",
+    now = Date.now(),
+  } = {},
 ) {
   if (
     !position ||
@@ -208,9 +295,11 @@ export function rankNearbyPlaces(
     };
   }
   const byGraph =
-    position.source === "manual" &&
-    graph &&
-    rankGraphPlaces(records, position, graph);
+    interfaceMode === "next"
+      ? rankNextGraphPlaces(records, position, graph, sourceFloor, now)
+      : position.source === "manual" &&
+        graph &&
+        rankGraphPlaces(records, position, graph);
   if (byGraph) return byGraph;
   const originFloor = floorFor(manifest, position);
   const originLevel = Number.isFinite(position.physicalLevel)
@@ -248,15 +337,15 @@ export function rankNearbyPlaces(
   };
 }
 
-export function nearbyDistanceLabel(entry) {
+export function nearbyDistanceLabel(entry, { compact = false } = {}) {
   if (entry?.distanceKind === "straight-line")
-    return `≈ ${Math.round(entry.distanceMeters)} м по прямой · проходы не учтены`;
+    return `≈ ${Math.round(entry.distanceMeters)} м по прямой${compact ? "" : " · проходы не учтены"}`;
   if (entry?.distanceKind === "route") {
     if (entry.distanceMeters === 0) return "Вы здесь";
     if (entry.distanceMeters == null && entry.minutes == null)
       return "Путь по карте · длина не установлена";
     return entry.distanceMeters != null
-      ? `≈ ${Math.round(entry.distanceMeters)} м по карте`
+      ? `≈ ${Math.round(entry.distanceMeters)} м ${compact ? "пешком" : "по карте"}`
       : entry.horizontalMeters > 0
         ? `от ${Math.round(entry.horizontalMeters)} м по карте · с переходами · ≈ ${entry.minutes} мин`
         : `≈ ${entry.minutes} мин по карте · с переходом между этажами`;

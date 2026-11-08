@@ -4,16 +4,54 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { getFloorMarkers } from "../data/utils.js";
 import { libraryStairLayoutsForFloor } from "./library-stair.js";
 import { middleStairArrival } from "./stair-arrivals.js";
+import { structuralStairOpenings } from "./stair-structural-openings.js";
+import { stairFlightSolid } from "./stair-solid.js";
 import {
-  createStairScanVisual,
-  getStairScanDisplayCutouts,
   scanBackedStairLayoutsForFloor,
-} from "./stair-scan-visual.js";
+  stairScanReference,
+} from "./stair-model-bindings.js";
 import defaults from "../../public/data/stair-assumptions.json" with { type: "json" };
 import registry from "../../public/data/stair-layouts.json" with { type: "json" };
 
 const finitePoint = (point) =>
   Array.isArray(point) && point.length >= 2 && point.every(Number.isFinite);
+
+const floorStairCache = new WeakMap();
+// Reuse CPU descriptions only. A source edit must still run every geometry and
+// portal guard, even when an editor retains the same floor object. No Three
+// geometry, height-dependent mesh or material is shared through this cache.
+function stairCacheFor(floor) {
+  const signature = JSON.stringify([
+    floor.id,
+    floor.campusId,
+    floor.units,
+    floor.level,
+    floor.buildingLevels,
+    floor.polygons,
+    floor.markers,
+    floor.transitions,
+    floor.userConfirmedDisplayAdjacency,
+  ]);
+  const previous = floorStairCache.get(floor);
+  if (previous?.signature === signature) return previous;
+  const cache = { signature };
+  floorStairCache.set(floor, cache);
+  return cache;
+}
+
+function immutableSnapshot(value) {
+  if (!value || typeof value !== "object") return value;
+  return Object.freeze(
+    Array.isArray(value)
+      ? value.map(immutableSnapshot)
+      : Object.fromEntries(
+          Object.entries(value).map(([key, item]) => [
+            key,
+            immutableSnapshot(item),
+          ]),
+        ),
+  );
+}
 
 // Registry labels include modeling shorthand. Keep it in sourceLabel rather
 // than presenting a U-shaped model as if "U" were the name of a campus place.
@@ -212,7 +250,8 @@ function containingArea(anchor, floor) {
 // storey even on the last available building plan. Keep the source immutable:
 // show that same local shape as an arrival from below, not a new roof flight.
 // This is a display role, not proof that the real building has no higher level.
-function displayLayoutsForFloor(floor) {
+function displayLayoutsForFloor(floor, cache = stairCacheFor(floor)) {
+  if (cache.layouts) return cache.layouts;
   const layouts = registry.layouts.filter(
     (layout) => layout.floorId === floor.id,
   );
@@ -296,7 +335,7 @@ function displayLayoutsForFloor(floor) {
       })),
     };
   });
-  return [
+  return (cache.layouts = immutableSnapshot([
     ...displayed.map((layout) => {
       const incomingDisplay = middleStairArrival(layout, floor, registry, {
         markers,
@@ -313,21 +352,26 @@ function displayLayoutsForFloor(floor) {
     }),
     ...libraryStairLayoutsForFloor(floor),
     ...scanBackedStairLayoutsForFloor(floor),
-  ];
+  ]));
 }
 
 /** Display-only openings for stairs descending from the selected level.
  * Original floor polygons and navigation geometry remain untouched.
  */
-export function getStairDisplayCutouts(floor) {
+export function getStairDisplayCutouts(floor, { observedCutouts = null } = {}) {
   return displayLayoutsForFloor(floor)
     .flatMap((layout) =>
       layout.incomingDisplay ? [layout, layout.incomingDisplay] : [layout],
     )
     .filter((layout) => layout.displayCutout)
     .flatMap((layout) => {
-      const scanOpenings = getStairScanDisplayCutouts(layout, { floor });
-      if (layout.scanDerivedCutout) return scanOpenings;
+      const reference = stairScanReference(layout);
+      if (!observedCutouts && reference)
+        return structuralStairOpenings(layout, floor, reference);
+      const scanOpenings = observedCutouts
+        ? observedCutouts(layout, { floor })
+        : [];
+      if (observedCutouts && layout.scanDerivedCutout) return scanOpenings;
       const world = ([u, v]) => [
         layout.frame.origin[0] +
           layout.frame.axisU[0] * u * layout.frame.size[0] +
@@ -403,7 +447,7 @@ export function getStairDisplayCutouts(floor) {
     });
 }
 
-export function withStairDisplayCutouts(polygon, cutouts) {
+export function withStairDisplayCutouts(polygon, cutouts, applied) {
   const holes = cutouts.filter(
     (cutout) =>
       cutout.points.every((point) => inRing(point, polygon.points)) &&
@@ -412,6 +456,7 @@ export function withStairDisplayCutouts(polygon, cutouts) {
   if (!holes.length) return polygon;
   const mergedHoles = [...(polygon.holes || [])];
   for (const cutout of holes) {
+    applied?.add(cutout);
     let ring = cutout.points;
     for (let i = 0; i < mergedHoles.length; ) {
       const union = polygonClipping.union([ring], [mergedHoles[i]]);
@@ -546,8 +591,11 @@ export function getStairRoutePaths(
 }
 
 /** Photo evidence adds a physical stair symbol, never an unproven graph edge. */
-export function getPhotoStairMarkers(floor) {
-  return displayLayoutsForFloor(floor).map((layout) => ({
+export function getPhotoStairMarkers(
+  floor,
+  layouts = displayLayoutsForFloor(floor),
+) {
+  return layouts.map((layout) => ({
     id: `photo-stair:${layout.id}`,
     layoutId: layout.id,
     fitAreaId: layout.fitAreaId,
@@ -576,7 +624,7 @@ export function getPhotoStairMarkers(floor) {
     destinationStatus: layout.destinationStatus,
     routingStatus: layout.routingStatus,
     note: layout.incomingDisplay
-      ? "На этом этаже показаны ближайшие марши вверх и вниз в разрезе. Полный объём лестницы доступен в режиме «Этажи». Высоты и размеры приблизительные."
+      ? "На этом этаже показаны ближайшие марши вверх и вниз в разрезе. Высоты и размеры приблизительные."
       : layout.shapeReviewStatus === "user-confirmed-schematic"
         ? layout.note
         : layout.id === a146Stair.layoutId
@@ -692,7 +740,10 @@ export function resolveStairTarget(marker, sourceFloor, targetFloor, target) {
 
 /** Merge photo shapes with original graph transitions, preserving their endpoints. */
 export function getMapStairMarkers(floor) {
-  const photos = getPhotoStairMarkers(floor).map((marker) => ({
+  const cache = stairCacheFor(floor);
+  if (cache.markers) return cache.markers;
+  const layouts = displayLayoutsForFloor(floor, cache);
+  const photos = getPhotoStairMarkers(floor, layouts).map((marker) => ({
     ...marker,
     sourceIds: [],
     graphAnchors: [],
@@ -700,7 +751,7 @@ export function getMapStairMarkers(floor) {
   const byLayout = new Map(photos.map((marker) => [marker.layoutId, marker]));
   const unmatched = [];
   for (const marker of getFloorMarkers(floor)) {
-    const layout = stairLayoutFor(marker, floor);
+    const layout = matchStairLayout(marker, floor, layouts);
     const photo = layout && byLayout.get(layout.id);
     if (!photo) {
       unmatched.push(marker);
@@ -725,7 +776,7 @@ export function getMapStairMarkers(floor) {
     }
   }
   for (const photo of photos) photo.sourceIds = [...new Set(photo.sourceIds)];
-  return [...photos, ...unmatched];
+  return (cache.markers = immutableSnapshot([...photos, ...unmatched]));
 }
 
 /** Confirmed display modules are searchable without rewriting the source index. */
@@ -955,11 +1006,13 @@ export function createStaircase(
         ? layout.note
         : "Марши и площадки — по пожарному плану; высота, число ступеней и поручни приблизительны.",
   };
-  const scanned = createStairScanVisual(registeredLayout, marker, {
-    stack: renderOptions.stack,
-    floorRise: rise,
-    baseElevation: base,
-  });
+  const scanned =
+    renderOptions.observedRenderer &&
+    renderOptions.observedRenderer(registeredLayout, marker, {
+      stack: renderOptions.stack,
+      floorRise: rise,
+      baseElevation: base,
+    });
   if (scanned) {
     for (const mesh of [...scanned.children]) group.add(mesh);
     group.userData.scanVisual = scanned.userData.scanVisual;
@@ -967,6 +1020,13 @@ export function createStaircase(
     group.userData.visualStepCounts = [];
     group.userData.materialBatches = group.children.length;
     return group;
+  }
+  const scanReference = stairScanReference(registeredLayout);
+  if (scanReference) {
+    group.userData.scanReference = scanReference;
+    group.userData.visualGeometrySource =
+      "clean-supported-flight-and-landing-profile";
+    group.userData.visualDimensionStatus = "model-approximation-not-measured";
   }
   const frame = layout.frame;
   const world = ([u, v]) => [
@@ -1037,8 +1097,12 @@ export function createStaircase(
   }
   const displayedSteps = [];
   for (const flight of layout.flights) {
-    const a = world(flight.from),
-      b = world(flight.to),
+    // Build every solid from its lower end. A descending sawtooth extruded
+    // over a sloping underside can self-intersect when a riser exceeds the
+    // slab thickness, producing triangles/holes. This changes no flight path.
+    const descending = flight.topFraction < flight.baseFraction;
+    const a = world(descending ? flight.to : flight.from),
+      b = world(descending ? flight.from : flight.to),
       dx = b[0] - a[0],
       dz = b[1] - a[1],
       run = Math.hypot(dx, dz);
@@ -1050,8 +1114,8 @@ export function createStaircase(
       Math.abs(flight.to[1] - flight.from[1]);
     const width =
       flight.width ?? flight.widthFraction * frame.size[alongU ? 1 : 0];
-    const y0 = base + rise * flight.baseFraction,
-      y1 = base + rise * flight.topFraction;
+    const y0 = base + rise * Math.min(flight.baseFraction, flight.topFraction),
+      y1 = base + rise * Math.max(flight.baseFraction, flight.topFraction);
     // Visual tessellation follows the native run; no universal count is assigned.
     const n =
       flight.treadCount ??
@@ -1061,23 +1125,15 @@ export function createStaircase(
       );
     displayedSteps.push(n);
     const step = run / n,
-      dy = (y1 - y0) / n,
-      profile = [[0, y0]];
-    for (let i = 0; i < n; i++)
-      profile.push(
-        [i * step, y0 + (i + 1) * dy],
-        [(i + 1) * step, y0 + (i + 1) * dy],
-      );
-    profile.push([run, y1 - slab], [0, y0 - slab]);
-    const shape = new THREE.Shape(
-      profile.map(([x, y]) => new THREE.Vector2(x, y)),
-    );
-    const geometry = new THREE.ExtrudeGeometry(shape, {
-      depth: width,
-      bevelEnabled: false,
-      curveSegments: 1,
+      dy = (y1 - y0) / n;
+    const geometry = stairFlightSolid({
+      run,
+      width,
+      lower: y0,
+      upper: y1,
+      count: n,
+      slab,
     });
-    geometry.translate(0, 0, -width / 2);
     geometry.rotateY(-angle);
     geometry.translate(a[0], 0, a[1]);
     add(geometry, "structure");

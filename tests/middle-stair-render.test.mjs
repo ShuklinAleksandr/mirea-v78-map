@@ -131,10 +131,14 @@ test("the last D floor shows arrival from below without another up-flight", () =
     try {
       const box = new THREE.Box3().setFromObject(group);
       assert.equal(group.userData.middleFloorCutaway, false);
-      assert.deepEqual(group.userData.scanVisual.parts, ["upper-arrival"]);
-      assert.ok(box.min.y < -3, "the arrival includes observed stairs below");
+      assert.equal(group.userData.scanReference.assetId, "standard-cell");
+      assert.equal(group.userData.levelRole, "upper-arrival");
       assert.ok(
-        box.max.y <= 1.041,
+        box.min.y < -3,
+        "the arrival includes the supported stair profile below",
+      );
+      assert.ok(
+        box.max.y <= 1.066,
         "only arrival walls/railings extend above the final floor",
       );
     } finally {

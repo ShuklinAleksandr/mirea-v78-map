@@ -27,15 +27,190 @@ function cameraHarness() {
   controls.enableDamping = true;
   controls.dampingFactor = 0.09;
   controls.update();
-  return {
+  return Object.assign(Object.create(AtlasScene.prototype), {
     perspectiveCamera,
     planCamera,
     controls,
     camera: perspectiveCamera,
     plan: false,
     invalidate() {},
-  };
+    applyProjectionStyle() {},
+  });
 }
+
+function animatedCameraHarness() {
+  return Object.assign(Object.create(AtlasScene.prototype), cameraHarness(), {
+    callbacks: {},
+    host: { dataset: {} },
+    renderer: { info: {}, render() {} },
+    invalidate() {
+      this.dirty = true;
+    },
+    updateNavigationHeading() {
+      return false;
+    },
+    updateRoute() {},
+    updateLabels() {},
+    updateUserLocationScale() {},
+    applyProjectionStyle() {},
+    stats() {
+      return {};
+    },
+  });
+}
+
+test("an untouched automatic frame still refits when a desktop window narrows", () => {
+  let fitCalls = 0;
+  const bounds = [-80, -10, 80, 10];
+  const view = Object.assign(
+    Object.create(AtlasScene.prototype),
+    cameraHarness(),
+    {
+      host: { getBoundingClientRect: () => ({ width: 800, height: 720 }) },
+      renderer: { setSize() {} },
+      viewportWidth: 1280,
+      lastBounds: bounds,
+      updateLocationPickPreview() {},
+      fit(received, animate) {
+        assert.equal(received, bounds);
+        assert.equal(animate, false);
+        fitCalls++;
+      },
+    },
+  );
+  view.perspectiveCamera.aspect = 1280 / 720;
+  view.resize();
+  assert.equal(fitCalls, 1);
+});
+
+for (const plan of [false, true]) {
+  test(`${plan ? "2D" : "3D"}: browser bars and a keyboard never refit the last selected room`, () => {
+    const view = Object.assign(
+      Object.create(AtlasScene.prototype),
+      cameraHarness(),
+      {
+        host: { getBoundingClientRect: () => ({ width: 390, height: 280 }) },
+        renderer: { setSize() {} },
+        viewportWidth: 390,
+        lastBounds: [-5, -5, 5, 5],
+        updateLocationPickPreview() {},
+        fit() {
+          assert.fail("a height-only viewport change must not refocus a room");
+        },
+      },
+    );
+    view.perspectiveCamera.aspect = 390 / 844;
+    if (plan) view.setProjection(true);
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    const zoom = view.camera.zoom;
+    view.resize();
+    assert.deepEqual(view.camera.position.toArray(), position.toArray());
+    assert.deepEqual(view.controls.target.toArray(), target.toArray());
+    assert.equal(view.camera.zoom, zoom);
+  });
+
+  test(`${plan ? "2D" : "3D"}: manual map framing survives an orientation change`, () => {
+    const view = Object.assign(
+      Object.create(AtlasScene.prototype),
+      cameraHarness(),
+      {
+        host: { getBoundingClientRect: () => ({ width: 844, height: 390 }) },
+        renderer: { setSize() {} },
+        viewportWidth: 390,
+        lastBounds: [-5, -5, 5, 5],
+        updateLocationPickPreview() {},
+        fit() {
+          assert.fail("manual pan/pinch must not jump back to old room bounds");
+        },
+      },
+    );
+    view.perspectiveCamera.aspect = 390 / 844;
+    if (plan) view.setProjection(true);
+    view.beginMapInteraction();
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    view.resize();
+    assert.deepEqual(view.camera.position.toArray(), position.toArray());
+    assert.deepEqual(view.controls.target.toArray(), target.toArray());
+  });
+}
+
+for (const plan of [false, true]) {
+  test(`${plan ? "2D" : "3D"}: a repeated camera fit cancels an obsolete tween and draws the changed scene once`, () => {
+    const view = animatedCameraHarness();
+    if (plan) view.setProjection(true);
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    view.moveCamera(position.clone().addScalar(10), target.clone());
+    assert.ok(view.transition, "fixture has an obsolete destination");
+    view.moveCamera(position.clone().addScalar(1e-8), target.clone());
+    assert.equal(view.transition, null);
+    assert.equal(view.dirty, true, "new floor or selection still needs paint");
+    assert.equal(view.animate(performance.now()), false);
+    assert.equal(view.renderedFrames, 1);
+    assert.equal(view.animate(performance.now() + 650), false);
+    assert.equal(view.renderedFrames, 1, "no stationary animation tail");
+    assert.ok(view.camera.position.distanceTo(position) < 1e-6);
+    assert.ok(view.controls.target.distanceTo(target) < 1e-6);
+  });
+}
+
+test("a changed camera position or target retains the real motion tween", () => {
+  for (const change of ["position", "target"]) {
+    const view = animatedCameraHarness();
+    const position = view.camera.position.clone();
+    const target = view.controls.target.clone();
+    (change === "position" ? position : target).x += 0.01;
+    view.moveCamera(position, target);
+    assert.ok(view.transition, `${change} change is not a no-op`);
+    const start = view.transition.start;
+    assert.equal(view.animate(start + 325), true);
+    assert.ok(view.transition, "real movement continues between endpoints");
+    view.animate(start + 650);
+    assert.equal(view.transition, null);
+    assert.ok(view.camera.position.distanceTo(position) < 1e-6);
+    assert.ok(view.controls.target.distanceTo(target) < 1e-6);
+  }
+});
+
+test("entering a floor keeps the exterior camera scale and clears the old fit", () => {
+  const view = Object.assign(
+    Object.create(AtlasScene.prototype),
+    cameraHarness(),
+    {
+      allBounds: () => [-40, -30, 40, 30],
+      lastBounds: [-150, -150, 150, 150],
+      lastFitOptions: { targetY: 9 },
+    },
+  );
+  view.controls.target.y = 9;
+  const offset = view.camera.position.clone().sub(view.controls.target);
+  view.keepFloorViewport();
+  assert.deepEqual(view.controls.target.toArray(), [12, 0, -4]);
+  assert.ok(
+    view.camera.position.clone().sub(view.controls.target).distanceTo(offset) <
+      1e-6,
+  );
+  assert.equal(view.lastBounds, null);
+  assert.equal(view.lastFitOptions, null);
+});
+
+test("a plan panned away from campus recenters on entry without resetting its zoom", () => {
+  const view = Object.assign(
+    Object.create(AtlasScene.prototype),
+    cameraHarness(),
+    {
+      allBounds: () => [-40, -30, 60, 50],
+    },
+  );
+  view.controls.target.set(700, 0, 400);
+  view.setProjection(true);
+  view.camera.zoom = 3;
+  view.keepFloorViewport();
+  assert.equal(view.camera.zoom, 3);
+  assert.deepEqual(view.controls.target.toArray(), [10, 0, 10]);
+});
 
 for (const viewport of [
   {
@@ -233,13 +408,62 @@ test("returning to 3D restores perspective and rotational controls at the plan s
   assert.equal(view.controls.enableRotate, true);
   assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.ROTATE);
   assert.equal(view.controls.touches.ONE, THREE.TOUCH.PAN);
-  assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_ROTATE);
+  assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_PAN);
   assert.ok(
     Math.abs(
       view.camera.position.distanceTo(view.controls.target) - expectedDistance,
     ) < 1e-6,
   );
   assert.ok(view.controls.getPolarAngle() > 0.1);
+});
+
+test("2D and 3D preserve the chosen bearing after twisting the flat map", () => {
+  const view = cameraHarness();
+  const initialBearing = view.controls.getAzimuthalAngle();
+  const initialTilt = view.controls.getPolarAngle();
+  view.setProjection(true);
+  const bearing = () => Math.atan2(-view.camera.up.x, -view.camera.up.z);
+  assert.ok(Math.abs(bearing() - initialBearing) < 1e-8);
+  view.camera.up.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.7);
+  view.controls.update();
+  const chosen = bearing();
+  const target = view.controls.target.clone();
+  view.setProjection(false);
+  assert.ok(Math.abs(view.controls.getAzimuthalAngle() - chosen) < 1e-8);
+  assert.ok(Math.abs(view.controls.getPolarAngle() - initialTilt) < 1e-8);
+  assert.ok(view.controls.target.distanceTo(target) < 1e-8);
+  view.setProjection(true);
+  assert.ok(Math.abs(bearing() - chosen) < 1e-8);
+  const direction = view.camera.position
+    .clone()
+    .sub(view.controls.target)
+    .normalize();
+  assert.ok(Math.hypot(direction.x, direction.z) < 0.00001);
+});
+
+test("fitting a twisted flat plan keeps all bounds clear of the mobile panels", () => {
+  const view = cameraHarness();
+  view.host = { clientWidth: 390, clientHeight: 844 };
+  view.perspectiveCamera.aspect = 390 / 844;
+  view.perspectiveCamera.updateProjectionMatrix();
+  view.model = new THREE.Group();
+  view.sun = new THREE.DirectionalLight();
+  view.mode = "floor";
+  view.setProjection(true);
+  view.camera.up.set(-Math.SQRT1_2, 0, -Math.SQRT1_2);
+  view.controls.update();
+  const padding = { left: 16, right: 72, top: 64, bottom: 290 };
+  view.fit([-120, -12, 120, 12], false, padding);
+  view.camera.updateMatrixWorld(true);
+  for (const x of [-120, 120])
+    for (const z of [-12, 12]) {
+      const projected = new THREE.Vector3(x, 0, z).project(view.camera);
+      const px = (projected.x + 1) * 195;
+      const py = (1 - projected.y) * 422;
+      assert.ok(px >= padding.left && px <= 390 - padding.right);
+      assert.ok(py >= padding.top && py <= 844 - padding.bottom);
+    }
+  assert.ok(Math.abs(view.camera.up.x + Math.SQRT1_2) < 1e-8);
 });
 
 function disposeGroup(group) {
@@ -464,7 +688,9 @@ for (const sourceLevel of [2, 3]) {
     });
     view.setFloor(floor, "А", { fit: false });
     assert.ok(labels.some((args) => args[5] === marker.id));
-    assert.ok(view.clipPlanes.length >= 3);
+    if (view.floorDisplay.preserveSharedComponents)
+      assert.equal(view.clipPlanes, null, "shared source rooms stay whole");
+    else assert.ok(view.clipPlanes.length >= 3);
     let checkedVertices = 0;
     for (const mesh of view.pickables) {
       const rooms = mesh.userData.faceRooms || [];
@@ -477,7 +703,7 @@ for (const sourceLevel of [2, 3]) {
             face * 3 + corner,
           );
           assert.ok(
-            view.clipPlanes.every(
+            (view.clipPlanes || []).every(
               (plane) => plane.distanceToPoint(point) >= -0.0001,
             ),
             `${marker.id} visible vertex ${point.toArray()}`,
@@ -599,3 +825,76 @@ for (const viewport of [
     });
   }
 }
+
+for (const plan of [false, true]) {
+  for (const viewport of [
+    {
+      width: 390,
+      height: 844,
+      padding: { left: 16, right: 64, top: 164, bottom: 310 },
+    },
+    {
+      width: 844,
+      height: 390,
+      padding: { left: 272, right: 64, top: 56, bottom: 12 },
+    },
+  ]) {
+    test(`${plan ? "orthographic" : "perspective"} floor context samples the visible map centre at ${viewport.width}px`, () => {
+      const view = cameraHarness();
+      view.mode = "floor";
+      view.host = {
+        clientWidth: viewport.width,
+        clientHeight: viewport.height,
+      };
+      view.perspectiveCamera.aspect = viewport.width / viewport.height;
+      view.perspectiveCamera.updateProjectionMatrix();
+      if (plan) view.setProjection(true);
+      const before = {
+        camera: view.camera.position.toArray(),
+        target: view.controls.target.toArray(),
+        zoom: view.camera.zoom,
+      };
+      const point = view.floorFocusPoint(viewport.padding);
+      assert.ok(point && point.every(Number.isFinite));
+      const projected = new THREE.Vector3(point[0], 0, point[1]).project(
+        view.camera,
+      );
+      const x = ((projected.x + 1) * viewport.width) / 2;
+      const y = ((1 - projected.y) * viewport.height) / 2;
+      const expectedX =
+        (viewport.padding.left + viewport.width - viewport.padding.right) / 2;
+      const expectedY =
+        (viewport.padding.top + viewport.height - viewport.padding.bottom) / 2;
+      assert.ok(
+        Math.abs(x - expectedX) < 1e-6,
+        `map x=${x}, expected ${expectedX}`,
+      );
+      assert.ok(
+        Math.abs(y - expectedY) < 1e-6,
+        `map y=${y}, expected ${expectedY}`,
+      );
+      const unpadded = view.floorFocusPoint();
+      assert.ok(
+        Math.hypot(point[0] - unpadded[0], point[1] - unpadded[1]) > 0.1,
+        "an obstructed viewport must not silently use the orbit target",
+      );
+      assert.deepEqual(view.camera.position.toArray(), before.camera);
+      assert.deepEqual(view.controls.target.toArray(), before.target);
+      assert.equal(view.camera.zoom, before.zoom);
+    });
+  }
+}
+
+test("floor context ray has no point outside an available floor viewport or when looking above the ground", () => {
+  const view = cameraHarness();
+  view.host = { clientWidth: 390, clientHeight: 844 };
+  view.mode = "overview";
+  assert.equal(view.floorFocusPoint(), null);
+  view.mode = "floor";
+  view.host.clientHeight = 0;
+  assert.equal(view.floorFocusPoint(), null);
+  view.host.clientHeight = 844;
+  view.camera.position.set(0, 20, 0);
+  view.camera.lookAt(0, 30, -10);
+  assert.equal(view.floorFocusPoint(), null);
+});
