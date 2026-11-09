@@ -1,6 +1,6 @@
 {
-  "version": "0.5.10",
-  "sourceCommit": "0b1616e9a10aaf3a3603c53d167f66c16dc68a82",
+  "version": "0.5.11",
+  "sourceCommit": "9a7d98055ec5e513a1cdaea5ba59033c11c5efd7",
   "base": "/mirea-v78-map/",
-  "scope": "V78; room and stair labels and current location in origin suggestions"
+  "scope": "V78; fixed-size labels, close-range floor buttons, and main entrance framing"
 }
