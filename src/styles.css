@@ -2525,7 +2525,10 @@ dialog::backdrop {
   }
 }
 
-.map-label.stair-action {
+.map-label.stair-action,
+.map-label.floor-level {
+  background: #245ed2;
+  border-color: #fff;
   z-index: 5;
 }
 .map-label.stair-action::after,
