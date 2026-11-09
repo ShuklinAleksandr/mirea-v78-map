@@ -1,6 +1,6 @@
 {
-  "version": "0.5.12",
-  "sourceCommit": "1f5589a596f37f14ce17da61c22ea373c0285705",
+  "version": "0.5.13",
+  "sourceCommit": "947334ffdfc859f61518b2f6c592f3117b617b36",
   "base": "/mirea-v78-map/",
-  "scope": "V78; highlighted floor transitions and version in Settings"
+  "scope": "V78; route suggestions before typing and location action for origin only"
 }
