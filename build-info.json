@@ -1,6 +1,6 @@
 {
-  "version": "0.5.7",
-  "sourceCommit": "2fe574f76d5b55d2780f3990ff6b11fab30c3dce",
+  "version": "0.5.8",
+  "sourceCommit": "c725500247a72133f701cf132cb4bccb6ce7f3de",
   "base": "/mirea-v78-map/",
-  "scope": "V78; campus buildings and nearby access roads, stable exterior surfaces"
+  "scope": "V78; direct search field, separate route button and cleaned exterior near the sports hall"
 }
