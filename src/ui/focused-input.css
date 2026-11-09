@@ -64,6 +64,9 @@ body[data-input-editing="true"] :is(.map-shell, .topbar) {
 body[data-input-editing="true"] #route-guidance-dock {
   display: none;
 }
+body[data-input-editing="true"] #route-open {
+  display: none;
+}
 .sidebar[data-input-editing="true"]
   :is(.sidebar-scroll, #explore-panel, .search-wrap, #route-panel) {
   display: flex;

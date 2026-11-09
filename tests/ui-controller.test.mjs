@@ -412,6 +412,10 @@ function routeHarness({
     saveView() {},
     experience: {
       finishInputEditing,
+      openSearch() {
+        api.showSearch();
+        sheetCalls.push("search");
+      },
       expand(value) {
         sheetCalls.push(value ? "expanded" : "peek");
       },
@@ -463,6 +467,22 @@ async function buildPreview(h) {
   await pending;
 }
 
+test("the separate route button opens the same draft and its back control returns to search", () => {
+  const h = routeHarness();
+  const endpoints = h.getEndpoints();
+  h.showSearch();
+  assert.equal(h.element("#route-panel").hidden, true);
+  h.element("#route-open").dispatch("click");
+  assert.equal(h.element("#route-panel").hidden, false);
+  assert.equal(h.element("#explore-panel").hidden, true);
+  assert.equal(h.sheetCalls.at(-1), "expanded");
+  h.element("#route-back-search").dispatch("click");
+  assert.equal(h.element("#route-panel").hidden, true);
+  assert.equal(h.element("#explore-panel").hidden, false);
+  assert.equal(h.sheetCalls.at(-1), "search");
+  assert.deepEqual(h.getEndpoints(), endpoints);
+});
+
 test("route-line preference starts GPS on route creation and turning it off keeps the current manual route", async () => {
   let locateCalls = 0;
   const h = routeHarness({
@@ -506,6 +526,14 @@ test("the sheet can be swiped to the bottom, reopened and revealed by search/nav
   const handle = h.element("#sheet-toggle"),
     sheet = h.element(".sidebar"),
     content = h.element(".sidebar-scroll");
+  const search = h.element("#search");
+  let focused = false;
+  search.focus = () => {
+    assert.equal(content.inert, false, "the input is enabled before focus");
+    focused = true;
+    search.dispatch("focus");
+  };
+  assert.equal(sheet.classList.contains("minimized"), true);
   handle.dispatch("pointerdown", { clientY: 400, pointerId: 1 });
   handle.dispatch("pointermove", { clientY: 530, pointerId: 1 });
   assert.equal(sheet.style.values.get("--sheet-drag"), "130px");
@@ -514,12 +542,15 @@ test("the sheet can be swiped to the bottom, reopened and revealed by search/nav
   assert.equal(sheet.classList.contains("minimized"), true);
   assert.equal(content.inert, true, "offscreen controls cannot receive focus");
   assert.equal(content.attributes["aria-hidden"], "true");
-  assert.equal(handle.attributes["aria-label"], "Открыть поиск и маршрут");
+  assert.equal(handle.attributes["aria-label"], "Открыть поиск помещения");
   assert.equal(sheet.style.values.has("--sheet-drag"), false);
   handle.dispatch("click", { detail: 0 });
   assert.equal(sheet.classList.contains("minimized"), false);
   assert.equal(sheet.classList.contains("expanded"), true);
   assert.equal(content.inert, false);
+  assert.equal(focused, true, "one tap focuses the actual search input");
+  assert.equal(sheet.dataset.editingField, "search");
+  h.finishInputEditing();
   h.expand(true);
   handle.dispatch("pointerdown", { clientY: 200, pointerId: 2 });
   handle.dispatch("pointerup", { clientY: 650, pointerId: 2 });
