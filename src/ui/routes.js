@@ -744,9 +744,7 @@ export function bindRoutes({
       label:
         level === -1
           ? "В цоколь"
-          : Number.isFinite(level)
-            ? `На этаж ${level}`
-            : `На уровень ${sourceLevel}`,
+          : `На этаж ${Number.isFinite(level) ? level : sourceLevel}`,
       nearby:
         automatic &&
         ["tracking", "floor-change"].includes(liveProgress?.status) &&

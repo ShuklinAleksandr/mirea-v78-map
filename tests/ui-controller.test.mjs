@@ -1905,7 +1905,7 @@ test("an on-map stair handoff waits for explicit floor confirmation and uses the
         [12, 0],
         [12, 10],
       ],
-      nodes: [{ physicalLevel: 4, building: "Г" }],
+      nodes: [{ physicalLevel: 4, sourceLevel: 2, building: "Г" }],
     },
   ];
   h.result.transitions = [
@@ -1965,6 +1965,12 @@ test("an on-map stair handoff waits for explicit floor confirmation and uses the
   assert.match(h.element("#route-dock-next").innerHTML, /Я на следующем этаже/);
   const action = h.getStairAction();
   assert.equal(action.label, "На этаж 4");
+  const target = h.result.segments[1].nodes[0];
+  delete target.physicalLevel;
+  assert.equal(h.getStairAction().label, "На этаж 2");
+  target.physicalLevel = -1;
+  assert.equal(h.getStairAction().label, "В цоколь");
+  target.physicalLevel = 4;
   assert.deepEqual(action.point, [12, 0]);
   assert.equal(action.nearby, true);
   const sheetCalls = h.sheetCalls.length;

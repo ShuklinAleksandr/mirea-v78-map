@@ -1,12 +1,5 @@
 import { pointInLocationPolygon } from "../location.js";
 
-const squareCorners = [
-  [1, 1],
-  [1, -1],
-  [-1, -1],
-  [-1, 1],
-];
-
 export function roomLabelAnchor(center, polygon, triangles) {
   if (pointInLocationPolygon(center, polygon)) {
     let clearance = Infinity;
@@ -63,53 +56,4 @@ export function roomLabelAnchor(center, polygon, triangles) {
       };
   }
   return anchor;
-}
-
-/** Fit an upright badge inside the projected square inscribed in the room. */
-export function roomLabelScale(
-  label,
-  projected,
-  camera,
-  width,
-  height,
-  w,
-  h,
-  scratch,
-) {
-  let halfSide = label.roomRadius * 0.65;
-  const { x, y, z } = label.position;
-  if (camera.isPerspectiveCamera) {
-    const inverse = camera.matrixWorldInverse.elements;
-    const depth = -(
-      inverse[2] * x +
-      inverse[6] * y +
-      inverse[10] * z +
-      inverse[14]
-    );
-    // Keep every corner in front of the camera, even in a low oblique view.
-    halfSide = Math.min(halfSide, depth * 0.35);
-  }
-  let scale = 1;
-  let firstX, firstY, lastX, lastY;
-  for (const [dx, dz] of squareCorners) {
-    scratch.set(x + dx * halfSide, y, z + dz * halfSide).project(camera);
-    const screenX = (scratch.x - projected.x) * width,
-      screenY = (scratch.y - projected.y) * height;
-    if (firstX === undefined) {
-      firstX = screenX;
-      firstY = screenY;
-    } else {
-      scale = Math.min(scale, edgeScale(lastX, lastY, screenX, screenY, w, h));
-    }
-    lastX = screenX;
-    lastY = screenY;
-  }
-  return Math.min(scale, edgeScale(lastX, lastY, firstX, firstY, w, h));
-}
-
-function edgeScale(ax, ay, bx, by, width, height) {
-  const dx = bx - ax,
-    dy = by - ay;
-  const extent = Math.abs(dy) * width + Math.abs(dx) * height;
-  return extent ? Math.abs(dx * ay - dy * ax) / extent : 1;
 }

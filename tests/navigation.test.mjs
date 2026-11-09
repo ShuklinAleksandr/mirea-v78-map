@@ -2,7 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { resolveInitialView } from "../src/data/navigation.js";
+import {
+  getMainEntranceApproach,
+  mainEntranceFraming,
+  resolveInitialView,
+} from "../src/data/navigation.js";
 import { mergedFloorView } from "../src/data/floor-view.js";
 import { geometryEvidence, resolveRoom } from "../src/data/utils.js";
 import { getHallAdjacencyView } from "../src/map/hall-adjacency.js";
@@ -96,6 +100,7 @@ const controller = [
   section("function cancelPendingNavigation(", "function saveView("),
   section("function roomPadding(", "const kindNames"),
   section("function stairTargetsFor(", '$("#campus-overview").onclick'),
+  section("function restoreInitialCamera(", "async function boot("),
 ].join("\n");
 
 function harness({
@@ -233,6 +238,7 @@ function harness({
     resolveFloorContext,
     resolveGpsFloorContext,
     resolveRouteFloorContext,
+    mainEntranceFraming,
     floorContextOwner: "camera",
     lastCameraFloorProbe: null,
     placeLandmarks: { hints: landmarks },
@@ -249,6 +255,9 @@ function harness({
       },
       setCampus: (c) => calls.push(["campus", c.id]),
       setOverview: (b) => calls.push(["overview", b]),
+      setProjection: (plan, options) =>
+        calls.push(["projection", plan, options]),
+      fit: (bounds, animate) => calls.push(["fit", bounds, animate]),
       setFloor(f, building, options) {
         calls.push(["floor", f.id]);
         this.lastFloorView = {
@@ -392,6 +401,7 @@ function harness({
     overview: () => context.overview(),
     updateUI: () => context.updateUI(),
     floorContextBuilding: () => context.floorContextBuilding(),
+    restoreInitialCamera: (view) => context.restoreInitialCamera(view),
     applyFloorContext: (value, source) =>
       context.applyFloorContext(value, source),
     locationContext: () => context.refreshLocationFloorContext(),
@@ -558,14 +568,14 @@ test("a confirmed basement descent explains the missing plan and offers the over
   );
 });
 
-function realStairView(level) {
+function realStairView(level, options = {}) {
   const campus = manifest.campuses.find((item) => item.id === "v-78");
   const floors = campus.floors.map((meta) =>
     JSON.parse(
       readFileSync(new URL(`../public${meta.url}`, import.meta.url), "utf8"),
     ),
   );
-  const h = harness({ actualUI: true });
+  const h = harness({ actualUI: true, ...options });
   h.state.campus = campus;
   h.state.floorData = floors;
   h.state.floor = floors.find((floor) => floor.level === level);
@@ -583,8 +593,10 @@ test("the library descent button uses the destination's source level instead of 
   h.select(source);
   const card = h.$("#room-card").innerHTML;
   assert.match(card, /Спуск к библиотеке · корпус И/);
-  assert.match(card, /data-target="0">↕ Уровень 1 плана/);
-  assert.doesNotMatch(card, /↕ 1 этаж|↕.*корпуса [АИ]/);
+  assert.match(
+    card,
+    /data-target="0" title="Уровень 1 плана">На этаж 1<\/button>/,
+  );
   h.clickStairTarget();
   assert.equal(h.state.floor.id, "v-78-floor1");
   assert.equal(h.state.building, null);
@@ -600,7 +612,10 @@ test("the library descent button uses the destination's source level instead of 
 
   // The reverse target is the user-confirmed upper point on physical floor 2,
   // while its building remains unknown. It must not become I2 or A2.
-  assert.match(h.$("#room-card").innerHTML, /↕ 2 этаж · корпус уточняется/);
+  assert.match(
+    h.$("#room-card").innerHTML,
+    /title="2 этаж · корпус уточняется">На этаж 2<\/button>/,
+  );
 });
 
 test("the accepted main stair keeps its confirmed A3 destination and paired marker after clicking its button", () => {
@@ -610,7 +625,10 @@ test("the accepted main stair keeps its confirmed A3 destination and paired mark
   );
   const original = JSON.stringify(h.state.floorData);
   h.select(source);
-  assert.match(h.$("#room-card").innerHTML, /↕ 3 этаж корпуса А/);
+  assert.match(
+    h.$("#room-card").innerHTML,
+    /title="3 этаж корпуса А">На этаж 3<\/button>/,
+  );
   assert.equal(
     [...h.$("#room-card").innerHTML.matchAll(/data-target=/g)].length,
     1,
@@ -828,6 +846,7 @@ test("fresh V78 opens the main entrance A2 while explicit links preserve their v
   assert.equal(view.building, "А");
   assert.equal(view.floorId, "v-78-floor2");
   assert.equal(view.mode, "floor");
+  assert.equal(view.focusMainEntrance, true);
   assert.equal(
     resolveInitialView("campus=v-78&view=overview", manifest).mode,
     "overview",
@@ -838,6 +857,19 @@ test("fresh V78 opens the main entrance A2 while explicit links preserve their v
       manifest,
     ).floorId,
     "v-78-floor1",
+  );
+  for (const query of ["room=some-room", "from=start&to=end"])
+    assert.equal(resolveInitialView(query, manifest).focusMainEntrance, false);
+  const serializedDefault = "view=floor&floor=v-78-floor2&building=А";
+  assert.equal(
+    resolveInitialView(serializedDefault, manifest).focusMainEntrance,
+    undefined,
+  );
+  assert.equal(
+    resolveInitialView(serializedDefault, manifest, {
+      resumeMainEntrance: true,
+    }).focusMainEntrance,
+    true,
   );
 });
 
@@ -1095,6 +1127,35 @@ function contextFloorHarness() {
     h.state.floor.polygons.find((polygon) => polygon.label === label);
   return { ...h, room };
 }
+
+test("startup fits the real entrance, hall and nearby approach on A2 with the sheet collapsed", () => {
+  const h = realStairView(2, { withExperience: true });
+  const view = resolveInitialView("projection=2d", manifest);
+  const floor = h.state.floor;
+  const entrance = floor.polygons.find((area) => area.label === "Главный вход");
+  const approach = getMainEntranceApproach(floor);
+  assert.equal(approach.id, "v-78-floor2-area-2");
+  h.calls.length = 0;
+  h.restoreInitialCamera(view);
+  const [x, z, X, Z] = h.calls.find(([kind]) => kind === "fit")[1];
+  for (const [px, pz] of [...entrance.points, approach.center])
+    assert.ok(px > x && px < X && pz > z && pz < Z);
+  assert.ok(X - x < 80 && Z - z < 90, "frames the hall, not the full wing");
+  assert.equal(h.calls[0][0], "minimize");
+  assert.equal(h.scene.lastFloorView.options.fit, false);
+  assert.equal(h.calls.find(([kind]) => kind === "projection")[2].fit, false);
+  assert.equal(h.state.selected, null);
+
+  h.calls.length = 0;
+  h.restoreInitialCamera(
+    resolveInitialView("view=floor&floor=v-78-floor2&building=А", manifest),
+  );
+  assert.equal(
+    h.calls.some(([kind]) => kind === "fit"),
+    false,
+  );
+  assert.equal(h.scene.lastFloorView.options.fit, true);
+});
 
 test("close camera context moves from A2 to G3 in the same frame without changing the source plan", () => {
   const h = contextFloorHarness();

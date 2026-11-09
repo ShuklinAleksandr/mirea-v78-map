@@ -1,11 +1,12 @@
 import * as THREE from "three";
 import polygonClipping from "polygon-clipping";
 import { buildingAtPoint, convexHull } from "../data/spatial.js";
+import { getMainEntranceApproach } from "../data/navigation.js";
 import { createExterior } from "./exterior.js";
 import { nearbyRoadPolygons } from "./nearby-roads.js";
 import { createEntranceHall, createIndoorHallDetails } from "./hall.js";
 import { presentPlaceIdentity } from "../data/place-location.js";
-import { roomLabelAnchor, roomLabelScale } from "./room-labels.js";
+import { roomLabelAnchor } from "./room-labels.js";
 import { placeCategory, PLACE_CATEGORY_COLORS } from "../data/place-search.js";
 import { GPS_MAX_AGE_MS, pointInLocationPolygon } from "../location.js";
 import {
@@ -2098,6 +2099,10 @@ export class AtlasScene {
     const cut = (polygon) =>
       withStairDisplayCutouts(polygon, stairCutouts, openings);
     const slabs = (renderFloor.footprints || []).map(cut);
+    // The building cutaway omits the campus sidewalks. Keep only the
+    // documented approach directly attached to the main entrance.
+    const approach = scopedBuilding === "А" && getMainEntranceApproach(floor);
+    if (approach) slabs.push(cut(approach));
     const rooms = (renderFloor.polygons || []).map(cut);
     const display = getIndoorDisplayGeometry(renderFloor);
     const stairPartitions = getStairPartitionView({
@@ -3108,7 +3113,7 @@ export class AtlasScene {
       const routeAction = this.callbacks?.getRouteStairAction?.();
       const close =
         Boolean(this.stairCandidates?.length || routeAction) &&
-        this.cameraViewDistance() * this.cameraHalfFovTangent() * 2 < 95;
+        this.cameraViewDistance() * this.cameraHalfFovTangent() * 2 < 55;
       const projected =
         close || routeAction?.nearby ? new THREE.Vector3() : null;
       const onScreen = ([x, z], y) => {
@@ -3207,8 +3212,7 @@ export class AtlasScene {
       24,
     );
     const currentPosition = this.updateUserLocationOverlay();
-    const locationObstacles = currentPosition ? [currentPosition] : [];
-    const occupied = locationObstacles.slice();
+    const occupied = currentPosition ? [currentPosition] : [];
     const hostRect = this.host.getBoundingClientRect();
     const hudHidden =
       globalThis.document?.body?.dataset?.mapHudHidden === "true";
@@ -3255,7 +3259,6 @@ export class AtlasScene {
     }
     let contextCount = 0;
     const p = new THREE.Vector3();
-    const roomCorner = new THREE.Vector3();
     for (const label of this.labelOrder.labels) {
       const stairAction = label.kind === "stair-action";
       const stairName = label.kind === "stairs";
@@ -3298,53 +3301,13 @@ export class AtlasScene {
       }
       let x = (p.x * 0.5 + 0.5) * width,
         y = (-p.y * 0.5 + 0.5) * height + (label.offsetY || 0);
-      let w =
-          label.kind === "building"
-            ? 100
-            : Math.max(
-                45,
-                label.el.textContent.length * 6.5 +
-                  (routeLabel ? 28 : stairName ? 16 : 0),
-              ),
-        h = stairAction
-          ? 38
-          : label.kind === "building" || routeLabel
-            ? 34
-            : 21;
-      let scale = 1;
-      if (roomLabel) {
-        w = Math.max(24, label.el.textContent.length * 7.5 + 12);
-        h = 24;
-        scale = roomLabelScale(
-          label,
-          p,
-          this.camera,
-          width,
-          height,
-          w,
-          h,
-          roomCorner,
-        );
-        const compact = !selected && scale < 0.75;
-        if (Boolean(label.compactRoom) !== compact) {
-          label.compactRoom = compact;
-          label.el.classList.toggle("compact-room", compact);
-        }
-        if (compact) {
-          // Tight rooms can spend the same footprint on type rather than
-          // badge padding. Keep both scaled axes within the original fit.
-          const compactWidth = w - 10;
-          const compactHeight = 15;
-          scale = Math.min(
-            1,
-            scale * Math.min(w / compactWidth, h / compactHeight),
-          );
-          w = compactWidth;
-          h = compactHeight;
-        }
-        w *= scale;
-        h *= scale;
-      }
+      const levelLabel = String(label.id).startsWith("level-");
+      // Reserve the tap area as well as the visible badge for floor buttons.
+      const tappableFloor = stairAction || levelLabel;
+      const w =
+        Math.max(24, label.el.textContent.length * 7.5 + 16) +
+        (tappableFloor ? 4 : 0);
+      const h = tappableFloor ? 40 : 24;
       const inset = h / 2 + 4;
       const labelGapX = roomLabel ? 4 : routeLabel || stairName ? 6 : 16;
       const labelGapY = roomLabel || routeLabel || stairName ? 4 : 10;
@@ -3356,18 +3319,17 @@ export class AtlasScene {
             cy + h / 2 > r.y &&
             cy - h / 2 < r.y + r.h,
         ) ||
-        (roomLabel ? locationObstacles : occupied).some(
+        occupied.some(
           (r) =>
             Math.abs(cx - r.x) < (w + r.w) / 2 + labelGapX &&
             Math.abs(cy - r.y) < (h + r.h) / 2 + labelGapY,
         );
-      const levelLabel = String(label.id).startsWith("level-");
       if ((levelLabel || stairName || stairAction) && p.z > -1 && p.z < 1) {
         const horizontal = levelLabel ? [0] : [0, -w * 0.65, w * 0.65];
         const vertical = levelLabel
           ? [0, -40, 40, -80, 80, -120, 120]
           : stairName
-            ? [0, -27, 27]
+            ? [0, -28, 28, -56, 56]
             : [0, -44, 44, -68, 68, -96, 96, -120, 120];
         const baseX = x;
         const baseY = y;
@@ -3416,9 +3378,9 @@ export class AtlasScene {
       const display = visible ? "block" : "none";
       if (label.el.style.display !== display) label.el.style.display = display;
       if (visible) {
-        if (!roomLabel) occupied.push({ x, y, w, h });
+        occupied.push({ x, y, w, h });
         if (countsTowardLimit) contextCount++;
-        label.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%)${roomLabel ? ` scale(${scale})` : ""}`;
+        label.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%)`;
         label.el.classList.toggle("selected", selected);
       }
     }
