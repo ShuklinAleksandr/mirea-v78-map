@@ -399,15 +399,21 @@ test("approaching a linked stair with the map camera exposes its floor action in
   for (const plan of [false, true]) {
     const view = cameraHarness();
     const destination = { floorId: "plan-3", buttonLabel: "На этаж 4" };
+    const lower = { floorId: "plan-1", buttonLabel: "На этаж 2" };
     const opened = [];
     Object.assign(view, {
       plan,
       camera: plan ? view.planCamera : view.perspectiveCamera,
       mode: "floor",
       roomLabels: [],
-      stairCandidates: [{ marker: { id: "stair" }, point: [12, -4] }],
+      stairCandidates: [
+        { marker: { id: "lower" }, point: [12, -4] },
+        { marker: { id: "upper", layoutId: "upper-flight" }, point: [12, -6] },
+      ],
       callbacks: {
-        getStairTargets: () => [destination],
+        getStairTargets: (marker) => [
+          marker.id === "upper" ? destination : lower,
+        ],
         onStairTarget: (target) => opened.push(target),
       },
       addLabel(text, point, y, kind, open) {
@@ -420,6 +426,10 @@ test("approaching a linked stair with the map camera exposes its floor action in
     assert.equal(view.roomLabels.length, 0);
     if (plan) view.camera.zoom = 5;
     else view.camera.position.set(12, 35, 5);
+    view.updateStairActions();
+    assert.equal(view.roomLabels[0].el.text, "На этаж 2");
+    view.selectedId = "search-result";
+    view.selectedRoom = { layoutId: "upper-flight" };
     view.updateStairActions();
     assert.equal(view.roomLabels[0].el.text, "На этаж 4");
     view.roomLabels[0].el.open();

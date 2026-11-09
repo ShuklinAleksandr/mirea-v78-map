@@ -467,6 +467,15 @@ summary:focus-visible {
   border-radius: 12px;
   font-size: 12px;
 }
+.place-categories button::before {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-inline-end: 0.35em;
+  border-radius: 50%;
+  background: var(--place-category-color);
+}
 .place-categories button[aria-pressed="true"] {
   background: var(--green);
   color: #fff;
