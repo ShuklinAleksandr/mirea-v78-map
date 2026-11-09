@@ -2198,18 +2198,21 @@ export class AtlasScene {
       for (let i = 0; i < g.attributes.position.count / 3; i++)
         faceRooms.push(p);
       fillGeoms.push(g);
+      const kind = displayPlace.kind === "stairs" ? "stairs" : "room";
+      const indoorRoom = kind === "room" && p.kind !== "outdoor";
       if (
         displayPlace.label &&
-        (!building ||
+        (indoorRoom ||
+          !building ||
           p.building === building ||
           (!p.building && displayPlace.placeEvidence)) &&
         p.kind !== "corridor"
       ) {
-        const kind = displayPlace.kind === "stairs" ? "stairs" : "room";
-        const anchor =
-          kind === "room" && p.kind !== "outdoor"
-            ? roomLabelAnchor(p.center, shape, g.attributes.position)
-            : null;
+        // The selected building is a camera focus. Other rooms retained in
+        // the shared cutaway still need names when the user pans into them.
+        const anchor = indoorRoom
+          ? roomLabelAnchor(p.center, shape, g.attributes.position)
+          : null;
         const point = anchor?.point || p.center;
         if (point)
           this.addLabel(
@@ -2455,45 +2458,42 @@ export class AtlasScene {
         continue;
       }
       placed.push({ center, layoutId });
-      const stairLabel = outsideFocus
-        ? null
-        : this.addLabel(
-            marker.shapeReviewStatus === "requires-correction"
-              ? "Спуск · схема уточняется"
-              : marker.layoutId
-                ? stairLayout?.layoutMode === "opposed-branches"
-                  ? "Главная лестница"
-                  : stairLayout?.building
-                    ? marker.label.split(" · ")[0]
-                    : marker.label
-                : marker.placeEvidence
-                  ? marker.label
-                  : "↕",
-            p,
-            this.plan
-              ? 0.5
-              : marker.shapeReviewStatus === "requires-correction"
-                ? 0.55
-                : marker.shapeReviewStatus === "user-confirmed-schematic"
-                  ? 1.25
-                  : stairLayout?.incomingDisplay
-                    ? 1.25
-                    : marker.layoutId
-                      ? stairLayout?.levelRole === "upper-arrival"
-                        ? 1.25
-                        : 4.2
-                      : 0.55,
-            "stairs",
-            () => this.callbacks.onRoom?.(marker),
-            marker.id,
-          );
+      const labelHeight = this.plan
+        ? 0.5
+        : marker.shapeReviewStatus === "requires-correction"
+          ? 0.55
+          : marker.shapeReviewStatus === "user-confirmed-schematic" ||
+              stairLayout?.incomingDisplay ||
+              stairLayout?.levelRole === "upper-arrival"
+            ? 1.25
+            : marker.layoutId
+              ? 4.2
+              : 0.55;
+      const stairLabel = this.addLabel(
+        marker.shapeReviewStatus === "requires-correction"
+          ? "Спуск · схема уточняется"
+          : marker.layoutId
+            ? stairLayout?.layoutMode === "opposed-branches"
+              ? "Главная лестница"
+              : stairLayout?.building
+                ? marker.label.split(" · ")[0]
+                : marker.label
+            : marker.placeEvidence
+              ? marker.label
+              : "↕",
+        p,
+        labelHeight,
+        "stairs",
+        () => this.callbacks.onRoom?.(marker),
+        marker.id,
+      );
       if (stairLabel) {
         stairLabel.title = marker.label;
         if (
           !this.stackDisplay &&
           marker.targets?.some((target) => target.floorId !== floor.id)
         )
-          (this.stairCandidates ??= []).push({ marker, point: p });
+          (this.stairCandidates ??= []).push({ marker, point: p, labelHeight });
       }
       if (!stair) {
         if (!batches.has("plan"))
@@ -3098,8 +3098,7 @@ export class AtlasScene {
     return el;
   }
   updateStairActions() {
-    let action = null;
-    let stair = null;
+    const actions = [];
     if (
       this.mode === "floor" &&
       !this.routeOverview &&
@@ -3107,76 +3106,90 @@ export class AtlasScene {
       !this.locationPicking
     ) {
       const routeAction = this.callbacks?.getRouteStairAction?.();
-      if (routeAction || (!this.route && this.stairCandidates?.length)) {
-        const height =
-          this.cameraViewDistance() * this.cameraHalfFovTangent() * 2;
-        const radius = THREE.MathUtils.clamp(height * 0.22, 6, 20);
-        const target = this.controls.target;
-        const distance = ([x, z]) => Math.hypot(target.x - x, target.z - z);
-        if (
-          routeAction &&
-          (routeAction.nearby ||
-            (height < 95 && distance(routeAction.point) < radius))
-        )
-          action = routeAction;
-        else if (!this.route && height < 95) {
-          let nearest = radius;
-          const selectedLayout = this.selectedRoom?.layoutId;
-          for (const candidate of this.stairCandidates) {
-            const range = distance(candidate.point);
-            const { marker } = candidate;
-            if (
-              range < radius &&
-              this.selectedId &&
-              (marker.id === this.selectedId ||
-                (selectedLayout && marker.layoutId === selectedLayout) ||
-                marker.sourceIds?.includes(this.selectedId))
-            ) {
-              stair = candidate;
-              break;
-            }
-            if (range < nearest) {
-              stair = candidate;
-              nearest = range;
-            }
+      const close =
+        Boolean(this.stairCandidates?.length || routeAction) &&
+        this.cameraViewDistance() * this.cameraHalfFovTangent() * 2 < 95;
+      const projected =
+        close || routeAction?.nearby ? new THREE.Vector3() : null;
+      const onScreen = ([x, z], y) => {
+        projected.set(x, y, z).project(this.camera);
+        return (
+          Math.abs(projected.x) < 1 &&
+          Math.abs(projected.y) < 1 &&
+          Math.abs(projected.z) < 1
+        );
+      };
+      const upcoming =
+        routeAction &&
+        (close || routeAction.nearby) &&
+        onScreen(routeAction.point, 0.55)
+          ? routeAction
+          : null;
+      if (upcoming)
+        actions.push({
+          ...upcoming,
+          labelHeight: 0.55,
+          offsetY: -29,
+          onRoute: true,
+        });
+      if (close) {
+        for (const stair of this.stairCandidates || []) {
+          const { marker, point, labelHeight } = stair;
+          if (!onScreen(point, labelHeight)) continue;
+          stair.targets ??= this.callbacks?.getStairTargets?.(marker) || [];
+          const seen = new Set();
+          const followsRouteStair =
+            upcoming &&
+            [
+              point,
+              ...(marker.graphAnchors || []).map((anchor) => anchor.center),
+            ].some(
+              ([x, z]) =>
+                Math.hypot(x - upcoming.point[0], z - upcoming.point[1]) < 2.5,
+            );
+          for (const target of stair.targets) {
+            if (seen.has(target.floorId)) continue;
+            seen.add(target.floorId);
+            if (followsRouteStair && target.floorId === upcoming.targetFloorId)
+              continue;
+            actions.push({
+              id: `${marker.id}:${target.floorId}`,
+              point,
+              labelHeight,
+              offsetY: seen.size === 1 ? 36 : -36,
+              label: target.buttonLabel,
+              accessibleLabel: `${marker.label}: ${target.buttonLabel}`,
+              open: () => this.callbacks.onStairTarget?.(target),
+            });
           }
         }
       }
     }
-    const key = action?.id ?? stair?.marker.id ?? null;
+    const key = actions.map((action) => action.id).join("|") || null;
     if ((this.stairActionKey ?? null) === key) return;
     this.stairActionKey = key;
+    const added = new Set(actions.map(({ id }) => `stair-action-${id}`));
     this.roomLabels = this.roomLabels.filter((label) => {
-      if (label.kind !== "stair-action") return true;
+      if (label.kind !== "stair-action" || added.delete(label.id)) return true;
       label.el.remove();
       return false;
     });
-    const targets = action
-      ? [action]
-      : stair
-        ? (this.callbacks?.getStairTargets?.(stair.marker) || []).map(
-            (target) => ({
-              id: target.floorId,
-              point: stair.point,
-              label: target.buttonLabel,
-              open: () => this.callbacks.onStairTarget?.(target),
-            }),
-          )
-        : [];
-    const seen = new Set();
-    for (const target of targets) {
-      if (seen.has(target.id)) continue;
-      seen.add(target.id);
+    for (const target of actions) {
+      const id = `stair-action-${target.id}`;
+      if (!added.has(id)) continue;
       const button = this.addLabel(
         target.label,
         target.point,
-        0.55,
+        target.labelHeight,
         "stair-action",
         target.open,
-        `stair-action-${target.id}`,
+        id,
       );
       button.tabIndex = 0;
-      this.roomLabels.at(-1).offsetY = -29 - (seen.size - 1) * 42;
+      if (target.accessibleLabel) button.ariaLabel = target.accessibleLabel;
+      const label = this.roomLabels.at(-1);
+      label.offsetY = target.offsetY;
+      label.onRoute = target.onRoute;
     }
   }
   updateLabels() {
@@ -3186,7 +3199,8 @@ export class AtlasScene {
     const routeShown = Boolean(
       this.routeOverview || this.routeLayer?.group.children.length,
     );
-    const showContext = this.labelsOn && !this.cleanMap && !routeShown;
+    const placeLabelsEnabled = this.labelsOn && !this.cleanMap;
+    const showContext = placeLabelsEnabled && !routeShown;
     const contextLimit = THREE.MathUtils.clamp(
       Math.floor((width * height) / 24_000),
       5,
@@ -3196,11 +3210,19 @@ export class AtlasScene {
     const locationObstacles = currentPosition ? [currentPosition] : [];
     const occupied = locationObstacles.slice();
     const hostRect = this.host.getBoundingClientRect();
+    const hudHidden =
+      globalThis.document?.body?.dataset?.mapHudHidden === "true";
     const obstacles = Array.from(
       this.labelObstacles ?? document.querySelectorAll(LABEL_OBSTACLES),
-      (el) => el.getBoundingClientRect(),
+      (el) =>
+        hudHidden &&
+        !el.matches(
+          ".route-guidance-dock,.location-pick-banner,#clean-map-exit",
+        )
+          ? null
+          : el.getBoundingClientRect(),
     )
-      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .filter((rect) => rect && rect.width > 0 && rect.height > 0)
       .map((rect) => ({
         x: rect.x - hostRect.x,
         y: rect.y - hostRect.y,
@@ -3222,11 +3244,12 @@ export class AtlasScene {
             Number(Boolean(b.activeFloor)) - Number(Boolean(a.activeFloor)) ||
             String(b.id).startsWith("level-") -
               String(a.id).startsWith("level-") ||
-            (b.kind === "stair-action") - (a.kind === "stair-action") ||
+            Number(Boolean(b.onRoute)) - Number(Boolean(a.onRoute)) ||
             (b.kind === "route") - (a.kind === "route") ||
             (b.id === this.selectedId) - (a.id === this.selectedId) ||
-            (a.kind === "building" || a.kind === "stairs" ? 0 : 1) -
-              (b.kind === "building" || b.kind === "stairs" ? 0 : 1),
+            (b.kind === "stairs") - (a.kind === "stairs") ||
+            (b.kind === "stair-action") - (a.kind === "stair-action") ||
+            (b.kind === "building") - (a.kind === "building"),
         ),
       };
     }
@@ -3235,13 +3258,30 @@ export class AtlasScene {
     const roomCorner = new THREE.Vector3();
     for (const label of this.labelOrder.labels) {
       const stairAction = label.kind === "stair-action";
+      const stairName = label.kind === "stairs";
       const routeLabel = label.kind === "route" || stairAction;
       const selected = label.id != null && label.id === this.selectedId;
       const roomLabel = Boolean(label.roomRadius);
+      const showSelectedRoom =
+        placeLabelsEnabled &&
+        selected &&
+        label.kind === "room" &&
+        !this.routeOverview &&
+        !this.buildingOverview;
+      const showStairName =
+        stairName &&
+        placeLabelsEnabled &&
+        this.mode === "floor" &&
+        !this.routeOverview &&
+        !this.buildingOverview;
       const countsTowardLimit =
-        !roomLabel && !routeLabel && !selected && label.kind !== "building";
+        !roomLabel &&
+        !routeLabel &&
+        !showStairName &&
+        !selected &&
+        label.kind !== "building";
       if (
-        (!routeLabel && !showContext) ||
+        (!routeLabel && !showContext && !showSelectedRoom && !showStairName) ||
         (routeLabel && this.cleanMap && this.buildingOverview) ||
         (countsTowardLimit && contextCount >= contextLimit)
       ) {
@@ -3250,7 +3290,7 @@ export class AtlasScene {
       }
       p.copy(label.position).project(this.camera);
       if (
-        roomLabel &&
+        (roomLabel || stairName || stairAction) &&
         (Math.abs(p.x) >= 1 || Math.abs(p.y) >= 1 || Math.abs(p.z) >= 1)
       ) {
         if (label.el.style.display !== "none") label.el.style.display = "none";
@@ -3263,7 +3303,8 @@ export class AtlasScene {
             ? 100
             : Math.max(
                 45,
-                label.el.textContent.length * 6.5 + (routeLabel ? 28 : 0),
+                label.el.textContent.length * 6.5 +
+                  (routeLabel ? 28 : stairName ? 16 : 0),
               ),
         h = stairAction
           ? 38
@@ -3284,40 +3325,68 @@ export class AtlasScene {
           h,
           roomCorner,
         );
+        const compact = !selected && scale < 0.75;
+        if (Boolean(label.compactRoom) !== compact) {
+          label.compactRoom = compact;
+          label.el.classList.toggle("compact-room", compact);
+        }
+        if (compact) {
+          // Tight rooms can spend the same footprint on type rather than
+          // badge padding. Keep both scaled axes within the original fit.
+          const compactWidth = w - 10;
+          const compactHeight = 15;
+          scale = Math.min(
+            1,
+            scale * Math.min(w / compactWidth, h / compactHeight),
+          );
+          w = compactWidth;
+          h = compactHeight;
+        }
         w *= scale;
         h *= scale;
       }
       const inset = h / 2 + 4;
-      const labelGapX = routeLabel ? 6 : 16;
-      const labelGapY = routeLabel ? 4 : 10;
-      if (
-        (String(label.id).startsWith("level-") ||
-          (stairAction && Math.abs(p.x) < 1 && Math.abs(p.y) < 1)) &&
-        p.z > -1 &&
-        p.z < 1
-      ) {
+      const labelGapX = roomLabel ? 4 : routeLabel || stairName ? 6 : 16;
+      const labelGapY = roomLabel || routeLabel || stairName ? 4 : 10;
+      const collides = (cx, cy) =>
+        obstacles.some(
+          (r) =>
+            cx + w / 2 > r.x &&
+            cx - w / 2 < r.x + r.w &&
+            cy + h / 2 > r.y &&
+            cy - h / 2 < r.y + r.h,
+        ) ||
+        (roomLabel ? locationObstacles : occupied).some(
+          (r) =>
+            Math.abs(cx - r.x) < (w + r.w) / 2 + labelGapX &&
+            Math.abs(cy - r.y) < (h + r.h) / 2 + labelGapY,
+        );
+      const levelLabel = String(label.id).startsWith("level-");
+      if ((levelLabel || stairName || stairAction) && p.z > -1 && p.z < 1) {
+        const horizontal = levelLabel ? [0] : [0, -w * 0.65, w * 0.65];
+        const vertical = levelLabel
+          ? [0, -40, 40, -80, 80, -120, 120]
+          : stairName
+            ? [0, -27, 27]
+            : [0, -44, 44, -68, 68, -96, 96, -120, 120];
+        const baseX = x;
         const baseY = y;
-        x = THREE.MathUtils.clamp(x, w / 2 + 10, width - w / 2 - 10);
-        const candidate = [0, -40, 40, -80, 80, -120, 120]
-          .map((offset) => baseY + offset)
-          .find(
-            (cy) =>
-              cy > inset &&
-              cy < height - inset &&
-              !obstacles.some(
-                (r) =>
-                  x + w / 2 > r.x &&
-                  x - w / 2 < r.x + r.w &&
-                  cy + h / 2 > r.y &&
-                  cy - h / 2 < r.y + r.h,
-              ) &&
-              !occupied.some(
-                (r) =>
-                  Math.abs(x - r.x) < (w + r.w) / 2 + 6 &&
-                  Math.abs(cy - r.y) < (h + r.h) / 2 + 4,
-              ),
+        x = THREE.MathUtils.clamp(baseX, w / 2 + 10, width - w / 2 - 10);
+        placement: for (const dx of horizontal) {
+          const cx = THREE.MathUtils.clamp(
+            baseX + dx,
+            w / 2 + 10,
+            width - w / 2 - 10,
           );
-        if (candidate != null) y = candidate;
+          for (const dy of vertical) {
+            const cy = baseY + dy;
+            if (cy <= inset || cy >= height - inset || collides(cx, cy))
+              continue;
+            x = cx;
+            y = cy;
+            break placement;
+          }
+        }
       }
       let visible =
         p.z < 1 &&
@@ -3343,26 +3412,7 @@ export class AtlasScene {
         )
       )
         visible = false;
-      if (
-        visible &&
-        obstacles.some(
-          (r) =>
-            x + w / 2 > r.x &&
-            x - w / 2 < r.x + r.w &&
-            y + h / 2 > r.y &&
-            y - h / 2 < r.y + r.h,
-        )
-      )
-        visible = false;
-      if (
-        visible &&
-        (roomLabel ? locationObstacles : occupied).some(
-          (r) =>
-            Math.abs(x - r.x) < (w + r.w) / 2 + labelGapX &&
-            Math.abs(y - r.y) < (h + r.h) / 2 + labelGapY,
-        )
-      )
-        visible = false;
+      if (visible && collides(x, y)) visible = false;
       const display = visible ? "block" : "none";
       if (label.el.style.display !== display) label.el.style.display = display;
       if (visible) {

@@ -1316,6 +1316,81 @@ test("selecting a route endpoint reveals the other field before focusing it and 
   assert.equal(h.getEndpoints().to, destination);
 });
 
+test("after choosing Куда, the focused Откуда list starts with my location and builds after GPS arrives", async () => {
+  let editing = "to",
+    requests = 0;
+  const h = routeHarness({
+    onLocate: () => requests++,
+    onRefineLocation: () => assert.fail("requested a manual pin"),
+    finishInputEditing() {
+      editing = "";
+      return true;
+    },
+  });
+  h.clear();
+  h.state.mode = "floor";
+  h.state.routeSnapEnabled = true;
+  const destination = h.room("Г-209");
+  const otherRoom = h.room("Г-210");
+  h.state.search = [destination, otherRoom];
+  const from = h.element("#route-from");
+  const to = h.element("#route-to");
+  const list = h.element("#route-results");
+  const destinationButton = { dataset: { id: destination.id } };
+  const locationButton = { dataset: { currentOrigin: "" } };
+  list.querySelectorAll = () => [
+    editing === "to" ? destinationButton : locationButton,
+  ];
+  from.focus = () => {
+    assert.equal(editing, "", "reveal Откуда before handing over focus");
+    editing = "from";
+    from.onfocus();
+  };
+  to.focus = () => assert.fail("destination was already chosen");
+  to.value = destination.label;
+  to.oninput();
+  assert.doesNotMatch(list.innerHTML, /Моё местоположение/);
+  destinationButton.onclick();
+  assert.equal(editing, "from");
+  assert.match(list.innerHTML, /^<button [^>]+data-current-origin/);
+  assert.match(list.innerHTML, /Моё местоположение/);
+  assert.equal(list.scrollTop, 0);
+  locationButton.onclick();
+  assert.equal(editing, "");
+  assert.equal(list.hidden, true);
+  assert.equal(requests, 1);
+  assert.equal(h.getEndpoints().to, destination);
+  h.state.userLocation = {
+    source: "gps",
+    campusId: "a",
+    point: [2, 3],
+    timestamp: Date.now(),
+    accuracyMeters: 5,
+    trackingStatus: "live",
+  };
+  h.locationChanged();
+  assert.equal(h.workerMessages.length, 1);
+  assert.equal(h.workerMessages[0].from.kind, "user-location");
+  assert.equal(h.workerMessages[0].from.snapToRoute, true);
+  assert.equal(h.workerMessages[0].to.id, destination.id);
+  h.reply(h.result);
+  await new Promise((resolve) => setImmediate(resolve));
+});
+
+test("typing an origin and pressing Enter selects the first room, not the location action", () => {
+  let selected = 0;
+  const h = routeHarness({ onLocate: () => assert.fail("GPS requested") });
+  const input = h.element("#route-from");
+  h.state.search = [h.room("Г-209")];
+  h.element("#route-results button[data-id]").click = () => selected++;
+  h.element("#route-results button").click = () =>
+    assert.fail("pressed the location action");
+  input.value = "Г-209";
+  input.oninput();
+  input.onkeydown({ key: "Enter", preventDefault() {} });
+  assert.equal(selected, 1);
+});
+
 test("a step with an unavailable destination floor cannot claim arrival or discard the previous instruction", async () => {
   const h = routeHarness({
     chooseFloor(id, state) {
