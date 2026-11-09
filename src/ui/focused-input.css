@@ -1,0 +1,215 @@
+.sheet-finish-label {
+  display: none;
+}
+body[data-input-editing="true"] :is(.map-shell, .topbar) {
+  visibility: hidden;
+}
+
+/* A single editor for both orientations. It occupies the visible viewport
+   between the system bars and the keyboard, including overlay keyboards. */
+.sidebar[data-input-editing="true"] {
+  --editor-gap: 8px;
+  --editor-done-width: 70px;
+  z-index: 14;
+  inset: calc(
+      var(--editor-gap) + max(var(--safe-top), var(--sheet-viewport-top, 0px))
+    )
+    calc(var(--editor-gap) + var(--safe-right))
+    calc(
+      var(--editor-gap) +
+        max(var(--safe-bottom), var(--sheet-viewport-bottom, 0px))
+    )
+    calc(var(--editor-gap) + var(--safe-left));
+  width: auto;
+  height: auto;
+  max-height: none;
+  padding: 0;
+  transform: none;
+}
+.sidebar[data-input-editing="true"] .sheet-handle {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  width: var(--editor-done-width);
+  height: 44px;
+  padding: 0;
+  touch-action: manipulation;
+  border-radius: 10px;
+}
+.sidebar[data-input-editing="true"] .sheet-finish-label {
+  display: inline;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--green);
+}
+.sidebar[data-input-editing="true"]
+  :is(.sheet-grip, .sheet-search-icon, .sheet-collapsed-title),
+.sidebar[data-input-editing="true"]
+  .sidebar-scroll
+  > :not(#explore-panel, #route-panel),
+.sidebar[data-input-editing="true"] #explore-panel > :not(.search-wrap),
+.sidebar[data-input-editing="true"]
+  .search-wrap
+  > :not(.search-box, .search-results),
+.sidebar[data-input-editing="true"]
+  #route-panel
+  > :not(.route-inputs, .route-results),
+.sidebar[data-input-editing="true"] #route-swap,
+.sidebar[data-editing-field="search"] #route-panel,
+.sidebar[data-editing-field^="route-"] #explore-panel,
+.sidebar[data-editing-field="route-from"] .route-inputs label:has(#route-to),
+.sidebar[data-editing-field="route-to"] .route-inputs label:has(#route-from),
+body[data-input-editing="true"] #route-guidance-dock {
+  display: none;
+}
+.sidebar[data-input-editing="true"]
+  :is(.sidebar-scroll, #explore-panel, .search-wrap, #route-panel) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+}
+.sidebar[data-input-editing="true"] .sidebar-scroll {
+  padding: 4px 8px 8px;
+}
+.sidebar[data-input-editing="true"] .search-wrap {
+  margin: 0;
+}
+.sidebar[data-input-editing="true"] :is(.search-box, .route-inputs) {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 44px;
+  width: calc(100% - var(--editor-done-width));
+}
+.sidebar[data-input-editing="true"] .search-box {
+  height: 44px;
+  padding: 0 10px;
+}
+.sidebar[data-input-editing="true"] .route-inputs {
+  padding: 0 10px;
+}
+.sidebar[data-input-editing="true"] .route-inputs label {
+  min-height: 44px;
+  height: auto;
+  border: 0;
+}
+.sidebar[data-input-editing="true"] :is(.search-box, .route-inputs) input {
+  font-size: 16px;
+}
+.sidebar[data-input-editing="true"] #search::-webkit-search-cancel-button {
+  display: none;
+}
+.sidebar[data-input-editing="true"] :is(.search-results, .route-results) {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 6px 0 0;
+}
+.sidebar[data-input-editing="true"]
+  :is(.search-results, .route-results)
+  button {
+  min-height: 44px;
+  padding: 6px 8px;
+}
+
+/* Some keyboard toolbars leave only one visible row in landscape. Put the
+   input beside the results so each remains usable in that space. */
+.sidebar[data-input-editing="true"][data-short-viewport="true"] {
+  --editor-gap: 2px;
+  border-radius: 12px;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"] .sheet-handle {
+  top: 0;
+  right: 0;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  .sidebar-scroll {
+  padding: 0 calc(var(--editor-done-width) + 4px) 0 4px;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-wrap, #route-panel) {
+  display: grid;
+  grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-box, .route-inputs) {
+  width: 100%;
+  grid-column: 1;
+  grid-row: 1;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-results, .route-results) {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: stretch;
+  width: 100%;
+  margin: 0;
+  border-radius: 10px;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-box > svg, .search-results button > svg) {
+  display: none;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-results, .route-results)
+  button {
+  padding: 4px 8px;
+  gap: 6px;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-results, .route-results)
+  button
+  > span:nth-child(2) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  flex: 1;
+  column-gap: 6px;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-results, .route-results)
+  :is(b, small) {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-results, .route-results)
+  b {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 14px;
+  line-height: 16px;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-results, .route-results)
+  small {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 14px;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  :is(.search-results, .route-results)
+  small
+  + small:not(.nearby-distance) {
+  display: none;
+}
+.sidebar[data-input-editing="true"][data-short-viewport="true"]
+  .search-results
+  .nearby-distance {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  margin-top: 0;
+}

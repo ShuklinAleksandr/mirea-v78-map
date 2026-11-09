@@ -239,6 +239,7 @@ export class AtlasScene {
         this.updateLocationPickPreview({ force: true });
         return;
       }
+      if (this.callbacks.onMapTap?.()) return;
       if (label?.isConnected) {
         label.click();
         return;

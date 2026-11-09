@@ -85,6 +85,10 @@ function harness(file, exports, saved = {}, options = {}) {
         listeners.get(type)?.(event);
         el[`on${type}`]?.(event);
       },
+      dispatchEvent(event) {
+        listeners.get(event.type)?.(event);
+        return !event.defaultPrevented;
+      },
       focus() {},
       blur() {},
       setPointerCapture() {},
@@ -179,13 +183,13 @@ function harness(file, exports, saved = {}, options = {}) {
     nativeShareLink: () => "",
     matchMedia: () => ({ matches: false, addEventListener() {} }),
     localStorage: persistedStorage,
-    document: {
+    document: Object.assign(new EventTarget(), {
       body: { dataset: {} },
       documentElement: { dataset: {} },
-      addEventListener() {},
-    },
+    }),
     window: new EventTarget(),
     Worker,
+    Event,
     URL,
     URLSearchParams,
     Date: class extends Date {
@@ -338,6 +342,7 @@ function routeHarness({
   onConfirmFloor,
   onPauseFollowing,
   onFloorContext,
+  finishInputEditing,
 } = {}) {
   const h = harness(
     "../src/ui/routes.js",
@@ -402,6 +407,7 @@ function routeHarness({
     updateUI() {},
     saveView() {},
     experience: {
+      finishInputEditing,
       expand(value) {
         sheetCalls.push(value ? "expanded" : "peek");
       },
@@ -1201,6 +1207,55 @@ test("Next route endpoint search shares food categories while Classic preserves 
       assert.doesNotMatch(markup, /Г-209/);
     } else assert.match(markup, /Ничего не найдено/);
   }
+});
+
+test("selecting a route endpoint reveals the other field before focusing it and retains its suggestions", () => {
+  let editing = "from";
+  const exitFocus = [];
+  const h = routeHarness({
+    finishInputEditing({ focusHandle = true } = {}) {
+      exitFocus.push(focusHandle);
+      editing = "";
+      return true;
+    },
+  });
+  h.clear();
+  const origin = h.room("Главный вход");
+  const destination = h.room("Г-209");
+  h.state.search = [origin, destination];
+  const from = h.element("#route-from");
+  const to = h.element("#route-to");
+  const list = h.element("#route-results");
+  const originButton = { dataset: { id: origin.id } };
+  const destinationButton = { dataset: { id: destination.id } };
+  list.querySelectorAll = () => [
+    editing === "from" ? originButton : destinationButton,
+  ];
+  to.focus = () => {
+    assert.equal(editing, "", "the destination must be visible before focus");
+    editing = "to";
+    to.onfocus();
+  };
+  from.value = origin.label;
+  from.oninput();
+  originButton.onclick();
+  h.document.dispatchEvent(
+    Object.assign(new Event("click"), {
+      composedPath: () => [originButton, list],
+    }),
+  );
+  assert.equal(editing, "to");
+  assert.equal(list.hidden, false);
+  assert.equal(to.attributes["aria-expanded"], "true");
+  assert.equal(h.getEndpoints().from, origin);
+
+  destinationButton.onclick();
+  assert.equal(editing, "");
+  assert.equal(list.hidden, true);
+  assert.deepEqual(exitFocus, [false, true]);
+  assert.equal(from.value, origin.label);
+  assert.equal(to.value, destination.label);
+  assert.equal(h.getEndpoints().to, destination);
 });
 
 test("a step with an unavailable destination floor cannot claim arrival or discard the previous instruction", async () => {
@@ -2051,6 +2106,83 @@ test("keyboard suggestion navigation retains only its active field until leaving
       assert.equal(sidebar.dataset.editingField, "");
     }
   }
+});
+
+test("Done, Escape and Android Back exit focused editing without rewriting the form", () => {
+  for (const [field, exit] of [
+    ["search", "done"],
+    ["route-from", "escape"],
+    ["route-to", "back"],
+  ]) {
+    const h = experienceHarness();
+    const input = h.element(`#${field}`);
+    const other = h.element(
+      field === "route-from" ? "#route-to" : "#route-from",
+    );
+    const list = h.element(field === "search" ? "#results" : "#route-results");
+    const handle = h.element("#sheet-toggle");
+    let blurred = false;
+    let searchEnded = false;
+    input.value = "Черновик";
+    other.value = "Выбранная аудитория";
+    input.blur = () => (blurred = true);
+    input.addEventListener(
+      "atlas:input-editing-end",
+      () => (searchEnded = true),
+    );
+    input.dispatch("focus");
+    assert.equal(handle.attributes["aria-label"], "Завершить ввод");
+    assert.equal(h.document.body.dataset.inputEditing, "true");
+
+    if (exit === "done") handle.dispatch("click");
+    else if (exit === "escape") {
+      h.element(".sidebar").dispatch("keydown", {
+        key: "Escape",
+        stopPropagation() {},
+      });
+    } else {
+      const back = new Event("atlas:back", { cancelable: true });
+      assert.equal(h.window.dispatchEvent(back), false);
+    }
+
+    assert.equal(input.value, "Черновик");
+    assert.equal(other.value, "Выбранная аудитория");
+    assert.equal(searchEnded, field === "search");
+    assert.equal(blurred, true);
+    assert.equal(list.hidden, true);
+    assert.equal(input.attributes["aria-expanded"], "false");
+    assert.equal(h.document.body.dataset.inputEditing, "false");
+    assert.equal(h.getSheetState(), "peek");
+    input.dispatch("focus");
+    assert.equal(h.document.body.dataset.inputEditing, "true");
+    assert.equal(input.value, "Черновик");
+  }
+});
+
+test("a tap on Done stays in place until click when Safari blurs the input", () => {
+  const viewport = Object.assign(new EventTarget(), {
+    scale: 1,
+    height: 52,
+    offsetTop: 0,
+  });
+  const h = experienceHarness(undefined, viewport, { width: 844, height: 390 });
+  const input = h.element("#route-to");
+  const handle = h.element("#sheet-toggle");
+  const sidebar = h.element(".sidebar");
+  input.dispatch("focus");
+  handle.dispatch("pointerdown", { pointerId: 7 });
+  input.dispatch("blur", { relatedTarget: null });
+  viewport.height = 390;
+  viewport.dispatchEvent(new Event("resize"));
+  assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "52px");
+  assert.equal(h.document.body.dataset.inputEditing, "true");
+  h.window.dispatchEvent(
+    Object.assign(new Event("pointerup"), { pointerId: 7 }),
+  );
+  handle.dispatch("click");
+  h.flushTimers();
+  assert.equal(h.document.body.dataset.inputEditing, "false");
+  assert.equal(h.getSheetState(), "peek");
 });
 
 test("a very short Safari keyboard viewport keeps its active field through rotation and clears compact editing on blur", () => {

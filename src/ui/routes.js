@@ -358,9 +358,16 @@ export function bindRoutes({
     for (const b of list.querySelectorAll("button"))
       b.onclick = () => {
         const room = state.search.find((r) => r.id === b.dataset.id);
+        if (!room) return;
         setEndpoint(key, room);
-        $("#route-" + key).blur();
-        if (!from || !to) $("#route-" + (from ? "to" : "from")).focus();
+        if (!from || !to) {
+          // The other input is hidden in focused mode. Reveal it before
+          // transferring focus, within the same tap that chose this result.
+          experience.finishInputEditing?.({ focusHandle: false });
+          $("#route-" + (from ? "to" : "from")).focus();
+        } else if (!experience.finishInputEditing?.()) {
+          $("#route-" + key).blur();
+        }
       };
   }
   for (const key of ["from", "to"]) {
@@ -1117,8 +1124,15 @@ export function bindRoutes({
   };
   $("#route-clear").onclick = () => clear({ open: true });
   $("#route-share").onclick = () => shareView(location.hash, toast);
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(".route-inputs,.route-results")) closeResults();
+  document.addEventListener("click", (event) => {
+    // Focusing the other endpoint can replace the clicked suggestion before
+    // this listener runs. Its event path still includes the result list.
+    const path = event.composedPath();
+    if (
+      !path.includes($(".route-inputs")) &&
+      !path.includes($("#route-results"))
+    )
+      closeResults();
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {

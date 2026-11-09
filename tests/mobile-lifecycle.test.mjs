@@ -222,9 +222,18 @@ test("Android Back dismisses dialog, input and UI panel before minimizing", asyn
   await back();
   assert.equal(blurred, 1);
   assert.equal(h.minimized(), 0);
-  h.document.activeElement = null;
   const cancel = (event) => event.preventDefault();
   h.window.addEventListener("atlas:back", cancel);
+  h.document.body = { dataset: { inputEditing: "true" } };
+  await back();
+  assert.equal(
+    blurred,
+    1,
+    "the focused editor handles Back before native blur",
+  );
+  assert.equal(h.minimized(), 0);
+  h.document.body.dataset.inputEditing = "false";
+  h.document.activeElement = null;
   await back();
   assert.equal(h.minimized(), 0);
   h.window.removeEventListener("atlas:back", cancel);

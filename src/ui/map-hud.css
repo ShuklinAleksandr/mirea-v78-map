@@ -1,0 +1,30 @@
+[data-map-hud-hidden="true"]
+  :is(
+    .topbar,
+    .sidebar,
+    .map-top,
+    #next-floor-open,
+    .focus-floor-status,
+    .map-title,
+    .floor-rail,
+    .map-tools,
+    .map-bottom,
+    .map-status,
+    .orientation,
+    .hover-tip
+  ) {
+  visibility: hidden;
+}
+
+#map-hud-reveal:focus-visible {
+  position: fixed;
+  z-index: 24;
+  top: calc(12px + var(--safe-top));
+  left: calc(12px + var(--safe-left));
+  width: auto;
+  height: 44px;
+  clip: auto;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: var(--paper);
+}

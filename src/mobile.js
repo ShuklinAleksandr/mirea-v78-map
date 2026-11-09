@@ -119,7 +119,10 @@ export async function initMobileShell() {
           return;
         }
         const active = document.activeElement;
-        if (active?.matches("input, textarea")) {
+        if (
+          active?.matches("input, textarea") &&
+          document.body?.dataset.inputEditing !== "true"
+        ) {
           active.blur();
           return;
         }

@@ -24,6 +24,7 @@ import { bindExperience, readSaved, shareView } from "./ui/experience.js";
 import { bindRoutes } from "./ui/routes.js";
 import { bindLocation } from "./ui/location.js";
 import { bindCleanMap } from "./ui/clean-map.js";
+import { bindMapHud } from "./ui/map-hud.js";
 import { resolveRoom, geometryEvidence } from "./data/utils.js";
 import {
   placeDescription,
@@ -84,13 +85,14 @@ const searchUI = bindSearch({
     dismissRoom();
     experience?.expand(true);
   },
+  onFinishEditing: () => experience?.finishInputEditing(),
   onLocate: () =>
     state.userLocation?.point
       ? userPosition?.beginPicking()
       : userPosition?.locate(),
   getPosition: () => userPosition?.nearbyOrigin(),
 });
-let scene, experience, routes, userPosition;
+let scene, experience, routes, userPosition, mapHud;
 try {
   scene = new AtlasScene($("#viewport"), {
     interfaceVariant: getInterfaceVariant(),
@@ -107,6 +109,7 @@ try {
       userPosition?.pauseFollowing();
     },
     onFrame: () => queueCameraFloorContext(),
+    onMapTap: () => mapHud?.onMapTap(),
     onRoom: (r) => selectRoom(r),
     onPositionPickPreview: () => userPosition?.previewPicking(),
     onBuilding: (b) => chooseBuilding(b),
@@ -208,6 +211,7 @@ if (scene) {
       if (state.campus) updateUI();
     },
   });
+  mapHud = bindMapHud(() => scene.invalidate());
 }
 function showError(message, e) {
   console.error(e);
