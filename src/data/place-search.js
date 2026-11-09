@@ -10,6 +10,14 @@ export const PLACE_CATEGORIES = [
   { id: "entrance", label: "Входы", terms: "вход выход" },
 ];
 
+export const PLACE_CATEGORY_COLORS = {
+  cafeteria: "#f1bc72",
+  medical: "#ef9a99",
+  toilet: "#baabed",
+  cloakroom: "#89c7d6",
+  entrance: "#a0d699",
+};
+
 export const normalizePlaceQuery = (value) =>
   String(value || "")
     .toLocaleLowerCase("ru")

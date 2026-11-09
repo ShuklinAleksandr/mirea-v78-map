@@ -3,6 +3,7 @@ import { $, escape } from "./dom.js";
 import {
   findPlaces,
   PLACE_CATEGORIES,
+  PLACE_CATEGORY_COLORS,
   categoryForPlaceQuery,
   placeCategory,
 } from "../data/place-search.js";
@@ -216,7 +217,7 @@ export function bindSearch({
     )
       .map(
         (item) =>
-          `<button type="button" data-category="${item.id}" aria-pressed="${category === item.id}">${item.label}</button>`,
+          `<button type="button" data-category="${item.id}" style="--place-category-color: ${PLACE_CATEGORY_COLORS[item.id]}" aria-pressed="${category === item.id}">${item.label}</button>`,
       )
       .join("");
     for (const button of $("#place-categories").querySelectorAll("button"))

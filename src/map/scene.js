@@ -3,6 +3,8 @@ import { buildingAtPoint, convexHull } from "../data/spatial.js";
 import { createExterior, createMapContext } from "./exterior.js";
 import { createEntranceHall, createIndoorHallDetails } from "./hall.js";
 import { presentPlaceIdentity } from "../data/place-location.js";
+import { roomLabelAnchor, roomLabelScale } from "./room-labels.js";
+import { placeCategory, PLACE_CATEGORY_COLORS } from "../data/place-search.js";
 import { GPS_MAX_AGE_MS } from "../location.js";
 import {
   pickLocationSurface,
@@ -55,12 +57,10 @@ const COLORS = {
   corridor: 0xf5f3ec,
   stairs: 0xcbd9ee,
   elevator: 0xcbd9ee,
-  toilet: 0xd6e5ed,
   unknown: 0xe8e5df,
   unclassified: 0xe8e5df,
   circulation: 0xf5f3ec,
   hall: 0xf5f3ec,
-  entrance: 0xcbdedb,
 };
 const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
@@ -2066,10 +2066,16 @@ export class AtlasScene {
       if (!indexed) continue;
       const g = indexed.toNonIndexed();
       indexed.dispose();
+      const displayPlace = presentPlaceIdentity(
+        presentStairIdentity(p, floor),
+        floor,
+      );
+      const placeColor = PLACE_CATEGORY_COLORS[placeCategory(displayPlace)];
       const dim = building && p.building && p.building !== building;
       const color = new THREE.Color(
-        dim ? 0xe9ece7 : COLORS[p.kind] || COLORS.room,
+        placeColor || (dim ? 0xe9ece7 : COLORS[p.kind] || COLORS.room),
       );
+      if (placeColor && dim) color.lerp(new THREE.Color(0xe9ece7), 0.55);
       const colors = [];
       for (let i = 0; i < g.attributes.position.count; i++)
         colors.push(color.r, color.g, color.b);
@@ -2077,26 +2083,30 @@ export class AtlasScene {
       for (let i = 0; i < g.attributes.position.count / 3; i++)
         faceRooms.push(p);
       fillGeoms.push(g);
-      const displayPlace = presentPlaceIdentity(
-        presentStairIdentity(p, floor),
-        floor,
-      );
       if (
         displayPlace.label &&
-        p.center &&
         (!building ||
           p.building === building ||
           (!p.building && displayPlace.placeEvidence)) &&
         p.kind !== "corridor"
-      )
-        this.addLabel(
-          displayPlace.label,
-          p.center,
-          0.5,
-          displayPlace.kind === "stairs" ? "stairs" : "room",
-          () => this.callbacks.onRoom?.(displayPlace),
-          p.id,
-        );
+      ) {
+        const kind = displayPlace.kind === "stairs" ? "stairs" : "room";
+        const anchor =
+          kind === "room" && p.kind !== "outdoor"
+            ? roomLabelAnchor(p.center, shape, g.attributes.position)
+            : null;
+        const point = anchor?.point || p.center;
+        if (point)
+          this.addLabel(
+            displayPlace.label,
+            point,
+            anchor ? 0.13 : 0.5,
+            kind,
+            () => this.callbacks.onRoom?.(displayPlace),
+            p.id,
+            anchor?.radius,
+          );
+      }
     }
     if (fillGeoms.length) {
       const g = mergeGeometries(fillGeoms);
@@ -2959,7 +2969,7 @@ export class AtlasScene {
     }
     return null;
   }
-  addLabel(text, p, y, kind, onclick, id) {
+  addLabel(text, p, y, kind, onclick, id, roomRadius) {
     const el = document.createElement("button");
     el.className = `map-label ${kind}`;
     el.textContent = text;
@@ -2972,6 +2982,7 @@ export class AtlasScene {
       position: new THREE.Vector3(p[0], y, p[1]),
       kind,
       id,
+      roomRadius,
     });
     return el;
   }
@@ -2999,8 +3010,20 @@ export class AtlasScene {
           action = routeAction;
         else if (!this.route && height < 95) {
           let nearest = radius;
+          const selectedLayout = this.selectedRoom?.layoutId;
           for (const candidate of this.stairCandidates) {
             const range = distance(candidate.point);
+            const { marker } = candidate;
+            if (
+              range < radius &&
+              this.selectedId &&
+              (marker.id === this.selectedId ||
+                (selectedLayout && marker.layoutId === selectedLayout) ||
+                marker.sourceIds?.includes(this.selectedId))
+            ) {
+              stair = candidate;
+              break;
+            }
             if (range < nearest) {
               stair = candidate;
               nearest = range;
@@ -3059,7 +3082,8 @@ export class AtlasScene {
       24,
     );
     const currentPosition = this.updateUserLocationOverlay();
-    const occupied = [currentPosition].filter(Boolean);
+    const locationObstacles = currentPosition ? [currentPosition] : [];
+    const occupied = locationObstacles.slice();
     const hostRect = this.host.getBoundingClientRect();
     const obstacles = Array.from(
       this.labelObstacles ?? document.querySelectorAll(LABEL_OBSTACLES),
@@ -3097,12 +3121,14 @@ export class AtlasScene {
     }
     let contextCount = 0;
     const p = new THREE.Vector3();
+    const roomCorner = new THREE.Vector3();
     for (const label of this.labelOrder.labels) {
       const stairAction = label.kind === "stair-action";
       const routeLabel = label.kind === "route" || stairAction;
       const selected = label.id != null && label.id === this.selectedId;
+      const roomLabel = Boolean(label.roomRadius);
       const countsTowardLimit =
-        !routeLabel && !selected && label.kind !== "building";
+        !roomLabel && !routeLabel && !selected && label.kind !== "building";
       if (
         (!routeLabel && !showContext) ||
         (routeLabel && this.cleanMap && this.buildingOverview) ||
@@ -3112,9 +3138,16 @@ export class AtlasScene {
         continue;
       }
       p.copy(label.position).project(this.camera);
+      if (
+        roomLabel &&
+        (Math.abs(p.x) >= 1 || Math.abs(p.y) >= 1 || Math.abs(p.z) >= 1)
+      ) {
+        if (label.el.style.display !== "none") label.el.style.display = "none";
+        continue;
+      }
       let x = (p.x * 0.5 + 0.5) * width,
         y = (-p.y * 0.5 + 0.5) * height + (label.offsetY || 0);
-      const w =
+      let w =
           label.kind === "building"
             ? 100
             : Math.max(
@@ -3126,6 +3159,23 @@ export class AtlasScene {
           : label.kind === "building" || routeLabel
             ? 34
             : 21;
+      let scale = 1;
+      if (roomLabel) {
+        w = Math.max(24, label.el.textContent.length * 7.5 + 12);
+        h = 24;
+        scale = roomLabelScale(
+          label,
+          p,
+          this.camera,
+          width,
+          height,
+          w,
+          h,
+          roomCorner,
+        );
+        w *= scale;
+        h *= scale;
+      }
       const inset = h / 2 + 4;
       const labelGapX = routeLabel ? 6 : 16;
       const labelGapY = routeLabel ? 4 : 10;
@@ -3166,6 +3216,7 @@ export class AtlasScene {
         y > inset &&
         y < height - inset;
       if (
+        !roomLabel &&
         label.kind !== "building" &&
         !routeLabel &&
         !selected &&
@@ -3194,7 +3245,7 @@ export class AtlasScene {
         visible = false;
       if (
         visible &&
-        occupied.some(
+        (roomLabel ? locationObstacles : occupied).some(
           (r) =>
             Math.abs(x - r.x) < (w + r.w) / 2 + labelGapX &&
             Math.abs(y - r.y) < (h + r.h) / 2 + labelGapY,
@@ -3204,9 +3255,9 @@ export class AtlasScene {
       const display = visible ? "block" : "none";
       if (label.el.style.display !== display) label.el.style.display = display;
       if (visible) {
-        occupied.push({ x, y, w, h });
+        if (!roomLabel) occupied.push({ x, y, w, h });
         if (countsTowardLimit) contextCount++;
-        label.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%)`;
+        label.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%)${roomLabel ? ` scale(${scale})` : ""}`;
         label.el.classList.toggle("selected", selected);
       }
     }
