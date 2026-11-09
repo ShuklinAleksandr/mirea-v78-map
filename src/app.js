@@ -1014,6 +1014,7 @@ async function boot() {
       assumptions,
       photos,
       exterior,
+      nearbyRoads,
       facadeStyle,
       hall,
       special,
@@ -1026,7 +1027,7 @@ async function boot() {
       ? photos
       : photos.photos || photos.images;
     scene.setAssumptions(assumptions);
-    scene.setExterior(exterior, facadeStyle, hall, special);
+    scene.setExterior(exterior, facadeStyle, hall, special, nearbyRoads);
     const restored = resolveInitialView(initial, manifest);
     if (!restored || !(await loadCampus(restored.campusId))) return;
     state.building = restored.building;

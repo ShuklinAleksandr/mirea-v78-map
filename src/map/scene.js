@@ -2,6 +2,7 @@ import * as THREE from "three";
 import polygonClipping from "polygon-clipping";
 import { buildingAtPoint, convexHull } from "../data/spatial.js";
 import { createExterior } from "./exterior.js";
+import { nearbyRoadPolygons } from "./nearby-roads.js";
 import { createEntranceHall, createIndoorHallDetails } from "./hall.js";
 import { presentPlaceIdentity } from "../data/place-location.js";
 import { roomLabelAnchor, roomLabelScale } from "./room-labels.js";
@@ -476,11 +477,12 @@ export class AtlasScene {
     this.wallHeight = a.wallHeight;
     this.assumptions = a;
   }
-  setExterior(data, style = {}, hall = null, special = null) {
+  setExterior(data, style = {}, hall = null, special = null, roads = []) {
     this.specialExterior = special;
     this.entranceHall = hall;
     this.exteriorStyle = style;
     this.exteriorData = data.campuses;
+    this.exteriorRoads = roads;
   }
   streetView() {
     this.setProjection(false);
@@ -1895,6 +1897,20 @@ export class AtlasScene {
         this.model.add(edges);
       });
     }
+    if (
+      this.campus.id === "v-78" &&
+      exteriorData?.footprints?.length &&
+      this.exteriorRoads?.length
+    ) {
+      try {
+        this.addNearbyRoads(
+          nearbyRoadPolygons(this.exteriorRoads, exteriorData.footprints),
+        );
+      } catch {
+        // Optional roads cannot stop the building view from opening.
+        this.exteriorRoads = [];
+      }
+    }
     for (const [b, p] of Object.entries(this.buildingCenters))
       this.addLabel(
         `Корпус ${b}`,
@@ -2426,6 +2442,20 @@ export class AtlasScene {
       this.pickables.push(mesh);
     }
     if (treads.length) this.model.add(planOutline(treads));
+  }
+  addNearbyRoads(polygons) {
+    const geometries = polygons
+      .map((p) => flatGeometry(p, -0.12))
+      .filter(Boolean);
+    if (!geometries.length) return;
+    const geometry = mergeGeometries(geometries);
+    geometries.forEach((item) => item.dispose());
+    if (!geometry) return;
+    const material = new THREE.MeshBasicMaterial({ color: 0xc8ced4 });
+    material.userData.darkColor = 0x465363;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = "Nearby campus access roads";
+    this.context.add(mesh);
   }
   addUncertainty(regions) {
     for (const p of regions) {
