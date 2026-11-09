@@ -1,6 +1,6 @@
 {
   "version": "0.5.5",
-  "sourceCommit": "f65ee6726a9bc6f2830a2ace295d36584cc22706",
+  "sourceCommit": "2fcd9be890655650f92678d7a68ba349a779c8ff",
   "base": "/mirea-v78-map/",
   "scope": "V78; focused mobile input and idle map controls"
 }
