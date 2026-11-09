@@ -483,6 +483,51 @@ test("the separate route button opens the same draft and its back control return
   assert.deepEqual(h.getEndpoints(), endpoints);
 });
 
+test("opening a new route shows destination suggestions with both fields available before typing", () => {
+  const h = routeHarness({ onLocate: () => assert.fail("GPS requested") });
+  h.clear();
+  const opener = h.element("#route-open");
+  const to = h.element("#route-to");
+  const list = h.element("#route-results");
+  to.focus = () => assert.fail("the generic route button opened the keyboard");
+  opener.onclick();
+  h.document.dispatchEvent(
+    Object.assign(new Event("click"), { composedPath: () => [opener] }),
+  );
+  assert.equal(to.value, "");
+  assert.equal(list.hidden, false);
+  h.state.search = [h.room("Г-209"), h.room("Г-210")];
+  h.changedCampus();
+  assert.match(list.innerHTML, /Г-209/);
+  assert.match(list.innerHTML, /Г-210/);
+  assert.doesNotMatch(list.innerHTML, /data-current-origin/);
+});
+
+test("a tap retargeted to the mobile sheet after focus keeps the empty origin suggestions open", () => {
+  const h = routeHarness({ onLocate: () => assert.fail("GPS requested") });
+  h.clear();
+  const from = h.element("#route-from");
+  const results = h.element("#route-results");
+  const sidebar = h.element(".sidebar");
+  h.document.activeElement = from;
+  from.onfocus();
+  h.document.dispatchEvent(
+    Object.assign(new Event("click"), { composedPath: () => [sidebar] }),
+  );
+  assert.equal(results.hidden, false);
+  assert.match(results.innerHTML, /От моего местоположения/);
+  h.document.dispatchEvent(
+    Object.assign(new Event("click"), { composedPath: () => [] }),
+  );
+  assert.equal(results.hidden, true);
+  from.onclick();
+  assert.equal(
+    results.hidden,
+    false,
+    "tapping the focused field reopens results",
+  );
+});
+
 test("route-line preference starts GPS on route creation and turning it off keeps the current manual route", async () => {
   let locateCalls = 0;
   const h = routeHarness({
@@ -1349,11 +1394,11 @@ test("after choosing Куда, the focused Откуда list starts with my loca
   to.focus = () => assert.fail("destination was already chosen");
   to.value = destination.label;
   to.oninput();
-  assert.doesNotMatch(list.innerHTML, /Моё местоположение/);
+  assert.doesNotMatch(list.innerHTML, /data-current-origin/);
   destinationButton.onclick();
   assert.equal(editing, "from");
   assert.match(list.innerHTML, /^<button [^>]+data-current-origin/);
-  assert.match(list.innerHTML, /Моё местоположение/);
+  assert.match(list.innerHTML, /От моего местоположения/);
   assert.equal(list.scrollTop, 0);
   locationButton.onclick();
   assert.equal(editing, "");
@@ -1387,8 +1432,46 @@ test("typing an origin and pressing Enter selects the first room, not the locati
     assert.fail("pressed the location action");
   input.value = "Г-209";
   input.oninput();
+  assert.match(
+    h.element("#route-results").innerHTML,
+    /От моего местоположения/,
+  );
   input.onkeydown({ key: "Enter", preventDefault() {} });
   assert.equal(selected, 1);
+});
+
+test("opening a route to a room keeps origin suggestions and editing a chosen endpoint shows alternatives", () => {
+  const h = routeHarness({ onLocate: () => assert.fail("GPS requested") });
+  h.clear();
+  const destination = h.room("Г-209");
+  h.state.search = [destination, h.room("Г-210")];
+  const from = h.element("#route-from");
+  const to = h.element("#route-to");
+  const list = h.element("#route-results");
+  from.focus = () => from.onfocus();
+  h.setEndpoint("to", destination);
+  h.document.dispatchEvent(
+    Object.assign(new Event("click"), {
+      composedPath: () => [{ id: "room-to" }],
+    }),
+  );
+  assert.equal(list.hidden, false);
+  assert.match(list.innerHTML, /От моего местоположения/);
+  assert.match(list.innerHTML, /Г-210/);
+
+  to.onfocus();
+  assert.equal(from.attributes["aria-expanded"], "false");
+  assert.equal(to.attributes["aria-expanded"], "true");
+  assert.doesNotMatch(list.innerHTML, /data-current-origin/);
+  assert.match(list.innerHTML, /Г-210/);
+  to.onkeydown({ key: "Escape" });
+  assert.equal(list.hidden, true);
+  assert.equal(h.getEndpoints().to, destination);
+  to.value = "";
+  to.oninput();
+  assert.equal(h.getEndpoints().to, null);
+  assert.equal(list.hidden, false);
+  assert.match(list.innerHTML, /Г-210/);
 });
 
 test("a step with an unavailable destination floor cannot claim arrival or discard the previous instruction", async () => {
