@@ -3,6 +3,7 @@ import { getJSON } from "./client.js";
 const OPTIONAL = [
   ["photos", "/data/photo-index.json", { images: [] }],
   ["exterior", "/data/exterior-shells.json", { campuses: {} }],
+  ["nearbyRoads", "/data/exterior-context.json", []],
   ["facadeStyle", "/data/facade-style.json", {}],
   ["hall", "/data/exterior-hall.json", null],
   ["special", "/data/exterior-special.json", null],
@@ -55,6 +56,8 @@ function validOptional(key, value) {
         (Array.isArray(value.volumePolygons) &&
           value.volumePolygons.every(polygon)))
     );
+  if (key === "nearbyRoads")
+    return value.campusId === "v-78" && Array.isArray(value.roads);
   if (key === "special")
     return typeof value.campusId === "string" && Array.isArray(value.features);
   return value.roofFeatures == null || Array.isArray(value.roofFeatures);
@@ -107,7 +110,7 @@ export async function loadBootstrapData(
           );
           if (!validOptional(key, value))
             throw new Error("Invalid optional asset");
-          return { key, value };
+          return { key, value: key === "nearbyRoads" ? value.roads : value };
         } catch {
           return { key, value: fallback, unavailable: true };
         }

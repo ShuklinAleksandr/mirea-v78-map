@@ -27,7 +27,7 @@ test("all optional assets may fail while the complete V78 indoor catalog still b
   assert.equal(data.manifest.campuses[0].floors.length, 5);
   assert.equal(data.search.length, 1148);
   assert.ok(data.search.every((room) => room.campusId === "v-78"));
-  assert.equal(data.unavailable.length, 5);
+  assert.equal(data.unavailable.length, 6);
   assert.deepEqual(data.exterior, { campuses: {} });
   assert.deepEqual(data.photos, { images: [] });
   assert.equal(
@@ -77,15 +77,13 @@ test("stale catalog entries cannot expose removed campuses or missing floors", a
   assert.ok(data.unavailable.includes("exterior"));
 });
 
-test("the current optional packages all pass structural validation", async () => {
-  const requests = [];
-  const data = await loadBootstrapData(async (url) => {
-    requests.push(url);
-    return read(url.replace("/data/", "").replace(/\.json$/, ""));
-  });
+test("the current optional packages pass validation and surroundings expose only roads", async () => {
+  const data = await loadBootstrapData(async (url) =>
+    read(url.replace("/data/", "").replace(/\.json$/, "")),
+  );
   assert.deepEqual(data.unavailable, []);
   assert.ok(data.exterior.campuses["v-78"].shells.length);
-  assert.ok(!requests.includes("/data/exterior-context.json"));
+  assert.deepEqual(data.nearbyRoads, read("exterior-context").roads);
 });
 
 test("a hung optional request reaches its deadline while essential maps still boot", async () => {
@@ -135,6 +133,7 @@ test("all optional deadlines are cleaned up when essential startup fails", async
 
 test("malformed optional geometry is rejected before reaching the scene", async () => {
   const damaged = {
+    "/data/exterior-context.json": { campusId: "v-78", roads: {} },
     "/data/exterior-shells.json": { campuses: { "v-78": {} } },
     "/data/exterior-hall.json": { campusId: "v-78", lowPolygon: {} },
     "/data/exterior-special.json": { campusId: "v-78", features: {} },
@@ -147,6 +146,7 @@ test("malformed optional geometry is rejected before reaching the scene", async 
     "exterior",
     "facadeStyle",
     "hall",
+    "nearbyRoads",
     "special",
   ]);
   assert.deepEqual(data.exterior, { campuses: {} });
@@ -258,6 +258,57 @@ test("outdoor views omit surrounding features and merge overlapping 2D floor out
       view.context.children.length,
       "indoor uncertainty remains available",
     );
+  } finally {
+    view.clear();
+  }
+});
+
+test("nearby access roads form one untextured, non-pickable mesh outside only", () => {
+  const { view, floor } = overviewHarness();
+  view.setExterior(
+    {
+      campuses: {
+        "v-78": {
+          footprints: [footprint],
+          shells: [{ ...footprint, height: 3.6 }],
+          facadeBands: [],
+        },
+      },
+    },
+    {},
+    null,
+    null,
+    [
+      {
+        kind: "service",
+        points: [
+          [-5, -4],
+          [-5, 14],
+        ],
+        width: 3,
+      },
+      {
+        kind: "service",
+        points: [
+          [-9, 6],
+          [-1, 6],
+        ],
+        width: 3,
+      },
+    ],
+  );
+  try {
+    for (const plan of [true, false]) {
+      view.plan = plan;
+      view.setOverview();
+      assert.equal(view.context.children.length, 1);
+      const [roads] = view.context.children;
+      assert.equal(roads.material.map, null);
+      assert.ok(!view.pickables.includes(roads));
+      assert.ok(roads.geometry.index.count > 6);
+    }
+    view.setFloor(floor);
+    assert.equal(view.context.children.length, 0);
   } finally {
     view.clear();
   }
