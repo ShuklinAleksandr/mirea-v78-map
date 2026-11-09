@@ -1,5 +1,40 @@
+export function getMainEntranceApproach(floor) {
+  if (floor?.campusId !== "v-78" || floor.buildingLevels?.А !== 2) return null;
+  return (
+    floor.outdoorPolygons?.find((area) => area.id === "v-78-floor2-area-2") ||
+    null
+  );
+}
+
+export function mainEntranceFraming(floor) {
+  if (floor?.campusId !== "v-78" || floor.buildingLevels?.А !== 2) return null;
+  const entrance = floor.polygons?.find(
+    (area) => area.id === "v-78--floor-2--9yb",
+  );
+  const hall = floor.polygons?.find((area) => area.id === "v-78-floor2-area-6");
+  if (!entrance?.points?.length || !hall?.points?.length) return null;
+  const approach = getMainEntranceApproach(floor);
+  const points = [...hall.points, ...entrance.points];
+  // Frame the whole hall and the near half of the outside approach.
+  if (approach?.center) points.push(approach.center);
+  const xs = points.map(([x]) => x);
+  const zs = points.map(([, z]) => z);
+  const bounds = [
+    Math.min(...xs) - 4,
+    Math.min(...zs) - 4,
+    Math.max(...xs) + 4,
+    Math.max(...zs) + 4,
+  ];
+  if (!bounds.every(Number.isFinite)) return null;
+  return bounds;
+}
+
 /** Validate a shared view against available campus/floor metadata. */
-export function resolveInitialView(parameters, manifest) {
+export function resolveInitialView(
+  parameters,
+  manifest,
+  { resumeMainEntrance = false } = {},
+) {
   const params =
     parameters instanceof URLSearchParams
       ? parameters
@@ -10,6 +45,7 @@ export function resolveInitialView(parameters, manifest) {
     campuses.find((c) => c.id === "v-78") ||
     campuses[0];
   if (!campus) return null;
+  const hasTarget = ["room", "from", "to"].some((key) => params.has(key));
   const hasBuilding = (floor, building) =>
     !building ||
     floor.buildings?.includes(building) ||
@@ -28,6 +64,7 @@ export function resolveInitialView(parameters, manifest) {
         floorId: entranceFloor.id,
         mode: "floor",
         projection: params.get("projection") === "2d" ? "2d" : "3d",
+        focusMainEntrance: !hasTarget,
       };
   }
   const requestedBuilding = params.get("building");
@@ -65,5 +102,12 @@ export function resolveInitialView(parameters, manifest) {
     floorId: floor?.id || null,
     mode: floor ? "floor" : "overview",
     projection: params.get("projection") === "2d" ? "2d" : "3d",
+    ...(resumeMainEntrance &&
+    !hasTarget &&
+    campus.id === "v-78" &&
+    building === "А" &&
+    floor?.buildingLevels?.А === 2
+      ? { focusMainEntrance: true }
+      : {}),
   };
 }

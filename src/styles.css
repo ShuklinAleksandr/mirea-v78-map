@@ -1001,38 +1001,31 @@ summary:focus-visible {
   min-height: 44px;
   color: var(--green);
 }
+.map-label,
+.user-location-label {
+  font: 600 12px / 16px var(--font-ui);
+  color: #fff;
+  background: #203047;
+  border: 1px solid #526781;
+  border-radius: 8px;
+}
 .map-label {
   position: absolute;
-  pointer-events: none;
-  font-size: 12px;
-  color: #334154;
-  background: #ffffffed;
-  border: 1px solid #fff;
-  border-radius: 8px;
-  padding: 5px 8px;
+  pointer-events: auto;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
   white-space: nowrap;
-  box-shadow: 0 2px 8px #15283e15;
   transform: translate(-50%, -50%);
-  font-weight: 550;
-}
-.map-label.room {
-  font-size: 12px;
-  padding: 3px 5px;
-  background: #ffffffdc;
 }
 .map-label.selected,
 .map-label.route {
-  color: #fff;
-  background: #2768ee;
-  border-color: #fff;
   z-index: 4;
 }
-.map-label.stairs {
-  color: #326e8d;
-}
-.map-label.context {
-  color: #718095;
-  font-size: 12px;
+.map-label.selected,
+.map-label:focus-visible {
+  outline: 2px solid #9abff5;
+  outline-offset: 1px;
 }
 .map-labels {
   position: absolute;
@@ -1309,16 +1302,6 @@ dialog::backdrop {
 [data-theme="dark"] .floor-button.active {
   color: #101b2e;
 }
-[data-theme="dark"] .map-label {
-  background: #203047ef;
-  border-color: #354b66;
-  color: #e3eafb;
-}
-[data-theme="dark"] .map-label.route,
-[data-theme="dark"] .map-label.selected {
-  background: #3677ed;
-  color: #fff;
-}
 @media (max-width: 900px) {
   .legend {
     display: none;
@@ -1593,9 +1576,6 @@ dialog::backdrop {
   .settings-content {
     padding: 4px 18px 18px;
   }
-  .map-label {
-    font-size: 12px;
-  }
   #toast {
     bottom: calc(12px + var(--safe-bottom));
     max-width: 94vw;
@@ -1616,9 +1596,6 @@ dialog::backdrop {
   transition: none !important;
 }
 
-.map-label {
-  pointer-events: auto;
-}
 .map-label.route {
   pointer-events: none;
 }
@@ -1781,25 +1758,7 @@ dialog::backdrop {
   }
 }
 .map-label.floor-level {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.15px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: #fff;
-  color: #1c3c67;
-  border: 1px solid #c5d7f3;
-  box-shadow: 0 4px 16px #183e6b25;
   pointer-events: auto;
-}
-.map-label.floor-level:hover {
-  background: #eaf2ff;
-  outline: 2px solid #4c86ef;
-}
-[data-theme="dark"] .map-label.floor-level {
-  background: #243754;
-  color: #e5efff;
-  border-color: #688ab4;
 }
 
 .topbar #settings-open {
@@ -1993,7 +1952,6 @@ dialog::backdrop {
   height: 0;
   z-index: 6;
   pointer-events: none;
-  font: 600 12px / 1.35 var(--font-ui);
 }
 .user-location-dot {
   position: absolute;
@@ -2016,17 +1974,10 @@ dialog::backdrop {
   white-space: normal;
   text-align: center;
   transform: translateX(-50%);
-  border-radius: 8px;
-  padding: 4px 8px;
-  color: white;
-  background: #1769d2;
-  box-shadow: 0 2px 6px #0003;
+  padding: 3px 7px;
 }
 .user-location-marker[data-stale="true"] .user-location-dot {
   background: #8997a7;
-}
-.user-location-marker[data-stale="true"] .user-location-label {
-  background: #596777;
 }
 
 .route-guidance-dock {
@@ -2574,31 +2525,12 @@ dialog::backdrop {
   }
 }
 
-.map-label.stair-action,
-[data-theme="dark"] .map-label.stair-action {
-  min-height: 38px;
-  padding: 6px 10px;
-  border-color: #fff;
-  border-radius: 10px;
-  background: #245ed2;
-  color: #fff;
+.map-label.stair-action {
   z-index: 5;
 }
-.map-label.stair-action:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: -4px;
-}
-
-.map-label.room.compact-room,
-[data-theme="dark"] .map-label.room.compact-room {
-  border: 0;
-  padding: 0 1px;
-  line-height: 1.1;
-  background: none;
-  box-shadow: none;
-  font-weight: 700;
-  text-shadow: 0 0 1px #fff;
-}
-[data-theme="dark"] .map-label.room.compact-room {
-  text-shadow: 0 0 1px #101624;
+.map-label.stair-action::after,
+.map-label.floor-level::after {
+  position: absolute;
+  inset: -8px -2px;
+  content: "";
 }

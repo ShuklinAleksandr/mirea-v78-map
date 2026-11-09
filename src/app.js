@@ -13,7 +13,7 @@ import { bindBuildingRooms } from "./ui/building-rooms.js";
 import "./ui/building-rooms.css";
 import { getJSON } from "./data/client.js";
 import { loadBootstrapData } from "./data/bootstrap.js";
-import { resolveInitialView } from "./data/navigation.js";
+import { mainEntranceFraming, resolveInitialView } from "./data/navigation.js";
 import { mergedFloorView } from "./data/floor-view.js";
 import {
   resolveFloorContext,
@@ -651,7 +651,7 @@ function overview() {
   updateUI();
   saveView();
 }
-function saveView() {
+function saveView({ mainEntrance = false } = {}) {
   const p = new URLSearchParams({
     campus: state.campus.id,
     view: state.mode,
@@ -661,7 +661,11 @@ function saveView() {
   if (state.floor) p.set("floor", state.floor.id);
   routes?.appendURL(p);
   if (state.selected?.id) p.set("room", state.selected.id);
-  history.replaceState(null, "", `#${p}`);
+  history.replaceState(
+    mainEntrance ? { atlasMainEntrance: true } : null,
+    "",
+    `#${p}`,
+  );
 }
 function closeRoom() {
   state.selected = null;
@@ -740,9 +744,7 @@ function stairTargetsFor(room) {
         buttonLabel:
           physical === -1
             ? "В цоколь"
-            : physical != null
-              ? `На этаж ${physical}`
-              : `На уровень ${targetFloor?.level}`,
+            : `На этаж ${physical ?? targetFloor?.level}`,
         label:
           physical != null
             ? `${physical === -1 ? "Цоколь" : `${physical} этаж`}${targetLocation.building ? ` корпуса ${targetLocation.building}` : " · корпус уточняется"}`
@@ -833,7 +835,7 @@ function selectRoom(room, focus = true) {
       ? `<div class="stair-targets">${availableTargets
           .map(
             (t, i) =>
-              `<button data-target="${i}">↕ ${escape(t.label)} →</button>`,
+              `<button data-target="${i}" title="${escape(t.label)}">${escape(t.buttonLabel)}</button>`,
           )
           .join("")}</div>`
       : ""
@@ -1028,9 +1030,31 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("dialog[open]")) dismissRoom();
 });
 
+function restoreInitialCamera(view) {
+  const source = state.floorData.find((floor) => floor.id === view.floorId);
+  const entranceBounds = view.focusMainEntrance
+    ? mainEntranceFraming(source)
+    : null;
+  if (entranceBounds) revealMap();
+  if (view.mode === "floor")
+    chooseFloor(view.floorId, {
+      fit: !entranceBounds,
+      navigationToken: state.loading,
+    });
+  else if (view.building) scene.setOverview(view.building);
+  if (view.projection === "2d")
+    scene.setProjection(true, { fit: !entranceBounds });
+  if (entranceBounds)
+    scene.fit(entranceBounds, false, roomPadding(), {
+      direction: [0.08, 1.3, 1],
+    });
+  return Boolean(entranceBounds);
+}
+
 async function boot() {
   try {
     const initial = new URLSearchParams(location.hash.slice(1));
+    const resumeMainEntrance = history.state?.atlasMainEntrance === true;
     const data = await loadBootstrapData();
     const {
       manifest,
@@ -1051,15 +1075,12 @@ async function boot() {
       : photos.photos || photos.images;
     scene.setAssumptions(assumptions);
     scene.setExterior(exterior, facadeStyle, hall, special, nearbyRoads);
-    const restored = resolveInitialView(initial, manifest);
+    const restored = resolveInitialView(initial, manifest, {
+      resumeMainEntrance,
+    });
     if (!restored || !(await loadCampus(restored.campusId))) return;
     state.building = restored.building;
-    if (restored.mode === "floor")
-      chooseFloor(restored.floorId, { navigationToken: state.loading });
-    else if (restored.building) scene.setOverview(restored.building);
-    if (restored.projection === "2d") {
-      scene.setProjection(true, { fit: true });
-    }
+    const mainEntrance = restoreInitialCamera(restored);
     updateUI();
     searchUI.renderCategories();
     experience.renderSaved();
@@ -1076,7 +1097,7 @@ async function boot() {
         ));
     if (initialRoom) await navigateRoom(initialRoom);
     await routes.restore(initial);
-    saveView();
+    saveView({ mainEntrance });
     if (data.unavailable.length)
       toast(
         "Часть дополнительных материалов недоступна. Поиск и карта этажей работают.",

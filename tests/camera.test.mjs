@@ -469,10 +469,17 @@ test("both nearby main stair directions stay visible and the active route replac
         null,
         stair.marker.id,
       );
-    const aim = (x, z, near) => {
+    const aim = (x, z, span) => {
+      const distance = span / (2 * view.cameraHalfFovTangent());
       view.controls.target.set(x, 0, z);
-      view.camera.position.set(x, near ? 40 : 180, z + (plan ? 0 : 15));
-      view.camera.zoom = plan && near ? 5 : 1;
+      view.camera.position.set(
+        x,
+        plan ? 40 : distance * 0.94,
+        z + (plan ? 0 : distance * 0.34),
+      );
+      view.camera.zoom = plan
+        ? (view.camera.top - view.camera.bottom) / span
+        : 1;
       view.camera.lookAt(view.controls.target);
       view.camera.updateProjectionMatrix();
       view.camera.updateMatrixWorld();
@@ -482,9 +489,15 @@ test("both nearby main stair directions stay visible and the active route replac
       view.roomLabels.filter(
         (label) => label.kind === kind && label.el.style.display === "block",
       );
-    aim(50, -18, false);
+    aim(50, -18, 200);
     assert.deepEqual(shown("stair-action"), []);
-    aim(50, -18, true);
+    aim(50, -18, 70);
+    assert.deepEqual(
+      shown("stair-action"),
+      [],
+      "a moderate zoom still hides floor buttons",
+    );
+    aim(50, -18, 40);
     const ordinary = shown("stair-action");
     assert.deepEqual(ordinary.map(({ el }) => el.textContent).sort(), [
       "На этаж 1",
@@ -494,11 +507,13 @@ test("both nearby main stair directions stay visible and the active route replac
     ordinary.find(({ el }) => el.textContent === "На этаж 1").el.open();
     assert.deepEqual(opened, ["v-78-floor1"]);
     view.routeLayer = { group: { children: [{}] } };
+    let routeNearby = false;
     view.callbacks.getRouteStairAction = () => ({
       id: "route-stair-test",
       point: [50, -18],
       targetFloorId: "v-78-floor3",
       label: "На этаж 3",
+      nearby: routeNearby,
       open: () => opened.push("route"),
     });
     view.updateLabels();
@@ -510,7 +525,13 @@ test("both nearby main stair directions stay visible and the active route replac
     assert.equal(shown("stairs").length, 2);
     onRoute.find((label) => label.onRoute).el.open();
     assert.deepEqual(opened, ["v-78-floor1", "route"]);
-    aim(80, 30, true);
+    routeNearby = true;
+    aim(50, -18, 70);
+    assert.deepEqual(
+      shown("stair-action").map(({ el }) => el.textContent),
+      ["На этаж 3"],
+    );
+    aim(80, 30, 40);
     assert.deepEqual(shown("stair-action"), []);
   }
 });

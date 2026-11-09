@@ -38,7 +38,7 @@ test("a neighboring building keeps its room labels while another building is sel
   }
 });
 
-test("indoor names use compact lettering and remain visible on a phone after zoom-out", () => {
+test("room badges keep the same size at both zooms and skip overlapping neighbors", () => {
   for (const plan of [true, false]) {
     const width = 390,
       height = 844;
@@ -83,9 +83,12 @@ test("indoor names use compact lettering and remain visible on a phone after zoo
     camera.lookAt(0, 0, 0);
     camera.updateMatrixWorld();
     view.updateLabels();
-    const scaleOf = (label) =>
-      Number(/scale\(([^)]+)\)/.exec(label.el.style.transform)?.[1]);
-    const closerScale = scaleOf(labels[0]);
+    const visible = () =>
+      labels.filter((label) => label.el.style.display === "block");
+    const closerCount = visible().length;
+    assert.ok(closerCount > 0);
+    for (const { el } of visible())
+      assert.doesNotMatch(el.style.transform, /scale/);
 
     if (plan) {
       camera.zoom = 0.3;
@@ -95,9 +98,9 @@ test("indoor names use compact lettering and remain visible on a phone after zoo
       camera.updateMatrixWorld();
     }
     view.updateLabels();
-    assert.ok(labels.every((label) => label.el.style.display === "block"));
-    assert.ok(scaleOf(labels[0]) > 0 && scaleOf(labels[0]) < closerScale);
-    assert.ok(labels.every((label) => label.compactRoom));
+    assert.ok(visible().length > 0 && visible().length < closerCount);
+    for (const { el } of visible())
+      assert.doesNotMatch(el.style.transform, /scale/);
 
     view.labelsOn = false;
     view.updateLabels();
