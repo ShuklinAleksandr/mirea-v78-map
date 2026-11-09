@@ -1,6 +1,6 @@
 {
-  "version": "0.5.5",
-  "sourceCommit": "2fcd9be890655650f92678d7a68ba349a779c8ff",
+  "version": "0.5.6",
+  "sourceCommit": "34589f453a449b7d4e06821e73d482951e018a57",
   "base": "/mirea-v78-map/",
-  "scope": "V78; focused mobile input and idle map controls"
+  "scope": "V78; stair floor actions, campus slang search, lighter exterior and route-line guidance"
 }
