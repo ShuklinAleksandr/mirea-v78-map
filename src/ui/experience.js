@@ -6,6 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { variantStorageKey } from "./variant.js";
 import { bindInterfaceControls } from "./interface-controls.js";
+import "./focused-input.css";
 export const readSaved = (key, fallback) => {
   try {
     const value = JSON.parse(
@@ -85,15 +86,31 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   const visualViewport = window.visualViewport;
   let editingInput = null;
   let editingField = "";
-  let resultPointer = null;
-  let resultReleaseTimer = null;
-  const clearResultPointer = () => {
-    resultPointer = null;
-    if (resultReleaseTimer != null) clearTimeout(resultReleaseTimer);
-    resultReleaseTimer = null;
+  let editingPointer = null;
+  let editingReleaseTimer = null;
+  const clearEditingPointer = () => {
+    editingPointer = null;
+    if (editingReleaseTimer != null) clearTimeout(editingReleaseTimer);
+    editingReleaseTimer = null;
   };
   const editingResults = () =>
     $(editingField === "search" ? "#results" : "#route-results");
+  const staysInEditor = (target) =>
+    target === editingInput ||
+    target === handle ||
+    (editingField === "search" && target === $("#search-clear")) ||
+    editingResults().contains(target);
+  function holdEditingPointer(event) {
+    if (
+      !editingInput ||
+      !mobile() ||
+      event.isPrimary === false ||
+      (event.button != null && event.button !== 0)
+    )
+      return;
+    clearEditingPointer();
+    editingPointer = { id: event.pointerId, input: editingInput };
+  }
   let restingWidth = innerWidth;
   let restingHeight = Math.max(
     innerHeight,
@@ -103,7 +120,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     // Safari can blur an input with relatedTarget=null and dismiss its keyboard
     // between pointerdown and click. Keep the hit target in place until click;
     // this also holds the short-viewport grid during the keyboard animation.
-    if (resultPointer && sheetState === "expanded") return;
+    if (editingPointer && sheetState === "expanded") return;
     const layoutHeight = Math.max(
       innerHeight,
       document.documentElement.clientHeight || 0,
@@ -121,6 +138,18 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     const editing = Boolean(editingInput) && mobile();
     sidebar.dataset.inputEditing = String(editing);
     sidebar.dataset.editingField = editing ? editingField : "";
+    if (document.body.dataset.inputEditing !== String(editing))
+      document.body.dataset.inputEditing = String(editing);
+    handle.setAttribute(
+      "aria-label",
+      editing
+        ? "Завершить ввод"
+        : sheetState === "minimized" && mobile()
+          ? "Открыть поиск и маршрут"
+          : sheetState === "expanded" || landscape()
+            ? "Свернуть панель"
+            : "Развернуть панель",
+    );
     const unzoomed = !visualViewport || visualViewport.scale === 1;
     const visibleHeight = visualViewport?.height ?? layoutHeight;
     sidebar.dataset.shortViewport = String(
@@ -153,7 +182,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   const setSheetState = (next) => {
     sheetState = next;
     if (next !== "expanded") {
-      clearResultPointer();
+      clearEditingPointer();
       editingInput = null;
       editingField = "";
     }
@@ -174,17 +203,23 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       "aria-expanded",
       next === "expanded" || (landscape() && !minimized),
     );
-    handle.setAttribute(
-      "aria-label",
-      minimized
-        ? "Открыть поиск и маршрут"
-        : next === "expanded" || landscape()
-          ? "Свернуть панель"
-          : "Развернуть панель",
-    );
     updateVisibleBounds();
   };
   const expand = (value) => setSheetState(value ? "expanded" : "peek");
+  function finishInputEditing({ focusHandle = true } = {}) {
+    if (!editingInput || !mobile()) return false;
+    const input = editingInput;
+    editingResults().hidden = true;
+    input.setAttribute("aria-expanded", "false");
+    if (editingField === "search") {
+      // Invalidates a nearby-search worker result still pending when we exit.
+      input.dispatchEvent(new Event("atlas:input-editing-end"));
+    }
+    setSheetState("peek");
+    input.blur();
+    if (focusHandle) handle.focus({ preventScroll: true });
+    return true;
+  }
   handle.onclick = (event) => {
     // A captured drag can produce a click afterwards; keyboard clicks have detail=0.
     if (suppressDragClick && event.detail !== 0) {
@@ -192,6 +227,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       return;
     }
     suppressDragClick = false;
+    if (finishInputEditing()) return;
     if (landscape()) {
       setSheetState(sheetState === "minimized" ? "expanded" : "minimized");
       return;
@@ -199,6 +235,10 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     setSheetState(sheetState === "expanded" ? "peek" : "expanded");
   };
   handle.addEventListener("pointerdown", (e) => {
+    if (editingInput && mobile()) {
+      holdEditingPointer(e);
+      return;
+    }
     if (
       !mobile() ||
       e.isPrimary === false ||
@@ -256,7 +296,8 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   handle.addEventListener("pointercancel", (e) => finishDrag(e, true));
   handle.addEventListener("lostpointercapture", (e) => finishDrag(e, true));
   handle.addEventListener("keydown", (e) => {
-    if (!mobile() || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
+    if (editingInput || !mobile() || !["ArrowUp", "ArrowDown"].includes(e.key))
+      return;
     e.preventDefault();
     setSheetState(
       e.key === "ArrowDown"
@@ -274,10 +315,31 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       !mobile() && sheetState === "minimized" ? "peek" : sheetState,
     );
   });
+  sidebar.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Escape" || event.isComposing || !finishInputEditing())
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    true,
+  );
+  function leaveEditingFocus(event) {
+    if (
+      editingInput &&
+      !editingPointer &&
+      !staysInEditor(event.relatedTarget)
+    ) {
+      editingInput = null;
+      editingField = "";
+    }
+    updateVisibleBounds();
+  }
   for (const selector of ["#search", "#route-from", "#route-to"]) {
     const input = $(selector);
     input.addEventListener("focus", () => {
-      clearResultPointer();
+      clearEditingPointer();
       editingInput = input;
       editingField = selector.slice(1);
       if (mobile()) {
@@ -288,17 +350,17 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
       } else updateVisibleBounds();
     });
     input.addEventListener("blur", (event) => {
-      if (
-        editingInput === input &&
-        !resultPointer &&
-        !editingResults().contains(event.relatedTarget)
-      ) {
-        editingInput = null;
-        editingField = "";
-      }
-      updateVisibleBounds();
+      if (editingInput === input) leaveEditingFocus(event);
     });
   }
+  for (const control of [handle, $("#search-clear")]) {
+    control.addEventListener("focusout", leaveEditingFocus);
+    control.addEventListener("mousedown", (event) => {
+      if (editingInput && mobile() && event.button === 0)
+        event.preventDefault();
+    });
+  }
+  $("#search-clear").addEventListener("pointerdown", holdEditingPointer);
   for (const selector of ["#results", "#route-results"]) {
     const results = $(selector);
     results.addEventListener("mousedown", (event) => {
@@ -312,55 +374,29 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     results.addEventListener(
       "pointerdown",
       (event) => {
-        if (
-          !editingInput ||
-          results !== editingResults() ||
-          event.isPrimary === false ||
-          (event.button != null && event.button !== 0)
-        )
-          return;
-        clearResultPointer();
-        resultPointer = { id: event.pointerId, input: editingInput };
+        if (results === editingResults()) holdEditingPointer(event);
       },
       { passive: true },
     );
-    results.addEventListener("focusout", (event) => {
-      if (
-        editingInput &&
-        !resultPointer &&
-        event.relatedTarget !== editingInput &&
-        !editingResults().contains(event.relatedTarget)
-      ) {
-        editingInput = null;
-        editingField = "";
-        updateVisibleBounds();
-      }
-    });
+    results.addEventListener("focusout", leaveEditingFocus);
   }
-  const releaseResultPointer = (event) => {
-    if (!resultPointer || event.pointerId !== resultPointer.id) return;
-    const pending = resultPointer;
-    if (resultReleaseTimer != null) clearTimeout(resultReleaseTimer);
+  const releaseEditingPointer = (event) => {
+    if (!editingPointer || event.pointerId !== editingPointer.id) return;
+    const pending = editingPointer;
+    if (editingReleaseTimer != null) clearTimeout(editingReleaseTimer);
     // Native click follows pointerup in the same event task. No preventDefault,
     // pointer capture or synthetic click: vertical result scrolling stays native.
-    resultReleaseTimer = setTimeout(() => {
-      if (resultPointer !== pending) return;
-      resultPointer = null;
-      resultReleaseTimer = null;
+    editingReleaseTimer = setTimeout(() => {
+      if (editingPointer !== pending) return;
+      editingPointer = null;
+      editingReleaseTimer = null;
       const active = document.activeElement;
-      if (
-        editingInput === pending.input &&
-        active !== editingInput &&
-        !editingResults().contains(active)
-      ) {
-        editingInput = null;
-        editingField = "";
-      }
-      updateVisibleBounds();
+      if (editingInput === pending.input)
+        leaveEditingFocus({ relatedTarget: active });
     }, 0);
   };
-  window.addEventListener("pointerup", releaseResultPointer, true);
-  window.addEventListener("pointercancel", releaseResultPointer, true);
+  window.addEventListener("pointerup", releaseEditingPointer, true);
+  window.addEventListener("pointercancel", releaseEditingPointer, true);
   visualViewport?.addEventListener("resize", updateVisibleBounds);
   visualViewport?.addEventListener("scroll", updateVisibleBounds);
   setSheetState("peek");
@@ -494,6 +530,11 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     return next.includes(room.id);
   }
   window.addEventListener("atlas:back", (e) => {
+    if (e.defaultPrevented) return;
+    if (finishInputEditing()) {
+      e.preventDefault();
+      return;
+    }
     if (!$("#results").hidden) {
       $("#results").hidden = true;
       $("#search").setAttribute("aria-expanded", "false");
@@ -515,6 +556,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   });
   return {
     expand,
+    finishInputEditing,
     minimize: () => setSheetState("minimized"),
     getSheetState: () => sheetState,
     renderSaved,

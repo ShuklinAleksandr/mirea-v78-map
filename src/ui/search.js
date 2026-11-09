@@ -20,6 +20,7 @@ export function bindSearch({
   state,
   navigateRoom,
   onOpen,
+  onFinishEditing,
   onLocate,
   getPosition,
 }) {
@@ -96,7 +97,7 @@ export function bindSearch({
     button.innerHTML = `<span class="result-icon">${icon(room.kind === "stairs" ? "stair" : "pin", 17)}</span><span><b>${escape(identity.label)}</b><small>${escape(location.summary)}</small>${location.landmark ? `<small>${escape(location.landmark)}</small>` : ""}${entry ? `<small class="nearby-distance">${escape(nearbyDistanceLabel(entry, { compact: nextInterface }))}</small>` : ""}</span>${icon("arrow", 14)}`;
     button.onclick = () => {
       close();
-      $("#search").blur();
+      if (!onFinishEditing?.()) $("#search").blur();
       navigateRoom(room);
     };
     return button;
@@ -249,6 +250,7 @@ export function bindSearch({
     expanded = false;
     searchRooms();
   });
+  $("#search").addEventListener("atlas:input-editing-end", close);
   $("#search").addEventListener("keydown", (event) => {
     const buttons = [...$("#results").querySelectorAll("button")];
     if (
