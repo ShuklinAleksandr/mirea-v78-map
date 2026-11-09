@@ -1,6 +1,6 @@
 {
-  "version": "0.5.11",
-  "sourceCommit": "9a7d98055ec5e513a1cdaea5ba59033c11c5efd7",
+  "version": "0.5.12",
+  "sourceCommit": "1f5589a596f37f14ce17da61c22ea373c0285705",
   "base": "/mirea-v78-map/",
-  "scope": "V78; fixed-size labels, close-range floor buttons, and main entrance framing"
+  "scope": "V78; highlighted floor transitions and version in Settings"
 }
