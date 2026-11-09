@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   resolveFloorContext,
+  resolveGpsFloorContext,
   resolveRouteFloorContext,
 } from "../src/data/floor-context.js";
 import { getBuildingFloorView } from "../src/map/building-view.js";
@@ -185,6 +186,46 @@ test("uncertainty discs and boundary margins must fit one context, never overlap
     resolveFloorContext({ level: 2, polygons: floor.polygons }, [4, 5]),
     null,
   );
+});
+
+test("GPS uncertainty can span rooms in the same building but cannot overlap another wing", () => {
+  const floor = {
+    id: "same-plan",
+    campusId: "v-78",
+    units: "meters",
+    buildingLevels: { А: 2, Г: 3 },
+    footprints: [rect(0, 0, 50, 20)],
+    polygons: [
+      { building: "А", ...rect(2, 2, 20, 16) },
+      { building: "Г", ...rect(22, 2, 2, 16) },
+      { building: "Г", ...rect(24, 2, 2, 16) },
+      { building: "Г", ...rect(26, 2, 20, 16) },
+    ],
+  };
+  const now = 1_000_000;
+  const fix = {
+    source: "gps",
+    campusId: "v-78",
+    point: [25, 10],
+    accuracyMeters: 2,
+    timestamp: now,
+  };
+  assert.equal(resolveFloorContext(floor, fix.point, { accuracy: 2 }), null);
+  assert.deepEqual(resolveGpsFloorContext(floor, fix, now), {
+    building: "Г",
+    physicalLevel: 3,
+  });
+  for (const unsupported of [
+    { accuracyMeters: 3 },
+    { point: [23, 10] },
+    { point: [25, 1] },
+    { floorId: "other-plan" },
+    { timestamp: now - 11_000 },
+  ])
+    assert.equal(
+      resolveGpsFloorContext(floor, { ...fix, ...unsupported }, now),
+      null,
+    );
 });
 
 test("floor indexes reuse immutable source contours and evict old views after eight entries", () => {

@@ -118,6 +118,51 @@ test("duplicate and out-of-order fixes are not confirmations and do not erase va
   assert.deepEqual(observe(tracker, [0, 0], 1), before);
 });
 
+test("walking back through a turn keeps the marker on the line and resumes instructions from the earlier position", () => {
+  const tracker = createRouteTracker(fixture());
+  const fix = (point, index) =>
+    observe(tracker, point, index, {}, { pauseOnReverse: true });
+  for (let i = 0; i <= 10; i++) fix([i * 2, 0], i);
+  for (let i = 1; i <= 4; i++) fix([20, i * 2], i + 10);
+  assert.equal(tracker.snapshot().stepIndex, 3);
+  assert.equal(
+    fix([20, 6], 15).status,
+    "tracking",
+    "one retreat may be GPS jitter",
+  );
+  const paused = fix([20, 4], 16);
+  assert.equal(paused.status, "wrong-way");
+  assert.deepEqual(paused.matchedPoint, [20, 4]);
+  assert.equal(fix([20, 2], 17).status, "wrong-way");
+  const beforeTurn = fix([18, 0], 18);
+  assert.equal(beforeTurn.status, "wrong-way");
+  assert.deepEqual(beforeTurn.matchedPoint, [18, 0]);
+  assert.equal(beforeTurn.stepIndex, paused.stepIndex);
+  assert.equal(beforeTurn.distance, paused.distance);
+  assert.equal(fix([16, 0], 19).status, "wrong-way");
+  assert.equal(fix([16, 0], 20).status, "wrong-way");
+  assert.equal(fix([17, 0], 21).status, "acquiring");
+  const resumed = fix([18, 0], 22);
+  assert.equal(resumed.status, "tracking");
+  assert.equal(resumed.stepIndex, 2);
+  assert.equal(resumed.distance, 17);
+});
+
+test("leaving the route releases the display marker and returning restores tracking", () => {
+  const tracker = createRouteTracker(fixture());
+  const fix = (point, index) =>
+    observe(tracker, point, index, {}, { pauseOnReverse: true });
+  fix([0, 0], 0);
+  fix([2, 0], 1);
+  const before = fix([4, 0], 2);
+  const detached = fix([5, 4], 3);
+  assert.equal(detached.status, "off-route");
+  assert.equal(detached.matchedPoint, null);
+  assert.equal(detached.distance, before.distance);
+  assert.equal(fix([6, 1], 4).status, "acquiring");
+  assert.deepEqual(fix([8, 1], 5).matchedPoint, [8, 0]);
+});
+
 test("stale or paused GPS holds even when its timestamp is repeated by a UI refresh", () => {
   const tracker = createRouteTracker(fixture());
   observe(tracker, [0, 0], 0);
@@ -378,6 +423,58 @@ test("a section with several physical floors checks the candidate edge, includin
     observe(inB, [14, 0], 0, { ...anchor, building: "Б", physicalLevel: 1 })
       .status,
     "acquiring",
+  );
+});
+
+test("walking across a mapped А2 to Г3 edge keeps progress on the confirmed source plan", () => {
+  const route = fixture([
+    [0, 0],
+    [5, 0],
+    [10, 0],
+    [15, 0],
+  ]);
+  const nodes = (route.segments[0].nodes = route.segments[0].points.map(
+    (position, i) => ({
+      position,
+      floorId: "f1",
+      building: i < 2 ? "А" : "Г",
+      physicalLevel: i < 2 ? 2 : 3,
+      kind: "waypoint",
+    }),
+  ));
+  const anchor = {
+    floorEvidence: "manual",
+    floorId: "f1",
+    building: "А",
+    physicalLevel: 2,
+  };
+  const options = {
+    floorBuildingLevels: { А: 2, Г: 3 },
+    allowPoint: () => true,
+  };
+  const tracker = createRouteTracker(route);
+  let progress;
+  for (let i = 0; i <= 12; i++)
+    progress = observe(tracker, [i, 0], i, anchor, options);
+  assert.equal(progress.status, "tracking");
+  assert.ok(progress.distance > 10);
+  for (const overrides of [
+    { floorId: "f2" },
+    { floorBuildingLevels: { А: 1, Г: 3 } },
+    { floorBuildingLevels: { А: 2, Г: 2 } },
+    { allowPoint: undefined },
+  ])
+    assert.equal(
+      observe(createRouteTracker(route), [6, 0], 0, anchor, {
+        ...options,
+        ...overrides,
+      }).status,
+      "floor-mismatch",
+    );
+  nodes[2].kind = "stairs";
+  assert.equal(
+    observe(createRouteTracker(route), [6, 0], 0, anchor, options).status,
+    "floor-mismatch",
   );
 });
 

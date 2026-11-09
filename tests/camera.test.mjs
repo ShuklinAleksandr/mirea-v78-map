@@ -974,3 +974,23 @@ test("floor context ray has no point outside an available floor viewport or when
   view.camera.lookAt(0, 30, -10);
   assert.equal(view.floorFocusPoint(), null);
 });
+
+test("building context samples a close view but ignores a broad campus frame", () => {
+  for (const plan of [false, true]) {
+    const view = cameraHarness();
+    view.mode = "floor";
+    view.host = { clientWidth: 390, clientHeight: 844 };
+    if (plan) view.setProjection(true);
+    assert.equal(view.floorFocusPoint({}, { maxSpan: 100 }), null);
+    if (plan) {
+      view.camera.zoom *= 4;
+      view.camera.updateProjectionMatrix();
+    } else {
+      view.camera.position.lerp(view.controls.target, 0.75);
+      view.camera.lookAt(view.controls.target);
+    }
+    assert.ok(
+      view.floorFocusPoint({}, { maxSpan: 100 })?.every(Number.isFinite),
+    );
+  }
+});

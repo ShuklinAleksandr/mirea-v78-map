@@ -17,6 +17,7 @@ import { resolveInitialView } from "./data/navigation.js";
 import { mergedFloorView } from "./data/floor-view.js";
 import {
   resolveFloorContext,
+  resolveGpsFloorContext,
   resolveRouteFloorContext,
 } from "./data/floor-context.js";
 import { bindSearch } from "./ui/search.js";
@@ -67,7 +68,7 @@ const state = {
   locationTracking: null,
   neighborsPreference: null,
 };
-let floorContextTimer = null;
+let lastCameraFloorProbe = null;
 let floorContextOwner = "camera";
 $("#app").innerHTML = layout;
 initializeInterface();
@@ -109,16 +110,18 @@ try {
       routes?.pauseGuidance?.();
       userPosition?.pauseFollowing();
     },
-    onFrame: () => queueCameraFloorContext(),
+    onFrame: () => refreshCameraFloorContext(),
     onMapTap: () => mapHud?.onMapTap(),
     onRoom: (r) => selectRoom(r),
     getStairTargets: stairTargetsFor,
-    onStairTarget: openStairTarget,
+    onStairTarget: (target) => openStairTarget(target, { keepCamera: true }),
     getRouteStairAction: () => routes?.getStairAction(),
     onPositionPickPreview: () => userPosition?.previewPicking(),
     onBuilding: (b) => chooseBuilding(b),
     onRouteFloor: (id) =>
-      routes?.getRoute() ? routes.showFloor(id) : chooseFloor(id),
+      routes?.getRoute()
+        ? routes.showFloor(id, false, { keepCamera: true })
+        : chooseFloor(id, { keepCamera: true }),
     onEmpty: () => dismissRoom(),
     onUncertainty: () => toast("Положение этого участка требует уточнения"),
     onHover: (r) => {
@@ -156,6 +159,10 @@ if (scene) {
     getUserOrigin: () => userPosition?.routeOrigin(),
     onLocate: () => userPosition?.locate(),
     onPauseFollowing: () => userPosition?.pauseFollowing(),
+    getLiveFloorContext: (location) =>
+      state.mode === "floor" && state.campus?.id === location?.campusId
+        ? resolveGpsFloorContext(state.floor, location)
+        : null,
     onFloorContext: (sample, nodes) => {
       if (sample.floorId !== state.floor?.id) return;
       floorContextOwner = "route";
@@ -192,32 +199,40 @@ if (scene) {
       return floor ? chooseFloor(floor.id) : false;
     },
     toast,
-    allowTrackingPoint: (point, selection) => {
+    allowTrackingPoint: (
+      point,
+      selection,
+      { acrossBuildings = false } = {},
+    ) => {
       const source = state.floorData.find((f) => f.id === selection?.floorId);
       if (!source) return false;
       const hall = getHallAdjacencyView(source);
-      const floor = selection.building
+      const building = acrossBuildings ? null : selection.building;
+      const floor = building
         ? getBuildingFloorView(hall, selection.building)
         : hall;
       const surface = pickLocationSurface(floor, point, {
-        building: selection.building,
+        building,
         cutouts: getStairDisplayCutouts(floor),
       });
       return Boolean(
         surface &&
-          (!Number.isFinite(selection.physicalLevel) ||
-            !surface.building ||
-            source.buildingLevels?.[surface.building] ===
-              selection.physicalLevel) &&
-          (!surface.building ||
-            !selection.building ||
-            surface.building === selection.building),
+          (acrossBuildings
+            ? !surface.building ||
+              Number.isFinite(source.buildingLevels?.[surface.building])
+            : (!Number.isFinite(selection.physicalLevel) ||
+                !surface.building ||
+                source.buildingLevels?.[surface.building] ===
+                  selection.physicalLevel) &&
+              (!surface.building ||
+                !selection.building ||
+                surface.building === selection.building)),
       );
     },
     onChange: () => {
       searchUI.refreshPosition?.();
-      refreshLocationFloorContext();
       routes?.locationChanged?.();
+      refreshLocationFloorContext();
       if (state.campus) updateUI();
     },
   });
@@ -273,49 +288,54 @@ function refreshLocationFloorContext() {
   if (
     !location?.point ||
     !state.floor ||
+    state.mode !== "floor" ||
     location.campusId !== state.campus?.id ||
     (location.floorId && location.floorId !== state.floor.id)
   )
     return;
-  if (location.source === "gps") {
-    if (
-      !state.locationTracking?.following ||
-      location.trackingStatus !== "live" ||
-      !Number.isFinite(location.timestamp) ||
-      Date.now() - location.timestamp > 15000 ||
-      !Number.isFinite(location.accuracyRadiusMap)
-    )
-      return;
-  }
-  floorContextOwner = "location";
-  applyFloorContext(
-    resolveFloorContext(state.floor, location.point, {
-      accuracy: location.source === "gps" ? location.accuracyRadiusMap : 0,
-    }),
-    "location",
-  );
-}
-function queueCameraFloorContext() {
-  if (floorContextTimer !== null || state.mode !== "floor") return;
-  floorContextTimer = setTimeout(() => {
-    floorContextTimer = null;
-    if (
-      !scene ||
-      floorContextOwner !== "camera" ||
-      !state.floor ||
-      state.mode !== "floor" ||
-      scene.transition ||
+  if (
+    location.source === "gps" &&
+    (!state.locationTracking?.following ||
       scene.locationPicking ||
-      (state.locationTracking?.following && state.locationTracking?.enabled) ||
-      routes?.isFollowingHeading?.()
-    )
-      return;
-    const point = scene.floorFocusPoint(roomPadding());
-    applyFloorContext(
-      resolveFloorContext(scene.locationFloor || state.floor, point),
-      "camera",
-    );
-  }, 150);
+      state.selected)
+  )
+    return;
+  const context =
+    location.source === "gps"
+      ? resolveGpsFloorContext(state.floor, location)
+      : resolveFloorContext(state.floor, location.point);
+  if (!context) return;
+  floorContextOwner = "location";
+  applyFloorContext(context, "location");
+}
+function refreshCameraFloorContext() {
+  if (
+    !scene ||
+    floorContextOwner !== "camera" ||
+    !state.floor ||
+    state.mode !== "floor" ||
+    scene.transition ||
+    scene.locationPicking ||
+    (state.locationTracking?.following && state.locationTracking?.enabled) ||
+    routes?.isFollowingHeading?.()
+  )
+    return;
+  const point = scene.floorFocusPoint(roomPadding(), { maxSpan: 120 });
+  if (!point) {
+    lastCameraFloorProbe = null;
+    return;
+  }
+  const floor = scene.locationFloor || state.floor;
+  const last = lastCameraFloorProbe;
+  // Rendering can continue for route or HUD updates while the map is still.
+  if (
+    last?.floor === floor &&
+    last.context === state.floorContext &&
+    Math.hypot(point[0] - last.point[0], point[1] - last.point[1]) < 0.2
+  )
+    return;
+  applyFloorContext(resolveFloorContext(floor, point), "camera");
+  lastCameraFloorProbe = { floor, point, context: state.floorContext };
 }
 function floorName(f, building = state.building) {
   return building ? `${floorPhysical(f, building)} этаж` : `Уровень ${f.level}`;
@@ -352,7 +372,7 @@ function renderFloors() {
     button.onclick = () => {
       const id = button.dataset.railFloor;
       if (activeRoute?.segments.some((s) => s.floorId === id)) {
-        routes.showFloor(id);
+        if (routes.showFloor(id, false, { keepCamera: true }) === false) return;
         floorContextOwner = "selection";
         applyFloorContext(
           {
@@ -363,11 +383,8 @@ function renderFloors() {
         );
       } else {
         state.building = railBuilding || null;
-        chooseFloor(id);
+        chooseFloor(id, { keepCamera: true });
       }
-      if (scene.locationPicking) experience.minimize();
-      else if (experience.getSheetState?.() !== "minimized")
-        experience.expand(false);
     };
   {
     const picker = $("#next-floor-open");
@@ -584,6 +601,7 @@ function chooseFloor(
   {
     fit = true,
     preserveViewport = false,
+    keepCamera = false,
     navigationToken = null,
     showNeighbors,
   } = {},
@@ -609,9 +627,10 @@ function chooseFloor(
   closeRoom();
   const keepPicking = Boolean(scene.locationPicking);
   scene.setFloor(state.floor, state.building, {
-    fit: fit && !preserveViewport,
+    fit: fit && !preserveViewport && !keepCamera,
+    ...(keepCamera ? { keepCamera: true } : {}),
   });
-  if (preserveViewport) scene.keepFloorViewport();
+  if (preserveViewport && !keepCamera) scene.keepFloorViewport();
   if (keepPicking) scene.setLocationPicking(true);
   updateUI();
   saveView();
@@ -743,16 +762,16 @@ function stairTargetsFor(room) {
         ) === index,
     );
 }
-function openStairTarget(target) {
+function openStairTarget(target, { keepCamera = false } = {}) {
   if (!target?.targetFloor || !target.targetMarker) return;
   const previousBuilding = state.building;
   // The source stair's wing does not establish the destination's floor.
   state.building = target.targetBuilding;
-  if (!chooseFloor(target.floorId, { fit: false })) {
+  if (!chooseFloor(target.floorId, { fit: false, keepCamera })) {
     state.building = previousBuilding;
     return;
   }
-  selectRoom(target.targetMarker, true);
+  if (!keepCamera) selectRoom(target.targetMarker, true);
 }
 function selectRoom(room, focus = true) {
   if (!room || !state.floor || !state.campus || state.mode !== "floor") return;

@@ -40,6 +40,7 @@ test("Next never hides the manual fallback or claims distance after GPS uncertai
     "low-accuracy",
     "stale",
     "off-route",
+    "wrong-way",
     "floor-mismatch",
   ]) {
     const current = view({
@@ -65,6 +66,16 @@ test("Next never hides the manual fallback or claims distance after GPS uncertai
     "locate",
   );
   assert.equal(view({ automatic: false }).contextAction, null);
+  const offRoute = view({
+    snapToRoute: true,
+    liveProgress: { status: "off-route" },
+  });
+  assert.equal(offRoute.contextAction, null);
+  assert.match(offRoute.note, /вернитесь к линии/);
+  assert.match(
+    view({ liveProgress: { status: "wrong-way" } }).note,
+    /автосмена шагов на паузе/,
+  );
 });
 
 test("Next staircase confirmation names only an established physical floor", () => {

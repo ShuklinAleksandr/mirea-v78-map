@@ -62,6 +62,7 @@ export function bindRoutes({
   onConfirmFloor,
   onPauseFollowing,
   onFloorContext,
+  getLiveFloorContext,
 }) {
   const nextInterface = isNextInterface();
   let from = null,
@@ -180,9 +181,27 @@ export function bindRoutes({
     );
     button.setAttribute("aria-pressed", String(from?.kind === "user-location"));
   }
+  function currentOriginResult() {
+    const observation = state.userLocation;
+    if (state.routeSnapEnabled && observation?.source === "gps") {
+      const context =
+        observation.floorEvidence === "manual"
+          ? getLiveFloorContext?.(observation)
+          : null;
+      return makeCurrentRouteEndpoint(
+        context ? { ...observation, ...context } : observation,
+        {
+          snapToRoute: true,
+          viewFloor: state.mode === "floor" ? state.floor : null,
+          campusId: state.campus?.id,
+        },
+      );
+    }
+    const location = getUserOrigin ? getUserOrigin() : observation;
+    return makeCurrentRouteEndpoint(location);
+  }
   function useCurrentLocation({ open = true, quiet = false } = {}) {
-    const location = getUserOrigin ? getUserOrigin() : state.userLocation;
-    const result = makeCurrentRouteEndpoint(location);
+    const result = currentOriginResult();
     if (result.ok) {
       pendingCurrentOrigin = null;
       setEndpoint("from", result.endpoint);
@@ -191,18 +210,30 @@ export function bindRoutes({
         experience.expand(true);
         $("#route-to").focus();
       }
-      status("Начало — отмеченное местоположение. Выберите, куда идти.");
+      const location = result.endpoint.location;
+      status(
+        result.endpoint.snapToRoute
+          ? location.floorEvidence === "manual-view-selection"
+            ? "Подберём ближайший проход на открытом плане. GPS не определяет этаж."
+            : "Подберём ближайший проход на указанном этаже."
+          : "Начало — отмеченное местоположение. Выберите, куда идти.",
+      );
       return true;
     }
     if (isCurrentUserLocation(state.userLocation)) {
       pendingCurrentOrigin = null;
-      status(
-        "Уточните свою точку на выбранном плане этажа для начала маршрута.",
-        true,
-      );
-      if (!quiet)
-        toast("Уточните точку на плане, чтобы начать маршрут от себя.");
-      onRefineLocation?.();
+      if (state.routeSnapEnabled && state.userLocation?.source === "gps") {
+        status(result.message, true);
+        if (!quiet) toast(result.message);
+      } else {
+        status(
+          "Уточните свою точку на выбранном плане этажа для начала маршрута.",
+          true,
+        );
+        if (!quiet)
+          toast("Уточните точку на плане, чтобы начать маршрут от себя.");
+        onRefineLocation?.();
+      }
     } else if (onLocate) {
       pendingCurrentOrigin = { open, quiet };
       status("Получаем геопозицию для начала маршрута…");
@@ -256,7 +287,9 @@ export function bindRoutes({
       scene.locationPicking ||
       state.mode !== "floor" ||
       !liveProgress?.matchedPoint ||
-      !["tracking", "floor-change", "arrived"].includes(liveProgress.status) ||
+      !["tracking", "wrong-way", "floor-change", "arrived"].includes(
+        liveProgress.status,
+      ) ||
       liveProgress.floorId !== state.floor?.id ||
       location !== state.userLocation ||
       (location?.trackingStatus &&
@@ -300,26 +333,36 @@ export function bindRoutes({
     liveProgress = liveTracker.update(state.userLocation, {
       now: Date.now(),
       floorId: state.mode === "overview" ? null : state.floor?.id,
+      floorBuildingLevels:
+        state.mode === "floor" ? state.floor?.buildingLevels : null,
       allowPoint: liveSurface,
+      pauseOnReverse: state.routeSnapEnabled === true,
     });
     guideSection = liveProgress.sectionIndex;
     guideDistance = liveProgress.distance;
     stepIndex = liveProgress.stepIndex;
-    // Context follows accepted progress on the current horizontal segment.
+    // Context follows the same accepted point as the moving marker.
     // It must not override manual map browsing or a pending stair hand-off.
     if (
-      liveProgress.status === "tracking" &&
+      liveProgress.matchedPoint &&
+      ["tracking", "wrong-way", "floor-change", "arrived"].includes(
+        liveProgress.status,
+      ) &&
       liveProgress.locationTimestamp !== previousTimestamp &&
       state.locationTracking?.enabled &&
       state.locationTracking.following &&
       !state.selected &&
       state.mode === "floor"
     ) {
-      const sample = sampleRouteGuidance(guide, guideSection, guideDistance);
-      if (sample?.floorId === state.floor?.id)
+      const section = guide.sections[guideSection];
+      if (section?.floorId === state.floor?.id)
         onFloorContext?.(
-          sample,
-          route.segments[sample.sourceSegmentIndex]?.nodes || [],
+          {
+            floorId: section.floorId,
+            sourceSegmentIndex: section.sourceSegmentIndex,
+            position: liveProgress.matchedPoint,
+          },
+          route.segments[section.sourceSegmentIndex]?.nodes || [],
         );
     }
     scene.setRouteGuidance?.(null);
@@ -493,19 +536,19 @@ export function bindRoutes({
     if (experience.minimize) experience.minimize();
     else experience.expand(false);
   }
-  function viewFloor(id, focus = true) {
+  function viewFloor(id, focus = true, { keepCamera = false } = {}) {
     if (!route) return false;
     pausePreview(false);
     scene.setRouteGuidance?.(null);
-    scene.setRouteOverview?.(false);
+    if (!keepCamera) scene.setRouteOverview?.(false);
     const previousBuilding = state.building;
     state.building = null;
-    if (chooseFloor(id, { fit: false }) === false) {
+    if (chooseFloor(id, { fit: false, keepCamera }) === false) {
       state.building = previousBuilding;
       if (guiding) renderProgress();
       return false;
     }
-    scene.setRoute(route, { focus, padding: padding() });
+    scene.setRoute(route, { focus: focus && !keepCamera, padding: padding() });
     renderFloors();
     const n = route.segments.find((s) => s.floorId === id)?.nodes[0];
     $("#focus-floor-status").innerHTML =
@@ -529,7 +572,8 @@ export function bindRoutes({
       .join("");
     for (const b of $("#route-floor-chips").children)
       if (b.dataset.routeFloor)
-        b.onclick = () => viewFloor(b.dataset.routeFloor);
+        b.onclick = () =>
+          viewFloor(b.dataset.routeFloor, false, { keepCamera: true });
   }
   function syncView() {
     if (!route || route.campusId !== state.campus?.id) return;
@@ -554,12 +598,12 @@ export function bindRoutes({
       $("#caption-title").textContent = title + " · маршрут";
     }
   }
-  function focusStep(index) {
+  function focusStep(index, { keepCamera = false } = {}) {
     if (!route?.steps?.length || index < 0 || index >= route.steps.length)
       return false;
     pausePreview(false);
     closeRoom();
-    minimizePanel();
+    if (!keepCamera) minimizePanel();
     const previous = { stepIndex, guiding, guideSection, guideDistance };
     stepIndex = index;
     guiding = true;
@@ -570,11 +614,14 @@ export function bindRoutes({
     if (anchor) {
       guideSection = anchor.sectionIndex;
       guideDistance = anchor.distance;
-      opened = Boolean(applyGuidance({ animate: true, keepStep: true }));
-    } else opened = viewFloor(step.floorId);
+      opened = Boolean(
+        applyGuidance({ animate: !keepCamera, keepStep: true, keepCamera }),
+      );
+    } else opened = viewFloor(step.floorId, !keepCamera, { keepCamera });
     if (!opened) {
       ({ stepIndex, guiding, guideSection, guideDistance } = previous);
-      if (guiding) applyGuidance({ animate: false, keepStep: true });
+      if (guiding)
+        applyGuidance({ animate: false, keepStep: true, keepCamera });
       toast(
         "Не удалось открыть этаж этого шага. Выберите другой шаг или измените маршрут.",
       );
@@ -622,7 +669,7 @@ export function bindRoutes({
     updateUI();
     saveView();
   }
-  function advanceStep(index) {
+  function advanceStep(index, { keepCamera = false } = {}) {
     const targetFloorId = route?.steps[index]?.targetFloorId;
     const nextSection = targetFloorId
       ? guide.sections.find(
@@ -633,7 +680,7 @@ export function bindRoutes({
     const target = nextSection
       ? route.segments[nextSection.sourceSegmentIndex]?.nodes?.[0]
       : null;
-    if (focusStep(index + 1) && automatic && targetFloorId) {
+    if (focusStep(index + 1, { keepCamera }) && automatic && targetFloorId) {
       // Pressing the stair action is the user's explicit floor confirmation.
       onConfirmFloor?.({
         campusId: route.campusId,
@@ -641,7 +688,7 @@ export function bindRoutes({
         building: target?.building,
         physicalLevel: target?.physicalLevel,
       });
-      onLocate?.();
+      if (!keepCamera) onLocate?.();
       updateLiveGuidance();
     }
   }
@@ -691,7 +738,8 @@ export function bindRoutes({
           ROUTE_TRACKING_MAX_AGE_MS &&
         section.length - liveProgress.distance <= 8,
       open: () => {
-        if (getStairAction()?.id === id) advanceStep(step);
+        if (getStairAction()?.id === id)
+          advanceStep(step, { keepCamera: true });
       },
     };
   }
@@ -800,7 +848,9 @@ export function bindRoutes({
     );
     const meta = $("#route-dock-meta");
     const nextDistance =
-      automatic && Number.isFinite(liveProgress?.distanceToNextMeters)
+      automatic &&
+      liveProgress?.status !== "wrong-way" &&
+      Number.isFinite(liveProgress?.distanceToNextMeters)
         ? ` · ≈ ${Math.round(liveProgress.distanceToNextMeters)} м до шага`
         : "";
     if (meta)
@@ -824,8 +874,10 @@ export function bindRoutes({
         "low-accuracy":
           "Точности GPS недостаточно для смены шагов. Уточните точку или идите по кнопке «Далее».",
         stale: "Нет свежего GPS. Автоматическое продвижение приостановлено.",
-        "off-route":
-          "Позиция вне подтверждённого пути. Уточните точку; маршрут не перестраивается по догадке.",
+        "off-route": state.routeSnapEnabled
+          ? "Вы отошли от маршрута. Подсказки возобновятся на его линии."
+          : "Позиция вне подтверждённого пути. Уточните точку; маршрут не перестраивается по догадке.",
+        "wrong-way": "Вы идёте назад по маршруту. Автосмена шагов на паузе.",
         "floor-mismatch":
           "Проверьте свой этаж и уточните точку. GPS не определяет этаж.",
         "floor-change":
@@ -882,6 +934,7 @@ export function bindRoutes({
         liveProgress,
         userLocation: state.userLocation,
         following: state.locationTracking?.following,
+        snapToRoute: state.routeSnapEnabled,
         transitionLevel,
       });
       if (meta) meta.textContent = view.meta;
@@ -1026,7 +1079,11 @@ export function bindRoutes({
     if (render && route) renderProgress();
   }
 
-  function applyGuidance({ animate = false, keepStep = false } = {}) {
+  function applyGuidance({
+    animate = false,
+    keepStep = false,
+    keepCamera = false,
+  } = {}) {
     const sample = sampleRouteGuidance(guide, guideSection, guideDistance);
     if (!sample) return null;
     if (
@@ -1034,7 +1091,7 @@ export function bindRoutes({
         (scene.mode && scene.mode !== "floor") ||
         (state.mode && state.mode !== "floor") ||
         state.floor?.id !== sample.floorId) &&
-      !viewFloor(sample.floorId, false)
+      !viewFloor(sample.floorId, false, { keepCamera })
     )
       return null;
     if (!keepStep) stepIndex = sample.stepIndex;
@@ -1047,6 +1104,7 @@ export function bindRoutes({
         scene.setRouteGuidance?.(sample, {
           padding: padding(),
           animate,
+          keepCamera,
           showMarker: false,
         }) === false
       )
@@ -1055,8 +1113,11 @@ export function bindRoutes({
       return sample;
     }
     if (
-      scene.setRouteGuidance?.(sample, { padding: padding(), animate }) ===
-      false
+      scene.setRouteGuidance?.(sample, {
+        padding: padding(),
+        animate,
+        keepCamera,
+      }) === false
     )
       return null;
     updateProgressReadout();
@@ -1117,6 +1178,18 @@ export function bindRoutes({
       experience.expand(true);
       return;
     }
+    if (
+      from.kind === "user-location" &&
+      from.location?.source === "gps" &&
+      (from.snapToRoute || state.routeSnapEnabled)
+    ) {
+      const freshOrigin = currentOriginResult();
+      if (!freshOrigin.ok) {
+        useCurrentLocation({ open: false });
+        return;
+      }
+      from = freshOrigin.endpoint;
+    }
     closeResults();
     closeRoom();
     if (from.campusId !== to.campusId) {
@@ -1160,8 +1233,12 @@ export function bindRoutes({
       $("#route-share").hidden =
         a.kind === "user-location" || b.kind === "user-location";
       const partial = partialRouteInfo(result);
+      const originFloorNote =
+        a.snapToRoute && a.location.floorEvidence === "manual-view-selection"
+          ? '<p class="route-estimate">Начало привязано к проходу на открытом плане. GPS не определяет этаж.</p>'
+          : "";
       $("#route-summary").innerHTML =
-        `<div class="route-summary-head">${icon("route", 30)}<div><b>${result.durationMinutes != null ? `≈ ${result.durationMinutes} мин` : "Путь найден"}</b><small>${escape(a.label)} → ${escape(partial?.via || b.label)}${result.distanceMeters != null ? ` · ≈ ${Math.round(result.distanceMeters)} м` : ""}</small></div></div>${partial ? `<p class="route-estimate">${escape(partial.summary)} ${escape(partial.note)}</p>` : ""}<p class="route-estimate">${escape(result.durationModel || "Время и расстояние оценочные.")}</p><div id="route-floor-chips" class="route-floor-chips" aria-label="Этажи маршрута"></div><div id="route-progress" class="route-progress"></div>`;
+        `<div class="route-summary-head">${icon("route", 30)}<div><b>${result.durationMinutes != null ? `≈ ${result.durationMinutes} мин` : "Путь найден"}</b><small>${escape(a.label)} → ${escape(partial?.via || b.label)}${result.distanceMeters != null ? ` · ≈ ${Math.round(result.distanceMeters)} м` : ""}</small></div></div>${partial ? `<p class="route-estimate">${escape(partial.summary)} ${escape(partial.note)}</p>` : ""}${originFloorNote}<p class="route-estimate">${escape(result.durationModel || "Время и расстояние оценочные.")}</p><div id="route-floor-chips" class="route-floor-chips" aria-label="Этажи маршрута"></div><div id="route-progress" class="route-progress"></div>`;
       for (const key of ["route-summary", "route-steps", "route-actions"])
         $("#" + key).hidden = false;
       status(

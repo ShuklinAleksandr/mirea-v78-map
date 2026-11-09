@@ -154,6 +154,81 @@ test("the route marker sits on its visible segment while the accuracy circle sta
   assert.deepEqual(layer.position.toArray(), [1, 0.4, 2]);
 });
 
+test("successive GPS fixes move around the visible route corner and cancel when the match is lost", (t) => {
+  const view = harness();
+  t.after(() => view.setUserLocation(null));
+  const now = Date.now();
+  let match = [2, 0];
+  view.callbacks.getRouteLocationMatch = () =>
+    match ? { point: match, sourceSegmentIndex: 0 } : null;
+  view.routeLayer = {
+    paths: [
+      {
+        sourceSegmentIndex: 0,
+        points: [
+          [0, 0],
+          [4, 0],
+          [4, 4],
+        ],
+      },
+    ],
+  };
+  const fix = {
+    source: "gps",
+    campusId: "v-78",
+    point: [2, 1],
+    accuracyRadiusMap: 5,
+    timestamp: now - 1000,
+  };
+  view.setUserLocation(fix);
+  match = [4, 2];
+  const nextFix = { ...fix, point: [5, 2], timestamp: now };
+  view.setUserLocation(nextFix);
+  const layer = view.userLocationLayer;
+  assert.deepEqual(layer.position.toArray(), [2, 0.4, 0]);
+  const motion = view.routeLocationMotion;
+  assert.ok(motion.duration <= 650);
+  view.updateRouteLocationMotion(motion.start + motion.duration * 0.1);
+  assert.equal(layer.position.z, 0);
+  assert.ok(layer.position.x > 2 && layer.position.x < 4);
+  view.updateRouteLocationMotion(motion.start + motion.duration * 0.4);
+  assert.equal(layer.position.x, 4);
+  assert.ok(layer.position.z > 0 && layer.position.z < 2);
+  const circle = layer.getObjectByName("gps-provider-accuracy");
+  assert.deepEqual(
+    [
+      layer.position.x + circle.position.x,
+      layer.position.z + circle.position.z,
+    ],
+    nextFix.point,
+  );
+  view.refreshUserLocation();
+  assert.equal(view.routeLocationMotion, motion, "refresh preserves motion");
+  view.setReducedMotion(true);
+  assert.equal(view.routeLocationMotion, null);
+  assert.deepEqual(layer.position.toArray(), [4, 0.4, 2]);
+
+  view.setReducedMotion(false);
+  match = [4, 3];
+  view.setUserLocation({ ...nextFix, point: [5, 3], timestamp: now + 1000 });
+  assert.ok(view.routeLocationMotion);
+  match = null;
+  view.setUserLocation({ ...nextFix, point: [20, 18], timestamp: now + 1500 });
+  assert.equal(view.routeLocationMotion, null);
+  assert.deepEqual(layer.position.toArray(), [20, 0.4, 18]);
+
+  match = [4, 2];
+  view.setUserLocation({ ...nextFix, timestamp: now + 2000 });
+  match = [4, 3];
+  view.setUserLocation({ ...nextFix, point: [5, 3], timestamp: now + 3000 });
+  assert.ok(view.routeLocationMotion);
+  view.floor = { id: "f3" };
+  match = null;
+  assert.equal(view.updateRouteLocationMotion(motion.start), false);
+  assert.equal(view.routeLocationMotion, null);
+  assert.deepEqual(layer.position.toArray(), [5, 0.4, 3]);
+});
+
 test("manual map picking returns the existing room identity and rejects map gaps", () => {
   const view = harness();
   assert.equal(view.setLocationPicking(true), true);

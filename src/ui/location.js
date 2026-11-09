@@ -291,7 +291,10 @@ export function bindLocation({
       previous: state.userLocation,
       reapply,
       ...(calibration && allowTrackingPoint
-        ? { allowPoint: allowTrackingPoint }
+        ? {
+            allowPoint: (point, selection) =>
+              allowTrackingPoint(point, selection, { acrossBuildings: true }),
+          }
         : {}),
     });
     calibration = result.calibration;
