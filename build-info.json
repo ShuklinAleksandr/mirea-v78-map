@@ -1,6 +1,6 @@
 {
-  "version": "0.5.6",
-  "sourceCommit": "e6f5acce6033d9877a0049582ca05098c2ed10ed",
+  "version": "0.5.7",
+  "sourceCommit": "2fe574f76d5b55d2780f3990ff6b11fab30c3dce",
   "base": "/mirea-v78-map/",
-  "scope": "V78; room labels and amenity colors, stair actions, campus slang search, route-line guidance and simplified search panel"
+  "scope": "V78; campus buildings and nearby access roads, stable exterior surfaces"
 }
