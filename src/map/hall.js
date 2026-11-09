@@ -4,6 +4,7 @@ import {
   getConfirmedHallDisplay,
   getIndoorDisplayGeometry,
 } from "./indoor-overrides.js";
+import { subtractWallSpans, wallSpans } from "./wall-spans.js";
 
 const wallMaterial = (color, options = {}) =>
   new THREE.MeshStandardMaterial({
@@ -180,14 +181,23 @@ export function createEntranceHall(hall) {
   const bodyPolygons = hall.volumePolygons?.length
     ? hall.volumePolygons
     : [hall.lowPolygon];
-  // Vertical faces only: there is exactly one roof, built below from roofPolygons.
+  const canopy = hall.canopy;
+  const canopyBase = canopy?.base ?? top - 0.55;
+  const canopyHeight = canopy?.height ?? 0.4;
+  const canopyWalls =
+    canopy?.points?.length > 2
+      ? wallSpans([canopy], canopyBase, canopyBase + canopyHeight)
+      : [];
+  // The roof and canopy own their faces where they meet the hall walls.
   for (const polygon of bodyPolygons) {
     for (const ring of [polygon.points, ...(polygon.holes || [])]) {
       for (let i = 0; i < ring.length; i++) {
         const a = ring[i],
           b = ring[(i + 1) % ring.length];
         if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.01) continue;
-        walls.push(quad(a, b, base, top, normalAwayFromPolygon(a, b, polygon)));
+        const normal = normalAwayFromPolygon(a, b, polygon);
+        for (const span of subtractWallSpans(a, b, base, top, canopyWalls))
+          walls.push(quad(span.a, span.b, span.base, span.top, normal));
       }
     }
   }
@@ -246,15 +256,14 @@ export function createEntranceHall(hall) {
     }
   }
 
-  if (hall.canopy?.points?.length > 2) {
-    const canopy = hall.canopy;
+  if (canopyWalls.length) {
     const geometry = new THREE.ExtrudeGeometry(shape(canopy), {
-      depth: canopy.height ?? 0.4,
+      depth: canopyHeight,
       bevelEnabled: false,
       curveSegments: 1,
     });
     geometry.rotateX(-Math.PI / 2);
-    geometry.translate(0, canopy.base ?? top - 0.55, 0);
+    geometry.translate(0, canopyBase, 0);
     darkBands.push(geometry);
   }
   // The rear boundary of the low pavilion can lie inside the upper A envelope.
