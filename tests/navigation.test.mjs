@@ -94,7 +94,7 @@ const controller = [
   section("function floorPhysical(", "function renderFloors("),
   section("function cancelPendingNavigation(", "function saveView("),
   section("function roomPadding(", "const kindNames"),
-  section("function selectRoom(", '$("#overview").onclick'),
+  section("function stairTargetsFor(", '$("#campus-overview").onclick'),
 ].join("\n");
 
 function harness({
@@ -162,7 +162,13 @@ function harness({
         after() {},
         before() {},
         querySelector: (child) => $(`${selector} ${child}`),
-        querySelectorAll: () => [],
+        querySelectorAll(child) {
+          if (selector !== "#room-card" || child !== "[data-target]") return [];
+          targetButtons = [
+            ...this.innerHTML.matchAll(/data-target="(\d+)"/g),
+          ].map((match) => ({ dataset: { target: match[1] } }));
+          return targetButtons;
+        },
         getBoundingClientRect() {
           if (selector === ".sidebar")
             return {
@@ -332,13 +338,7 @@ function harness({
         createdElements.push(element);
         return element;
       },
-      querySelectorAll(selector) {
-        if (selector !== "[data-target]") return [];
-        targetButtons = [
-          ...$("#room-card").innerHTML.matchAll(/data-target="(\d+)"/g),
-        ].map((match) => ({ dataset: { target: match[1] } }));
-        return targetButtons;
-      },
+      querySelectorAll: () => [],
     },
     matchMedia: () => ({ matches: true }),
     renderFloors() {},
@@ -366,7 +366,7 @@ function harness({
     context,
   );
   vm.runInContext(
-    section('$("#overview").onclick', '$("#next-floor-open").onclick'),
+    section('$("#campus-overview").onclick', '$("#next-floor-open").onclick'),
     context,
   );
   vm.runInContext(

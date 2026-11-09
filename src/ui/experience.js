@@ -70,7 +70,13 @@ export async function shareView(hash, toast) {
       toast("Не удалось отправить ссылку. Попробуйте ещё раз.");
   }
 }
-export function bindExperience({ state, scene, navigateRoom, toast }) {
+export function bindExperience({
+  state,
+  scene,
+  navigateRoom,
+  toast,
+  onRouteSnapChange,
+}) {
   const sidebar = $(".sidebar"),
     handle = $("#sheet-toggle"),
     content = $(".sidebar-scroll");
@@ -408,7 +414,9 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     frameRate: "auto",
     motion: motionQuery.matches,
     headingFollow: true,
+    routeSnap: false,
   });
+  state.routeSnapEnabled = settings.routeSnap;
   if (!["system", "light", "dark"].includes(settings.theme))
     settings.theme = "system";
   if (!["auto", "low", "balanced", "high"].includes(settings.quality))
@@ -449,6 +457,7 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
   $("#frame-rate-setting").value = settings.frameRate;
   $("#motion-setting").checked = settings.motion;
   $("#heading-follow-setting").checked = settings.headingFollow;
+  $("#route-snap-setting").checked = settings.routeSnap;
   $("#theme-setting").onchange = (e) => {
     settings.theme = e.target.value;
     applySettings();
@@ -471,6 +480,11 @@ export function bindExperience({ state, scene, navigateRoom, toast }) {
     settings.headingFollow = e.target.checked;
     scene.setHeadingFollow?.(settings.headingFollow);
     writeSaved("settings", settings);
+  };
+  $("#route-snap-setting").onchange = (e) => {
+    state.routeSnapEnabled = settings.routeSnap = e.target.checked;
+    writeSaved("settings", settings);
+    onRouteSnapChange?.();
   };
   themeQuery.addEventListener("change", applySettings);
   applyGraphics();

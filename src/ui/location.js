@@ -179,7 +179,6 @@ export function bindLocation({
             : {}),
         }
       : null;
-    scene.setUserLocation(state.userLocation);
     clearTimeout(expiryTimer);
     if (state.userLocation?.source === "gps") {
       const until = Math.min(
@@ -205,16 +204,17 @@ export function bindLocation({
                 ...state.userLocation,
                 trackingStatus: tracking.status,
               };
-              scene.setUserLocation(state.userLocation);
             }
             refresh();
             onChange?.();
+            scene.setUserLocation(state.userLocation);
           },
           until - Date.now() + 20,
         );
     }
     refresh();
     onChange?.();
+    scene.setUserLocation(state.userLocation);
   }
   function releaseHeading() {
     headingGeneration++;

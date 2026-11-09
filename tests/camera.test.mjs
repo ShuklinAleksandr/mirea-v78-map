@@ -395,6 +395,72 @@ test("2D zoom buttons change orthographic magnification without moving the camer
   assert.ok(view.camera.zoom < oldZoom / 0.75);
 });
 
+test("approaching a linked stair with the map camera exposes its floor action in 2D and 3D", () => {
+  for (const plan of [false, true]) {
+    const view = cameraHarness();
+    const destination = { floorId: "plan-3", buttonLabel: "На этаж 4" };
+    const opened = [];
+    Object.assign(view, {
+      plan,
+      camera: plan ? view.planCamera : view.perspectiveCamera,
+      mode: "floor",
+      roomLabels: [],
+      stairCandidates: [{ marker: { id: "stair" }, point: [12, -4] }],
+      callbacks: {
+        getStairTargets: () => [destination],
+        onStairTarget: (target) => opened.push(target),
+      },
+      addLabel(text, point, y, kind, open) {
+        const el = { text, open, remove() {} };
+        this.roomLabels.push({ el, kind });
+        return el;
+      },
+    });
+    view.updateStairActions();
+    assert.equal(view.roomLabels.length, 0);
+    if (plan) view.camera.zoom = 5;
+    else view.camera.position.set(12, 35, 5);
+    view.updateStairActions();
+    assert.equal(view.roomLabels[0].el.text, "На этаж 4");
+    view.roomLabels[0].el.open();
+    assert.deepEqual(opened, [destination]);
+    view.controls.target.set(80, 0, 30);
+    view.updateStairActions();
+    assert.equal(view.roomLabels.length, 0);
+  }
+});
+
+test("zoom-out remains limited after a narrow campus fit and projection changes", () => {
+  const view = cameraHarness();
+  const bounds = [-305, -127, 305, 127];
+  view.host = { clientWidth: 390, clientHeight: 844 };
+  view.campus = { bounds };
+  view.perspectiveCamera.aspect = 390 / 844;
+  view.perspectiveCamera.updateProjectionMatrix();
+  view.model = new THREE.Group();
+  view.sun = new THREE.DirectionalLight();
+  view.mode = "overview";
+  view.reducedMotion = true;
+  // No actual campus render is needed to exercise camera and controls.
+  view.setOverview = () => {};
+
+  for (const plan of [false, true]) {
+    view.setProjection(plan);
+    view.fit(bounds, false, { left: 16, right: 64, top: 90, bottom: 250 });
+    const fittedDistance = view.cameraViewDistance();
+    assert.ok(fittedDistance > 1000, "portrait view fits the whole campus");
+    for (let i = 0; i < 20; i++) view.zoom(1.33);
+    const limit = view.cameraViewDistance();
+    assert.ok(
+      limit > fittedDistance && limit <= fittedDistance * 1.6,
+      `${plan ? "2D" : "3D"} fit ${fittedDistance} and limit ${limit}`,
+    );
+    view.setProjection(!plan);
+    view.zoom(1.33);
+    assert.ok(Math.abs(view.cameraViewDistance() - limit) < 1e-6);
+  }
+});
+
 test("returning to 3D restores perspective and rotational controls at the plan scale", () => {
   const view = cameraHarness();
   AtlasScene.prototype.setProjection.call(view, true);

@@ -71,6 +71,18 @@ test("live progress replaces passed Start with the upcoming instruction after in
   assert.equal(JSON.stringify(route), original);
 });
 
+test("a display match needs two reliable fixes and clears when the route floor changes", () => {
+  const tracker = createRouteTracker(fixture());
+  assert.equal(observe(tracker, [0, 1], 0).matchedPoint, null);
+  const match = observe(tracker, [2, 1], 1);
+  assert.deepEqual(match.matchedPoint, [2, 0]);
+  assert.equal(match.floorId, "f1");
+  assert.equal(
+    observe(tracker, [3, 1], 2, {}, { floorId: "f2" }).matchedPoint,
+    null,
+  );
+});
+
 test("turns advance only after two observations beyond the corner and progress does not rewind", () => {
   const tracker = createRouteTracker(fixture());
   const positions = [

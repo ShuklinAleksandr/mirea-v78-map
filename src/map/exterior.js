@@ -606,16 +606,18 @@ export function createMapContext(data, { plan = false, detail = true } = {}) {
   const group = new THREE.Group();
   group.name = "OSM context — approximate alignment";
   if (!data) return { group, pickables: [] };
-  const roadGeoms = [],
+  const drivewayGeoms = [],
     pathGeoms = [],
-    grassGeoms = [],
-    sportsGeoms = [];
+    surfaceGeoms = [];
   const contextMaterial = (color) =>
     plan ? new THREE.MeshBasicMaterial({ color }) : material(color);
   for (const p of data.roads || []) {
-    const target = ["footway", "path", "pedestrian", "steps"].includes(p.kind)
-      ? pathGeoms
-      : roadGeoms;
+    if (!Array.isArray(p.points)) throw new TypeError("Invalid context road");
+    const pedestrian = ["footway", "path", "pedestrian", "steps"].includes(
+      p.kind,
+    );
+    if (!pedestrian && p.kind !== "service") continue;
+    const target = pedestrian ? pathGeoms : drivewayGeoms;
     for (let i = 1; i < p.points.length; i++) {
       const a = p.points[i - 1],
         b = p.points[i],
@@ -631,15 +633,15 @@ export function createMapContext(data, { plan = false, detail = true } = {}) {
     }
   }
   for (const p of data.surfaces || []) {
+    if (p.kind === "grass") continue;
     const g = new THREE.ShapeGeometry(shape(p));
     g.rotateX(-Math.PI / 2);
     g.translate(0, -0.19, 0);
-    (p.kind === "sport" ? sportsGeoms : grassGeoms).push(g);
+    surfaceGeoms.push(g);
   }
-  merged(roadGeoms, contextMaterial(0xc9d0c8), group, { shadow: false });
+  merged(drivewayGeoms, contextMaterial(0xc9d0c8), group, { shadow: false });
   merged(pathGeoms, contextMaterial(0xe1e3d9), group, { shadow: false });
-  merged(grassGeoms, contextMaterial(0xd7e1c8), group, { shadow: false });
-  merged(sportsGeoms, contextMaterial(0xc7d8bd), group, { shadow: false });
+  merged(surfaceGeoms, contextMaterial(0xc7d8bd), group, { shadow: false });
   const pickables = [];
   for (const b of data.buildings || []) {
     const geos = b.polygons.map((p) =>

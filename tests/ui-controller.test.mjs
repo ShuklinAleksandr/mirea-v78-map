@@ -4,7 +4,10 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { makeCurrentRouteEndpoint } from "../src/data/current-route-origin.js";
 import { isCurrentUserLocation } from "../src/data/user-location.js";
-import { createRouteTracker } from "../src/data/route-tracking.js";
+import {
+  createRouteTracker,
+  ROUTE_TRACKING_MAX_AGE_MS,
+} from "../src/data/route-tracking.js";
 import { createRouteTrackingSurfaceGuard } from "../src/data/route-tracking-surface.js";
 import { findNextPlaces } from "../src/data/next-place-search.js";
 import {
@@ -165,6 +168,7 @@ function harness(file, exports, saved = {}, options = {}) {
     makeCurrentRouteEndpoint,
     isCurrentUserLocation,
     createRouteTracker,
+    ROUTE_TRACKING_MAX_AGE_MS,
     createRouteTrackingSurfaceGuard,
     findNextPlaces,
     placeLocation,
@@ -459,6 +463,24 @@ async function buildPreview(h) {
   await pending;
 }
 
+test("route-line preference starts GPS on route creation and turning it off keeps the current manual route", async () => {
+  let locateCalls = 0;
+  const h = routeHarness({
+    nextInterface: true,
+    onLocate: () => locateCalls++,
+  });
+  h.state.routeSnapEnabled = true;
+  await buildPreview(h);
+  assert.equal(locateCalls, 1);
+  assert.equal(h.element("#route-panel").dataset.guiding, "true");
+  assert.match(h.element("#route-dock-note").textContent, /Нет геопозиции/);
+  h.state.routeSnapEnabled = false;
+  h.routeSnapChanged();
+  assert.equal(h.getRoute(), h.result);
+  assert.match(h.element("#route-dock-note").textContent, /Переключайте шаги/);
+  assert.equal(h.element("#route-dock-next").hidden, false);
+});
+
 test("dragging mobile sheet up/down keeps its position after the synthesized click", () => {
   const h = experienceHarness();
   const handle = h.element("#sheet-toggle"),
@@ -609,9 +631,14 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
     frameRate: "auto",
     motion: false,
     headingFollow: true,
+    routeSnap: false,
   });
   h.element("#heading-follow-setting").onchange({ target: { checked: false } });
   assert.equal(JSON.parse(h.store.get(settingsKey)).headingFollow, false);
+  h.element("#route-snap-setting").onchange({ target: { checked: true } });
+  assert.equal(JSON.parse(h.store.get(settingsKey)).routeSnap, true);
+  const restored = experienceHarness(Object.fromEntries(h.store));
+  assert.equal(restored.element("#route-snap-setting").checked, true);
 });
 
 test("canceling a route during worker calculation cannot restore its path", async () => {
@@ -1697,7 +1724,7 @@ test("live floor context receives only accepted fresh route samples while follow
   );
 });
 
-test("a GPS stair handoff waits for explicit floor confirmation and never switches floors from coordinates alone", async () => {
+test("an on-map stair handoff waits for explicit floor confirmation and uses the physical destination floor", async () => {
   const confirmations = [];
   const h = routeHarness({
     onLocate() {},
@@ -1726,7 +1753,7 @@ test("a GPS stair handoff waits for explicit floor confirmation and never switch
         [0, 0],
         [12, 0],
       ],
-      nodes: [{ physicalLevel: 1, building: "Г" }],
+      nodes: [{ physicalLevel: 3, building: "Г" }],
     },
     {
       floorId: "a-floor2",
@@ -1734,7 +1761,7 @@ test("a GPS stair handoff waits for explicit floor confirmation and never switch
         [12, 0],
         [12, 10],
       ],
-      nodes: [{ physicalLevel: 2, building: "Г" }],
+      nodes: [{ physicalLevel: 4, building: "Г" }],
     },
   ];
   h.result.transitions = [
@@ -1744,6 +1771,7 @@ test("a GPS stair handoff waits for explicit floor confirmation and never switch
       point: [12, 0],
       targetPoint: [12, 0],
       label: "Лестница",
+      kind: "stairs",
     },
   ];
   h.result.steps = [
@@ -1753,13 +1781,13 @@ test("a GPS stair handoff waits for explicit floor confirmation and never switch
       floorId: "a-floor1",
       targetFloorId: "a-floor2",
       position: [12, 0],
-      text: "Поднимитесь на 2 этаж",
+      text: "Поднимитесь на 4 этаж",
     },
     {
       kind: "walk",
       floorId: "a-floor2",
       position: [12, 0],
-      text: "По 2 этажу",
+      text: "По 4 этажу",
     },
     {
       kind: "arrive",
@@ -1791,11 +1819,17 @@ test("a GPS stair handoff waits for explicit floor confirmation and never switch
   assert.equal(h.state.floor.id, "a-floor1");
   assert.equal(confirmations.length, 0);
   assert.match(h.element("#route-dock-next").innerHTML, /Я на следующем этаже/);
-  h.element("#route-dock-next").dispatch("click");
+  const action = h.getStairAction();
+  assert.equal(action.label, "На этаж 4");
+  assert.deepEqual(action.point, [12, 0]);
+  assert.equal(action.nearby, true);
+  action.open();
   assert.equal(h.state.floor.id, "a-floor2");
+  assert.equal(h.getStairAction(), null);
+  action.open();
   assert.equal(confirmations.length, 1);
   assert.equal(confirmations[0].floorId, "a-floor2");
-  assert.equal(confirmations[0].physicalLevel, 2);
+  assert.equal(confirmations[0].physicalLevel, 4);
 });
 
 test("live guidance does not refit the route after manual pan or a dock resize, and waits for new GPS after resume", async () => {
@@ -1867,6 +1901,7 @@ test("the single interface uses balanced quality and migrates legacy auto only o
     assert.deepEqual(JSON.parse(migrated.store.get(settingsKey)), {
       ...preferences,
       quality: "balanced",
+      routeSnap: false,
     });
     assert.equal(migrated.store.get(versionKey), "1");
 
@@ -1895,6 +1930,7 @@ test("the single interface uses balanced quality and migrates legacy auto only o
       assert.deepEqual(JSON.parse(existing.store.get(settingsKey)), {
         ...preferences,
         quality,
+        routeSnap: false,
       });
     }
   }
