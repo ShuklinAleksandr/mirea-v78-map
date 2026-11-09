@@ -1,6 +1,6 @@
 {
-  "version": "0.5.9",
-  "sourceCommit": "f19423d78b18a8086c081c1f52fe23d0cea325b8",
+  "version": "0.5.10",
+  "sourceCommit": "0b1616e9a10aaf3a3603c53d167f66c16dc68a82",
   "base": "/mirea-v78-map/",
-  "scope": "V78; search suggestions, smooth route following, and stable floor changes"
+  "scope": "V78; room and stair labels and current location in origin suggestions"
 }
