@@ -1442,6 +1442,41 @@ test("a fresh GPS point without usable selected-plan context asks to refine inst
   assert.equal(h.getEndpoints().from, null);
 });
 
+test("route-line mode builds from fresh GPS on the open plan without requesting a manual pin", async () => {
+  let refinements = 0;
+  const h = routeHarness({
+    getUserOrigin: () => null,
+    onRefineLocation: () => refinements++,
+  });
+  h.clear();
+  h.state.routeSnapEnabled = true;
+  h.state.mode = "overview";
+  h.state.userLocation = {
+    source: "gps",
+    campusId: "a",
+    point: [2, 3],
+    timestamp: Date.now(),
+    accuracyMeters: 5,
+    trackingStatus: "live",
+  };
+  assert.equal(h.useCurrentLocation({ open: false }), false);
+  assert.equal(refinements, 0);
+  assert.match(h.toasts.at(-1), /Откройте план этажа/);
+  h.state.mode = "floor";
+  h.setEndpoint("to", h.room("finish"));
+  h.element("#route-use-location").onclick();
+  assert.equal(refinements, 0);
+  assert.equal(h.workerMessages.length, 1);
+  const from = h.workerMessages[0].from;
+  assert.equal(from.snapToRoute, true);
+  assert.equal(from.floorId, "a-floor1");
+  assert.equal(from.location.floorEvidence, "manual-view-selection");
+  assert.equal(h.state.userLocation.floorId, undefined);
+  h.reply(h.result);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.match(h.element("#route-summary").innerHTML, /GPS не определяет этаж/);
+});
+
 test("a manually selected origin cancels a pending current-location action", () => {
   let position = null;
   const h = routeHarness({ getUserOrigin: () => position, onLocate() {} });
@@ -1705,15 +1740,15 @@ test("live floor context receives only accepted fresh route samples while follow
   contexts.length = 0;
   h.emitGps([0, 0]);
   assert.equal(contexts.length, 0, "one observation is still acquiring");
-  h.emitGps([1, 0]);
+  h.emitGps([1, 0.6]);
   assert.equal(contexts.length, 1);
   assert.equal(contexts[0].sample.sourceSegmentIndex, 0);
   assert.equal(contexts[0].sample.floorId, h.state.floor.id);
   assert.equal(contexts[0].nodes, h.result.segments[0].nodes);
   assert.deepEqual(
     [...contexts[0].sample.position],
-    [0, 0],
-    "uses accepted route progress, not raw GPS coordinate",
+    [1, 0],
+    "uses the marker's latest accepted point, not delayed progress or raw GPS",
   );
   h.locationChanged();
   assert.equal(contexts.length, 1, "a UI refresh is not a new accepted fix");
@@ -1757,8 +1792,11 @@ test("live floor context receives only accepted fresh route samples while follow
 
 test("an on-map stair handoff waits for explicit floor confirmation and uses the physical destination floor", async () => {
   const confirmations = [];
+  let locateCalls = 0;
   const h = routeHarness({
-    onLocate() {},
+    onLocate() {
+      locateCalls++;
+    },
     onConfirmFloor: (floor) => confirmations.push(floor),
   });
   h.state.mode = "floor";
@@ -1854,8 +1892,19 @@ test("an on-map stair handoff waits for explicit floor confirmation and uses the
   assert.equal(action.label, "На этаж 4");
   assert.deepEqual(action.point, [12, 0]);
   assert.equal(action.nearby, true);
+  const sheetCalls = h.sheetCalls.length;
+  const guidanceCalls = h.guidanceOptions.length;
+  const previousLocateCalls = locateCalls;
   action.open();
   assert.equal(h.state.floor.id, "a-floor2");
+  assert.equal(h.sheetCalls.length, sheetCalls);
+  assert.equal(locateCalls, previousLocateCalls);
+  const cameraOptions = h.guidanceOptions
+    .slice(guidanceCalls)
+    .filter(Boolean)
+    .at(-1);
+  assert.equal(cameraOptions.keepCamera, true);
+  assert.equal(cameraOptions.animate, false);
   assert.equal(h.getStairAction(), null);
   action.open();
   assert.equal(confirmations.length, 1);
@@ -2292,7 +2341,13 @@ test("a very short Safari keyboard viewport keeps its active field through rotat
 
 test("Safari null-target blur cannot move a touched suggestion before its click in either interface", () => {
   for (const nextInterface of [false, true]) {
-    for (const field of ["search", "route-from", "route-to"]) {
+    for (const [field, section] of [
+      ["search", "#results"],
+      ["search", "#place-categories"],
+      ["search", "#saved-places"],
+      ["route-from", "#route-results"],
+      ["route-to", "#route-results"],
+    ]) {
       const viewport = Object.assign(new EventTarget(), {
         scale: 1,
         height: 52,
@@ -2305,9 +2360,7 @@ test("Safari null-target blur cannot move a touched suggestion before its click 
       });
       const sidebar = h.element(".sidebar");
       const input = h.element(`#${field}`);
-      const list = h.element(
-        field === "search" ? "#results" : "#route-results",
-      );
+      const list = h.element(section);
       input.dispatch("focus");
       let prevented = false;
       list.scrollTop = 75;

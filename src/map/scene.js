@@ -48,7 +48,8 @@ import { bindMapTouchRotation, configureMapTouchControls } from "./gestures.js";
 import { bindMapTapActions } from "./pointer-actions.js";
 import {
   createRouteLayer,
-  nearestRouteLinePoint,
+  nearestRouteLinePosition,
+  routeLinePointAtDistance,
   createSchematicConnection,
   disposeRouteLayer,
   routeBounds,
@@ -380,7 +381,7 @@ export class AtlasScene {
     this.transition = null;
     this.callbacks?.onMapInteraction?.();
   }
-  floorFocusPoint(padding = {}) {
+  floorFocusPoint(padding = {}, { maxSpan = Infinity } = {}) {
     if (this.mode !== "floor") return null;
     const width = this.host.clientWidth,
       height = this.host.clientHeight;
@@ -400,7 +401,14 @@ export class AtlasScene {
       new THREE.Plane(UP_AXIS, 0),
       new THREE.Vector3(),
     );
-    return point ? [point.x, point.z] : null;
+    if (!point) return null;
+    // At wide scales a camera centred on the campus is not inspecting a wing.
+    const span = this.camera.isOrthographicCamera
+      ? (this.camera.top - this.camera.bottom) / this.camera.zoom
+      : 2 *
+        point.distanceTo(this.camera.position) *
+        this.cameraHalfFovTangent();
+    return span <= maxSpan ? [point.x, point.z] : null;
   }
   setProjection(plan, { fit = false } = {}) {
     if (plan && (this.routeOverview || this.buildingOverview))
@@ -719,16 +727,101 @@ export class AtlasScene {
           (item) => item.sourceSegmentIndex === match.sourceSegmentIndex,
         )
       : null;
-    const routePoint = path
-      ? nearestRouteLinePoint(path.points, match.point)
+    const routePosition = path
+      ? nearestRouteLinePosition(path.points, match.point)
       : null;
+    if (!routePosition) {
+      this.routeLocationFix = this.routeLocationMotion = null;
+      this.refreshLocationMarker(this.userLocation);
+      return;
+    }
+    const previous = this.routeLocationFix;
+    const timestamp = this.userLocation.timestamp;
+    const floorId = this.floor?.id;
+    const samePath =
+      previous?.path === path &&
+      previous.floorId === floorId &&
+      previous.layer === this.routeLayer;
+    const elapsed = timestamp - previous?.timestamp;
+    const from = this.routeLocationMotion?.distance ?? previous?.distance;
+    const delta = Math.abs(routePosition.distance - from);
+    if (this.reducedMotion || !samePath) this.routeLocationMotion = null;
+    else if (elapsed > 0) {
+      // Move only between successive nearby fixes on the same visible line.
+      this.routeLocationMotion =
+        delta >= 0.04 && delta <= 12
+          ? {
+              path,
+              floorId,
+              layer: this.routeLayer,
+              start: performance.now(),
+              duration: THREE.MathUtils.clamp(elapsed * 0.8, 180, 650),
+              from,
+              to: routePosition.distance,
+              distance: from,
+            }
+          : null;
+    } else if (previous.distance !== routePosition.distance) {
+      this.routeLocationMotion = null;
+    }
+    this.routeLocationFix = {
+      path,
+      floorId,
+      layer: this.routeLayer,
+      timestamp,
+      distance: routePosition.distance,
+    };
     this.refreshLocationMarker(
-      routePoint
-        ? { ...this.userLocation, point: routePoint, routeMatched: true }
-        : this.userLocation,
+      { ...this.userLocation, point: routePosition.point, routeMatched: true },
+      this.routeLocationMotion
+        ? routeLinePointAtDistance(
+            path.points,
+            this.routeLocationMotion.distance,
+          )
+        : routePosition.point,
     );
   }
-  refreshLocationMarker(location) {
+  updateRouteLocationMotion(time) {
+    const motion = this.routeLocationMotion;
+    const layer = this.userLocationLayer;
+    if (!motion) return false;
+    if (
+      this.routeLayer !== motion.layer ||
+      this.mode !== "floor" ||
+      this.floor?.id !== motion.floorId ||
+      this.locationPicking
+    ) {
+      this.routeLocationMotion = null;
+      this.refreshUserLocation();
+      return false;
+    }
+    if (!layer?.visible) {
+      this.routeLocationMotion = null;
+      return false;
+    }
+    const t = this.reducedMotion
+      ? 1
+      : THREE.MathUtils.clamp((time - motion.start) / motion.duration, 0, 1);
+    motion.distance = THREE.MathUtils.lerp(
+      motion.from,
+      motion.to,
+      1 - (1 - t) ** 3,
+    );
+    const [x, z] = routeLinePointAtDistance(
+      motion.path.points,
+      motion.distance,
+    );
+    layer.position.x = x;
+    layer.position.z = z;
+    if (layer.userData.accuracyCircle) {
+      const [rawX, rawZ] = this.userLocation.point;
+      layer.userData.accuracyCircle.position.set(rawX - x, 0, rawZ - z);
+    }
+    this.dirty = true;
+    if (t === 1) this.routeLocationMotion = null;
+    return t < 1;
+  }
+  refreshLocationMarker(location, displayPoint = location?.point) {
     const prefix = "userLocation";
     this.invalidate();
     const layer = this[`${prefix}Layer`];
@@ -759,7 +852,8 @@ export class AtlasScene {
       : "manual-user-location";
     group.userData.location = location;
     group.userData.presentation = presentation;
-    group.position.set(location.point[0], presentation.y, location.point[1]);
+    group.position.set(displayPoint[0], presentation.y, displayPoint[1]);
+    group.userData.accuracyCircle = null;
     const color = presentation.stale ? 0x8997a7 : 0x2585ff;
     if (gps && Number.isFinite(location.accuracyRadiusMap)) {
       const circle = new THREE.Mesh(
@@ -777,14 +871,11 @@ export class AtlasScene {
       circle.rotation.x = -Math.PI / 2;
       if (location.routeMatched) {
         const [rawX, rawZ] = this.userLocation.point;
-        circle.position.set(
-          rawX - location.point[0],
-          0,
-          rawZ - location.point[1],
-        );
+        circle.position.set(rawX - displayPoint[0], 0, rawZ - displayPoint[1]);
       }
       circle.renderOrder = 30;
       group.add(circle);
+      group.userData.accuracyCircle = circle;
     }
     const dot = new THREE.Group();
     const halo = new THREE.Mesh(
@@ -924,7 +1015,8 @@ export class AtlasScene {
   focusUserLocation({ padding } = {}) {
     this.refreshUserLocation();
     if (!this.userLocationLayer?.visible) return false;
-    const { x, y, z } = this.userLocationLayer.position;
+    const [x, z] = this.userLocationLayer.userData.location.point;
+    const { y } = this.userLocationLayer.position;
     const radius = 12;
     const [leadX, leadZ] = navigationLookAhead({
       enabled:
@@ -967,7 +1059,8 @@ export class AtlasScene {
       this.locationPicking
     )
       return false;
-    const anchor = this.userLocationLayer.position.clone();
+    const [x, z] = this.userLocationLayer.userData.location.point;
+    const anchor = new THREE.Vector3(x, this.userLocationLayer.position.y, z);
     if (
       !this.userLocationFollowAnchor ||
       !this.controls?.target ||
@@ -1109,6 +1202,8 @@ export class AtlasScene {
       this.moveCamera(this.transition.to, this.transition.toTarget, false);
       this.transition = null;
     }
+    if (this.reducedMotion && this.routeLocationMotion)
+      this.updateRouteLocationMotion(performance.now());
   }
   applyProjectionStyle() {
     this.qualityProfile = mapQuality(this.quality, {
@@ -1220,7 +1315,7 @@ export class AtlasScene {
   }
   setRouteGuidance(
     sample,
-    { padding, animate = false, showMarker = true } = {},
+    { padding, animate = false, showMarker = true, keepCamera = false } = {},
   ) {
     if (!sample) {
       if (this.guidanceLayer) {
@@ -1282,6 +1377,10 @@ export class AtlasScene {
       sample.heading[0],
       sample.heading[1],
     );
+    if (keepCamera) {
+      this.invalidate();
+      return true;
+    }
     const xs = sample.cameraPoints.map((point) => point[0]);
     const zs = sample.cameraPoints.map((point) => point[1]);
     const bounds = [
@@ -1774,6 +1873,7 @@ export class AtlasScene {
   clear() {
     this.invalidate(true);
     if (!this.stackDisplay) {
+      this.routeLocationFix = this.routeLocationMotion = null;
       for (const prefix of ["userLocation"]) {
         if (this[`${prefix}Layer`]) this[`${prefix}Layer`].visible = false;
         if (this[`${prefix}Overlay`]) this[`${prefix}Overlay`].hidden = true;
@@ -2024,7 +2124,12 @@ export class AtlasScene {
     if (cache.length > 6) cache.shift();
     return (this.floorDisplay = prepared);
   }
-  setFloor(floor, building = null, { fit = true } = {}) {
+  setFloor(floor, building = null, { fit = true, keepCamera = false } = {}) {
+    if (keepCamera) {
+      this.transition = null;
+      this.lastBounds = null;
+      this.lastFitOptions = null;
+    }
     const keepPicking = Boolean(this.locationPicking);
     this.clear();
     this.mode = "floor";
@@ -2209,7 +2314,7 @@ export class AtlasScene {
         });
       }
     }
-    if (fit)
+    if (fit && !keepCamera)
       this.fit(building ? this.boundsForBuilding(building, floor) : null, true);
     this.applyTheme();
     this.refreshRoute();
@@ -3293,6 +3398,7 @@ export class AtlasScene {
       this.dirty = true;
       if (t === 1) this.transition = null;
     }
+    const markerMoving = this.updateRouteLocationMotion(time);
     const headingMoved = this.updateNavigationHeading(time);
     const controlsMoved = this.controls.update();
     if (
@@ -3331,7 +3437,7 @@ export class AtlasScene {
     // Momentum, compass easing and camera transitions may continue after the
     // event that woke the scene. A static frame doesn't keep the loop alive.
     const continuous = Boolean(
-      this.transition || headingMoved || controlsMoved === true,
+      this.transition || markerMoving || headingMoved || controlsMoved === true,
     );
     if (measuredAt != null) {
       const changed = this.adaptiveQuality.observe({
@@ -3351,6 +3457,7 @@ export class AtlasScene {
     }
     return Boolean(
       this.transition ||
+        markerMoving ||
         headingMoved ||
         controlsMoved === true ||
         (!this.locationPicking && this.mouseEvent) ||

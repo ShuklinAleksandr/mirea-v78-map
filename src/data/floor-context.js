@@ -1,4 +1,9 @@
 import { getBuildingFloorComponentScopes } from "../map/building-view.js";
+import {
+  ROUTE_TRACKING_MAX_ACCURACY_METERS,
+  ROUTE_TRACKING_MAX_AGE_MS,
+} from "./route-tracking.js";
+import { isCurrentUserLocation } from "./user-location.js";
 
 const CACHE_LIMIT = 8;
 const cache = new Map();
@@ -176,7 +181,7 @@ function indexFor(floor) {
 export function resolveFloorContext(
   floor,
   point,
-  { margin = 0.35, accuracy = 0 } = {},
+  { margin = 0.35, accuracy = 0, acrossRooms = false } = {},
 ) {
   if (
     !floor ||
@@ -195,8 +200,9 @@ export function resolveFloorContext(
   )
     return null;
   let building = null;
+  const ownedClearance = acrossRooms ? Math.max(EPSILON, margin) : clearance;
   for (const shape of index.shapes) {
-    if (!contains(shape, point, clearance)) continue;
+    if (!contains(shape, point, ownedClearance)) continue;
     if (building && building !== shape.building) return null;
     building = shape.building;
   }
@@ -211,6 +217,30 @@ export function resolveFloorContext(
   return building
     ? { building, physicalLevel: floor.buildingLevels[building] }
     : null;
+}
+
+/** Interpret a reliable horizontal GPS fix on the current plan. Its accuracy
+ * can span rooms of one wing, but not another building or an outside edge. */
+export function resolveGpsFloorContext(floor, location, now = Date.now()) {
+  if (
+    !floor?.id ||
+    floor.units !== "meters" ||
+    location?.source !== "gps" ||
+    !isCurrentUserLocation(location, now) ||
+    (location.status && location.status !== "inside") ||
+    (location.floorId && location.floorId !== floor.id) ||
+    (floor.campusId && location.campusId !== floor.campusId) ||
+    location.timestamp > now + 2_000 ||
+    now - location.timestamp > ROUTE_TRACKING_MAX_AGE_MS ||
+    !Number.isFinite(location.accuracyMeters) ||
+    location.accuracyMeters <= 0 ||
+    location.accuracyMeters > ROUTE_TRACKING_MAX_ACCURACY_METERS
+  )
+    return null;
+  return resolveFloorContext(floor, location.point, {
+    accuracy: location.accuracyRadiusMap ?? location.accuracyMeters,
+    acrossRooms: true,
+  });
 }
 
 /** Resolve only a sample lying on an existing route edge, not nearby rooms. */

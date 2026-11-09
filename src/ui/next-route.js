@@ -32,6 +32,7 @@ export function nextRouteReadout({
   liveProgress,
   userLocation,
   following = false,
+  snapToRoute = false,
   transitionLevel,
 }) {
   const step = route?.steps?.[stepIndex];
@@ -50,7 +51,10 @@ export function nextRouteReadout({
     tracking: "Шаги меняются автоматически",
     "low-accuracy": "Положение неточное · автосмена шагов на паузе",
     stale: "Нет свежей геопозиции · автосмена шагов на паузе",
-    "off-route": "Точка вне подтверждённого пути",
+    "off-route": snapToRoute
+      ? "Вы отошли от маршрута · вернитесь к линии"
+      : "Точка вне подтверждённого пути",
+    "wrong-way": "Вы идёте назад · автосмена шагов на паузе",
     "floor-mismatch": "Проверьте этаж · GPS его не определяет",
     "floor-change": "Подтвердите переход по лестнице",
     arrived: "Проверьте номер помещения на месте",
@@ -58,7 +62,7 @@ export function nextRouteReadout({
   };
   let contextAction = null;
   if (guiding && automatic && !previewing && !manualOnly) {
-    if (["low-accuracy", "off-route"].includes(status))
+    if (status === "low-accuracy" || (status === "off-route" && !snapToRoute))
       contextAction = "refine";
     else if (status === "floor-mismatch") {
       // Changing the viewed floor cannot repair a previously confirmed

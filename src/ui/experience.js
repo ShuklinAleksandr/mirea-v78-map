@@ -102,10 +102,13 @@ export function bindExperience({
   };
   const editingResults = () =>
     $(editingField === "search" ? "#results" : "#route-results");
+  const searchSuggestions = [$("#place-categories"), $("#saved-places")];
   const staysInEditor = (target) =>
     target === editingInput ||
     target === handle ||
-    (editingField === "search" && target === $("#search-clear")) ||
+    (editingField === "search" &&
+      (target === $("#search-clear") ||
+        searchSuggestions.some((section) => section.contains(target)))) ||
     editingResults().contains(target);
   function holdEditingPointer(event) {
     if (
@@ -378,8 +381,11 @@ export function bindExperience({
     });
   }
   $("#search-clear").addEventListener("pointerdown", holdEditingPointer);
-  for (const selector of ["#results", "#route-results"]) {
-    const results = $(selector);
+  for (const results of [
+    $("#results"),
+    $("#route-results"),
+    ...searchSuggestions,
+  ]) {
     results.addEventListener("mousedown", (event) => {
       const button = event.target?.closest?.("button");
       if (event.button === 0 && button && results.contains(button))
@@ -391,7 +397,11 @@ export function bindExperience({
     results.addEventListener(
       "pointerdown",
       (event) => {
-        if (results === editingResults()) holdEditingPointer(event);
+        if (
+          results === editingResults() ||
+          (editingField === "search" && searchSuggestions.includes(results))
+        )
+          holdEditingPointer(event);
       },
       { passive: true },
     );
@@ -532,8 +542,10 @@ export function bindExperience({
       })
       .join("");
     for (const b of $("#saved-places").querySelectorAll("button"))
-      b.onclick = () =>
+      b.onclick = () => {
+        finishInputEditing({ focusHandle: false });
         navigateRoom(state.search.find((r) => r.id === b.dataset.saved));
+      };
   }
   function remember(room) {
     writeSaved(

@@ -35,7 +35,26 @@ export function visibleRouteSegments(route, floorId) {
     .filter((segment) => segment.points.length > 0);
 }
 
-export function nearestRouteLinePoint(points, point) {
+const routeLineDistances = new WeakMap();
+
+function lineDistances(points) {
+  let distances = routeLineDistances.get(points);
+  if (distances) return distances;
+  distances = [0];
+  for (let i = 1; i < points.length; i++)
+    distances.push(
+      distances[i - 1] +
+        Math.hypot(
+          points[i][0] - points[i - 1][0],
+          points[i][1] - points[i - 1][1],
+        ),
+    );
+  routeLineDistances.set(points, distances);
+  return distances;
+}
+
+export function nearestRouteLinePosition(points, point) {
+  const distances = lineDistances(points);
   let best = null;
   // Rounded corners may shift the visible line by at most 0.75 map units.
   let squaredLimit = 0.75 ** 2;
@@ -54,11 +73,33 @@ export function nearestRouteLinePoint(points, point) {
     const squaredError =
       (candidate[0] - point[0]) ** 2 + (candidate[1] - point[1]) ** 2;
     if (squaredError < squaredLimit) {
-      best = candidate;
+      best = {
+        point: candidate,
+        distance: THREE.MathUtils.lerp(distances[i - 1], distances[i], t),
+      };
       squaredLimit = squaredError;
     }
   }
   return best;
+}
+
+export function routeLinePointAtDistance(points, distance) {
+  const distances = lineDistances(points);
+  let left = 0,
+    right = points.length - 1;
+  while (right - left > 1) {
+    const middle = Math.floor((left + right) / 2);
+    if (distances[middle] < distance) left = middle;
+    else right = middle;
+  }
+  const length = distances[right] - distances[left];
+  const t = length
+    ? THREE.MathUtils.clamp((distance - distances[left]) / length, 0, 1)
+    : 0;
+  return [
+    THREE.MathUtils.lerp(points[left][0], points[right][0], t),
+    THREE.MathUtils.lerp(points[left][1], points[right][1], t),
+  ];
 }
 
 export function routeBounds(route, floorId, margin = 3) {

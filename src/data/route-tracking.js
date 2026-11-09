@@ -7,6 +7,14 @@ import {
 // The observation itself and its floor evidence are never changed.
 export const ROUTE_TRACKING_MAX_ACCURACY_METERS = 12;
 export const ROUTE_TRACKING_MAX_AGE_MS = 10_000;
+export const routeTrackingMatchRadius = (location) =>
+  Math.min(
+    4,
+    Math.max(
+      1.5,
+      (location.accuracyRadiusMap || location.accuracyMeters) * 0.6,
+    ),
+  );
 const EPSILON = 1e-7;
 const pointValid = (point) =>
   Array.isArray(point) &&
@@ -67,6 +75,8 @@ function sourceContexts(route, section) {
     if (!i || distance(source.points[i - 1], point) > EPSILON)
       vertices.push([]);
     vertices.at(-1).push({
+      floorId: node.floorId,
+      kind: node.kind,
       building:
         typeof node.building === "string" && node.building.trim()
           ? node.building.trim()
@@ -80,7 +90,7 @@ function sourceContexts(route, section) {
   return { vertices, all: vertices.flat() };
 }
 
-function matchesManualContext(location, source, section, candidate) {
+function matchesManualContext(location, source, section, candidate, levels) {
   if (location.floorEvidence !== "manual") return true;
   const building =
     typeof location.building === "string" && location.building.trim()
@@ -91,6 +101,26 @@ function matchesManualContext(location, source, section, candidate) {
     : null;
   if (!building && level == null) return true;
   if (!source) return false;
+  const first = candidate.edgeIndex;
+  const last = Math.min(first + 1, section.points.length - 1);
+  const edge = [...source.vertices[first], ...source.vertices[last]];
+  // A confirmed source plan can use different floor numbers in adjacent
+  // wings. Accept only its mapped horizontal edge, never a staircase.
+  if (
+    first !== last &&
+    level != null &&
+    location.floorId === section.floorId &&
+    levels?.[building] === level &&
+    edge.every(
+      (node) =>
+        node.floorId === section.floorId &&
+        !["stairs", "elevator", "lift"].includes(node.kind) &&
+        node.building &&
+        Number.isFinite(node.physicalLevel) &&
+        levels[node.building] === node.physicalLevel,
+    )
+  )
+    return true;
   // A manual A1 anchor cannot authorize another wing's level1 when this
   // section only contains A2. The known anchor context must exist on the path.
   if (
@@ -102,14 +132,12 @@ function matchesManualContext(location, source, section, candidate) {
     )
   )
     return false;
-  const first = candidate.edgeIndex;
-  const last = Math.min(first + 1, section.points.length - 1);
   const contexts =
     distance(candidate.point, section.points[first]) <= EPSILON
       ? source.vertices[first]
       : distance(candidate.point, section.points[last]) <= EPSILON
         ? source.vertices[last]
-        : [...source.vertices[first], ...source.vertices[last]];
+        : edge;
   if (level != null) {
     // Different wings can share a physical floor. Match the actual edge's
     // levels rather than forcing its building to equal an old manual anchor.
@@ -122,7 +150,7 @@ function matchesManualContext(location, source, section, candidate) {
   return contexts.some((node) => node.building === building);
 }
 
-function project(section, legs, point, reference, budget) {
+function project(section, legs, point, reference, budget, allowRetreat) {
   if (section.points.length === 1)
     return {
       distance: 0,
@@ -137,6 +165,12 @@ function project(section, legs, point, reference, budget) {
   const allowed = [legs[legIndex]];
   if (legs[legIndex + 1] && reference >= legs[legIndex].end - 2.5)
     allowed.push(legs[legIndex + 1]);
+  if (
+    allowRetreat &&
+    legs[legIndex - 1] &&
+    reference <= legs[legIndex].start + 2.5
+  )
+    allowed.push(legs[legIndex - 1]);
   let best = null;
   for (const leg of allowed) {
     if (!leg) continue;
@@ -144,7 +178,11 @@ function project(section, legs, point, reference, budget) {
       const a = section.points[i],
         b = section.points[i + 1];
       const length = section.distances[i + 1] - section.distances[i];
-      const min = Math.max(0, reference - 3, section.distances[i]);
+      const min = Math.max(
+        0,
+        reference - (allowRetreat ? budget : 3),
+        section.distances[i],
+      );
       const max = Math.min(
         section.length,
         reference + budget,
@@ -200,6 +238,8 @@ export function createRouteTracker(route) {
     observedTimestamp = -Infinity,
     correction = null,
     endCount = 0,
+    reverse = null,
+    recoveringFromReverse = false,
     matchedPoint = null;
 
   function snapshot() {
@@ -228,11 +268,17 @@ export function createRouteTracker(route) {
     };
   }
 
-  function hold(status, reason) {
+  function hold(
+    status,
+    reason,
+    point = null,
+    locationTimestamp = state.locationTimestamp,
+  ) {
     probe = null;
     endCount = 0;
-    matchedPoint = null;
-    state = { ...state, status, reason };
+    reverse = null;
+    matchedPoint = point;
+    state = { ...state, status, reason, locationTimestamp };
     return snapshot();
   }
 
@@ -253,13 +299,21 @@ export function createRouteTracker(route) {
     probe = null;
     continuity = null;
     endCount = 0;
+    reverse = null;
+    recoveringFromReverse = false;
     matchedPoint = null;
     return snapshot();
   }
 
   function update(
     location,
-    { now = Date.now(), floorId = null, allowPoint } = {},
+    {
+      now = Date.now(),
+      floorId = null,
+      floorBuildingLevels,
+      allowPoint,
+      pauseOnReverse = false,
+    } = {},
   ) {
     if (state.arrived) return snapshot();
     const section = guide.sections[state.sectionIndex];
@@ -272,6 +326,7 @@ export function createRouteTracker(route) {
       probe = null;
       continuity = null;
       endCount = 0;
+      reverse = null;
       observedTimestamp = -Infinity;
     }
     // UI refreshes, repeated sensor deliveries and out-of-order callbacks are
@@ -315,6 +370,7 @@ export function createRouteTracker(route) {
       probe = null;
       continuity = null;
       endCount = 0;
+      reverse = null;
     }
     const elapsed = continuity
       ? (location.timestamp - continuity.timestamp) / 1000
@@ -323,21 +379,19 @@ export function createRouteTracker(route) {
       elapsed == null ? 18 : Math.max(4, Math.min(18, elapsed * 3 + 3));
     if (continuity && distance(continuity.point, location.point) > budget)
       return hold("off-route", "position-jump");
-    const reference = Math.max(state.distance, continuity?.distance || 0);
+    const reference =
+      pauseOnReverse && continuity
+        ? continuity.distance
+        : Math.max(state.distance, continuity?.distance || 0);
     const candidate = project(
       section,
       legs[state.sectionIndex],
       location.point,
       reference,
       budget,
+      pauseOnReverse,
     );
-    const crossTrackLimit = Math.min(
-      4,
-      Math.max(
-        1.5,
-        (location.accuracyRadiusMap || location.accuracyMeters) * 0.6,
-      ),
-    );
+    const crossTrackLimit = routeTrackingMatchRadius(location);
     if (!candidate || candidate.error > crossTrackLimit)
       return hold("off-route", "away-from-current-path");
     if (
@@ -346,6 +400,7 @@ export function createRouteTracker(route) {
         contexts[state.sectionIndex],
         section,
         candidate,
+        typeof allowPoint === "function" ? floorBuildingLevels : null,
       )
     )
       return hold("floor-mismatch", "confirm-route-physical-floor");
@@ -373,12 +428,37 @@ export function createRouteTracker(route) {
     }
 
     const previous = probe;
+    const lastMatch =
+      previous || (state.status === "wrong-way" ? continuity : null);
     probe = {
       timestamp: location.timestamp,
       point: location.point.slice(0, 2),
       distance: candidate.distance,
     };
     continuity = probe;
+    if (pauseOnReverse && lastMatch) {
+      const delta = candidate.distance - lastMatch.distance;
+      if (delta < -0.5)
+        reverse = {
+          count: (reverse?.count || 0) + 1,
+          distance: (reverse?.distance || 0) - delta,
+        };
+      else if (delta > 0.5) reverse = null;
+      if (
+        (state.status === "wrong-way" && delta <= 0.5) ||
+        (recoveringFromReverse && delta < -0.5) ||
+        (reverse?.count >= 2 &&
+          reverse.distance >= Math.max(3, crossTrackLimit))
+      ) {
+        recoveringFromReverse = true;
+        return hold(
+          "wrong-way",
+          "moving-away-from-destination",
+          candidate.point,
+          location.timestamp,
+        );
+      }
+    }
     const endTolerance = Math.min(2, section.length * 0.2);
     const nearEnd =
       candidate.distance >= section.length - endTolerance - EPSILON &&
@@ -396,20 +476,23 @@ export function createRouteTracker(route) {
       return snapshot();
     }
     matchedPoint = candidate.point;
+    const confirmedDistance = Math.min(previous.distance, candidate.distance);
+    const resumeBehind = pauseOnReverse && recoveringFromReverse;
     state = {
       ...state,
       status: "tracking",
       reason: null,
-      distance: Math.max(
-        state.distance,
-        Math.min(previous.distance, candidate.distance),
-      ),
+      distance: resumeBehind
+        ? confirmedDistance
+        : Math.max(state.distance, confirmedDistance),
       locationTimestamp: location.timestamp,
+      atEnd: resumeBehind ? false : state.atEnd,
     };
+    recoveringFromReverse = false;
     const upcoming = guide.anchors.find(
       (anchor) =>
         anchor.sectionIndex === state.sectionIndex &&
-        anchor.stepIndex >= state.stepIndex &&
+        (resumeBehind || anchor.stepIndex >= state.stepIndex) &&
         !["start", "walk"].includes(route.steps[anchor.stepIndex]?.kind) &&
         anchor.distance + 1.5 >= state.distance,
     );

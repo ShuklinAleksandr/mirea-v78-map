@@ -6,6 +6,7 @@ import {
   attachCurrentRouteEndpoint,
 } from "../src/data/current-route-origin.js";
 import { findRoute } from "../src/data/routing.js";
+import { findNavigationRoute } from "../src/data/entrance-route.js";
 const now = 1_000_000;
 const manual = (point = [2, 5]) => ({
   source: "manual",
@@ -111,6 +112,15 @@ function fixture() {
 }
 const endpoint = (location = manual()) =>
   makeCurrentRouteEndpoint(location, { now }).endpoint;
+const gps = (point = [8, 6], campusId = "fixture") => ({
+  source: "gps",
+  campusId,
+  point,
+  timestamp: now,
+  accuracyMeters: 4,
+  floorEvidence: "unknown",
+  status: "inside",
+});
 
 test("current origin is a fresh explicit-floor snapshot, not a fake catalogue room", () => {
   const location = manual();
@@ -171,6 +181,44 @@ test("a corridor point joins only its containing source area and keeps graph imm
   assert.equal(route.diagnostics.localConnectorIds.length, 1);
   assert.equal(JSON.stringify(graph), before);
   assert.equal(graph.rooms["user-location:from"], undefined);
+});
+
+test("opt-in GPS starts on the nearest source corridor segment using the open floor", () => {
+  const { floor, graph } = fixture();
+  const location = gps();
+  const options = { now, snapToRoute: true, campusId: "fixture" };
+  const start = makeCurrentRouteEndpoint(location, {
+    ...options,
+    viewFloor: floor,
+  }).endpoint;
+  assert.equal(start.location.floorEvidence, "manual-view-selection");
+  assert.equal(location.floorId, undefined);
+  assert.equal(
+    makeCurrentRouteEndpoint(location, options).code,
+    "location-floor-unknown",
+  );
+  for (const badFix of [
+    { ...location, accuracyMeters: 25 },
+    { ...location, timestamp: now - 11_000 },
+    { ...location, campusId: "other" },
+  ])
+    assert.equal(
+      makeCurrentRouteEndpoint(badFix, { ...options, viewFloor: floor }).code,
+      "location-unreliable",
+    );
+  const before = JSON.stringify(graph);
+  const route = findRoute(graph, start, "dest", { floors: [floor] });
+  assert.equal(route.ok, true);
+  assert.deepEqual(route.start.point, [8, 5]);
+  assert.deepEqual(route.segments[0].points[0], [8, 5]);
+  assert.equal(route.graphNodes[0].endpointKind, "user-location");
+  assert.equal(route.diagnostics.localConnectorIds.length, 0);
+  assert.equal(JSON.stringify(graph), before);
+  floor.walls = [{ a: [0, 5.5], b: [20, 5.5] }];
+  assert.equal(
+    attachCurrentRouteEndpoint(graph, start, floor).code,
+    "location-snap-unavailable",
+  );
 });
 
 test("walls and closed door lines block local attachment even when the nearest graph node is in the same area", () => {
@@ -293,6 +341,28 @@ test("a real G103-1 manual pin routes to G209 from its actual point without modi
   assert.equal(route.transitions.length, 1);
   assert.equal(route.end.label, "Г-209");
   assert.equal(JSON.stringify(graph), before);
+});
+
+test("the V78 worker router starts at a confirmed line near Г-103-1 and routes to Г-209", () => {
+  const read = (path) =>
+    JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url)));
+  const graph = read("public/data/routing/v-78.json"),
+    floor = read("public/data/campuses/v-78/v-78-floor0.json");
+  const fix = gps([-14.94891, -17.705855], "v-78");
+  const start = makeCurrentRouteEndpoint(fix, {
+    now,
+    snapToRoute: true,
+    viewFloor: floor,
+  }).endpoint;
+  const route = findNavigationRoute(graph, start, "v-78--floor-1--6dn", {
+    floors: [floor],
+  });
+  assert.equal(route.ok, true);
+  assert.notDeepEqual(route.start.point, fix.point);
+  assert.deepEqual(route.start.point, route.segments[0].points[0]);
+  assert.equal(route.diagnostics.localConnectorIds.length, 0);
+  assert.equal(route.transitions.length, 1);
+  assert.equal(route.end.label, "Г-209");
 });
 
 test("attachment preserves direction on an internal corridor instead of connecting backward to another visible node", () => {

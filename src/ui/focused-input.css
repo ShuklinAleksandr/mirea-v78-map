@@ -49,7 +49,9 @@ body[data-input-editing="true"] :is(.map-shell, .topbar) {
 .sidebar[data-input-editing="true"]
   .sidebar-scroll
   > :not(#explore-panel, #route-panel),
-.sidebar[data-input-editing="true"] #explore-panel > :not(.search-wrap),
+.sidebar[data-editing-field="search"]
+  #explore-panel:has(#results:not([hidden]))
+  > :is(#place-categories, #saved-places),
 .sidebar[data-input-editing="true"]
   .search-wrap
   > :not(.search-box, .search-results),
@@ -81,6 +83,15 @@ body[data-input-editing="true"] #route-open {
 }
 .sidebar[data-input-editing="true"] .search-wrap {
   margin: 0;
+}
+.sidebar[data-editing-field="search"] #explore-panel:has(#results[hidden]) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sidebar[data-editing-field="search"]
+  #explore-panel:has(#results[hidden])
+  .search-wrap {
+  flex: none;
 }
 .sidebar[data-input-editing="true"] :is(.search-box, .route-inputs) {
   flex: 0 0 auto;
@@ -136,7 +147,7 @@ body[data-input-editing="true"] #route-open {
   padding: 0 calc(var(--editor-done-width) + 4px) 0 4px;
 }
 .sidebar[data-input-editing="true"][data-short-viewport="true"]
-  :is(.search-wrap, #route-panel) {
+  :is(.search-wrap:has(#results:not([hidden])), #route-panel) {
   display: grid;
   grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);

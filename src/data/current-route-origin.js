@@ -2,6 +2,12 @@ import { isCurrentUserLocation } from "./user-location.js";
 import { getHallAdjacencyView } from "../map/hall-adjacency.js";
 import { getSurveyBlockedEdges } from "./survey-routing.js";
 import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
+import {
+  routeTrackingMatchRadius,
+  ROUTE_TRACKING_MAX_ACCURACY_METERS,
+  ROUTE_TRACKING_MAX_AGE_MS,
+} from "./route-tracking.js";
+import { isRouteTrackingConnectorClear } from "./route-tracking-surface.js";
 
 const EPS = 1e-7;
 const finitePoint = (p) =>
@@ -57,12 +63,40 @@ function inside(p, area) {
   );
 }
 /** A temporary endpoint is a snapshot selected by the user, not a catalogue room. */
-export function makeCurrentRouteEndpoint(location, { now = Date.now() } = {}) {
+export function makeCurrentRouteEndpoint(
+  location,
+  { now = Date.now(), snapToRoute = false, viewFloor, campusId } = {},
+) {
   if (!isCurrentUserLocation(location, now))
     return failure(
       "location-unavailable",
       "Получите свежую геопозицию или уточните своё место на карте.",
     );
+  snapToRoute = snapToRoute && location.source === "gps";
+  if (snapToRoute) {
+    if (
+      (campusId && location.campusId !== campusId) ||
+      (location.status && location.status !== "inside") ||
+      location.timestamp > now + 2_000 ||
+      now - location.timestamp > ROUTE_TRACKING_MAX_AGE_MS ||
+      !Number.isFinite(location.accuracyMeters) ||
+      location.accuracyMeters <= 0 ||
+      location.accuracyMeters > ROUTE_TRACKING_MAX_ACCURACY_METERS
+    )
+      return failure(
+        "location-unreliable",
+        "Ждём более точную геопозицию. Попробуйте «От меня» ещё раз после обновления точки.",
+      );
+    if (!location.floorId && viewFloor?.id) {
+      location = {
+        ...location,
+        floorId: viewFloor.id,
+        building: null,
+        physicalLevel: null,
+        floorEvidence: "manual-view-selection",
+      };
+    }
+  }
   if (
     !location.campusId ||
     !location.floorId ||
@@ -72,7 +106,9 @@ export function makeCurrentRouteEndpoint(location, { now = Date.now() } = {}) {
   )
     return failure(
       "location-floor-unknown",
-      "Откройте свой этаж и уточните точку на плане, чтобы начать маршрут.",
+      snapToRoute
+        ? "Откройте план этажа, на котором вы сейчас, и нажмите «От меня»."
+        : "Откройте свой этаж и уточните точку на плане, чтобы начать маршрут.",
     );
   return {
     ok: true,
@@ -82,6 +118,7 @@ export function makeCurrentRouteEndpoint(location, { now = Date.now() } = {}) {
       floorId: location.floorId,
       label: "Моё местоположение",
       selectedAt: now,
+      ...(snapToRoute ? { snapToRoute: true } : {}),
       location: { ...location, point: location.point.slice(0, 2) },
     },
   };
@@ -98,15 +135,24 @@ export function attachCurrentRouteEndpoint(
   if (endpoint?.kind !== "user-location") return { ok: true, graph, endpoint };
   const selected = makeCurrentRouteEndpoint(endpoint.location, {
     now: endpoint.selectedAt,
+    snapToRoute: endpoint.snapToRoute,
   });
   if (!selected.ok) return selected;
   const location = endpoint.location;
+  const snapToRoute = selected.endpoint.snapToRoute;
+  const noAttachment = (code, message) =>
+    snapToRoute
+      ? failure(
+          "location-snap-unavailable",
+          "Рядом с точкой GPS на выбранном этаже нет подтверждённого прохода. Проверьте этаж или выберите начало маршрута.",
+        )
+      : failure(code, message);
   if (
     sourceFloor?.id !== location.floorId ||
     sourceFloor.campusId !== graph.campusId ||
     location.campusId !== graph.campusId
   )
-    return failure(
+    return noAttachment(
       "location-floor-unavailable",
       "Для этой точки не найден выбранный план этажа. Уточните своё место.",
     );
@@ -115,19 +161,19 @@ export function attachCurrentRouteEndpoint(
     floor.footprints?.length &&
     !floor.footprints.some((p) => inside(location.point, p))
   )
-    return failure(
+    return noAttachment(
       "location-area-unavailable",
       "Точка находится вне пола выбранного плана. Уточните её на карте.",
     );
   const areas = (floor.polygons || []).filter((p) => inside(location.point, p));
   if (areas.length !== 1)
-    return failure(
+    return noAttachment(
       "location-area-unavailable",
       "Отметьте точное место внутри коридора, холла или помещения на плане.",
     );
   const area = areas[0];
   if (["stairs", "elevator", "lift"].includes(area.kind))
-    return failure(
+    return noAttachment(
       "location-on-transition",
       "Начните маршрут с площадки или коридора рядом с лестницей.",
     );
@@ -139,7 +185,7 @@ export function attachCurrentRouteEndpoint(
       Number.isFinite(location.physicalLevel) &&
       floor.buildingLevels?.[area.building] !== location.physicalLevel)
   )
-    return failure(
+    return noAttachment(
       "location-context-mismatch",
       "Точка находится в другом корпусе или на другом физическом этаже. Уточните её на плане.",
     );
@@ -152,7 +198,7 @@ export function attachCurrentRouteEndpoint(
   if (
     barriers.some((barrier) => onSegment(location.point, barrier.a, barrier.b))
   )
-    return failure(
+    return noAttachment(
       "location-connector-unavailable",
       "Точка находится на стене или границе двери. Отметьте место внутри прохода.",
     );
@@ -187,6 +233,7 @@ export function attachCurrentRouteEndpoint(
     ...getStairPartitionBlockedEdges(graph),
   ]);
   const candidates = [];
+  const maxGap = snapToRoute ? routeTrackingMatchRadius(location) : 12;
   for (const edge of graph.edges) {
     if (
       !edge.eligible ||
@@ -240,7 +287,12 @@ export function attachCurrentRouteEndpoint(
       a.position[1] + fraction * dy,
     ];
     const gap = distance(location.point, position);
-    if (gap <= 12 && clear({ position }))
+    if (
+      gap <= maxGap &&
+      clear({ position }) &&
+      (!snapToRoute ||
+        isRouteTrackingConnectorClear(sourceFloor, location.point, position))
+    )
       candidates.push({ edge, a, b, fraction, position, gap });
   }
   candidates.sort(
@@ -248,7 +300,7 @@ export function attachCurrentRouteEndpoint(
   );
   const target = candidates[0];
   if (!target)
-    return failure(
+    return noAttachment(
       "location-connector-unavailable",
       "Из этой точки нет проверенного короткого выхода к графу. Уточните место ближе к известному проходу.",
     );
@@ -272,7 +324,7 @@ export function attachCurrentRouteEndpoint(
     ...node,
     id: projectionId,
     position: target.position,
-    endpointKind: "source-edge-projection",
+    endpointKind: snapToRoute ? "user-location" : "source-edge-projection",
   };
   const connector = {
     id: `${id}:connector`,
@@ -301,12 +353,12 @@ export function attachCurrentRouteEndpoint(
     ephemeral: true,
   });
   const connectors = [
-    connector,
+    ...(snapToRoute ? [] : [connector]),
     partial(target.a.id, projectionId, target.fraction, "before"),
     partial(projectionId, target.b.id, 1 - target.fraction, "after"),
   ];
   const record = {
-    nodeId,
+    nodeId: snapToRoute ? projectionId : nodeId,
     label: endpoint.label,
     kind: "circulation",
     floorId: location.floorId,
@@ -319,7 +371,7 @@ export function attachCurrentRouteEndpoint(
     ok: true,
     graph: {
       ...graph,
-      nodes: [...graph.nodes, node, projection],
+      nodes: [...graph.nodes, ...(snapToRoute ? [] : [node]), projection],
       edges: [...graph.edges, ...connectors],
       rooms: { ...graph.rooms, [id]: record },
     },
