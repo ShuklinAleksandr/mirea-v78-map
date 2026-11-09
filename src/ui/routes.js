@@ -114,7 +114,10 @@ export function bindRoutes({
     });
   }
   function panel(routeMode) {
-    if (!routeMode) pausePreview(false);
+    if (!routeMode) {
+      pausePreview(false);
+      closeResults();
+    }
     $("#explore-panel").hidden = routeMode;
     $("#route-panel").hidden = !routeMode;
     closeRoom();
@@ -123,6 +126,7 @@ export function bindRoutes({
   $("#route-open").onclick = () => {
     panel(true);
     experience.expand(!route);
+    if (!route && (!from || !to)) candidates(to ? "from" : "to");
   };
   function status(text, error = false) {
     $("#route-status").textContent = text;
@@ -208,7 +212,7 @@ export function bindRoutes({
       if (open) {
         panel(true);
         experience.expand(true);
-        $("#route-to").focus();
+        focusEndpoint("to");
       }
       const location = result.endpoint.location;
       status(
@@ -385,9 +389,16 @@ export function bindRoutes({
   }
   const currentOriginButton = $("#route-use-location");
   if (currentOriginButton) currentOriginButton.onclick = chooseCurrentOrigin;
+  function focusEndpoint(key) {
+    const input = $("#route-" + key);
+    if (document.activeElement === input) candidates(key);
+    else input.focus({ preventScroll: true });
+  }
   function candidates(key) {
     activeInput = key;
-    const query = $("#route-" + key).value;
+    const value = $("#route-" + key).value;
+    const selected = key === "from" ? from : to;
+    const query = selected?.label === value ? "" : value;
     const q = norm(query);
     const list = $("#route-results");
     const records = (
@@ -405,8 +416,8 @@ export function bindRoutes({
             .sort(
               (a, b) =>
                 (norm(b.label) === q) - (norm(a.label) === q) ||
-                (b.campusId === state.campus.id) -
-                  (a.campusId === state.campus.id) ||
+                (b.campusId === state.campus?.id) -
+                  (a.campusId === state.campus?.id) ||
                 a.label.localeCompare(b.label, "ru", { numeric: true }),
             )
     )
@@ -415,7 +426,7 @@ export function bindRoutes({
     list.innerHTML = records.length
       ? records
           .map((r) => {
-            const c = state.manifest.campuses.find((c) => c.id === r.campusId);
+            const c = state.manifest?.campuses.find((c) => c.id === r.campusId);
             const f = c?.floors.find((f) => f.id === r.floorId);
             const level = f?.buildingLevels?.[r.building];
             if (nextInterface) {
@@ -431,10 +442,14 @@ export function bindRoutes({
         : '<div class="search-empty">Ничего не найдено. Попробуйте номер аудитории.</div>';
     if (key === "from")
       list.innerHTML =
-        `<button type="button" role="option" data-current-origin><span class="result-icon">${icon("locate", 17)}</span><span><b>Моё местоположение</b></span></button>` +
+        `<button type="button" role="option" data-current-origin><span class="result-icon">${icon("locate", 17)}</span><span><b>От моего местоположения</b></span></button>` +
         list.innerHTML;
     list.hidden = false;
     list.scrollTop = 0;
+    $("#route-" + (key === "from" ? "to" : "from")).setAttribute(
+      "aria-expanded",
+      "false",
+    );
     $("#route-" + key).setAttribute("aria-expanded", "true");
     for (const b of list.querySelectorAll("button"))
       b.onclick = () => {
@@ -449,7 +464,7 @@ export function bindRoutes({
           // The other input is hidden in focused mode. Reveal it before
           // transferring focus, within the same tap that chose this result.
           experience.finishInputEditing?.({ focusHandle: false });
-          $("#route-" + (from ? "to" : "from")).focus();
+          focusEndpoint(from ? "to" : "from");
         } else if (!experience.finishInputEditing?.()) {
           $("#route-" + key).blur();
         }
@@ -460,6 +475,9 @@ export function bindRoutes({
     input.onfocus = () => {
       experience.expand(true);
       candidates(key);
+    };
+    input.onclick = () => {
+      if ($("#route-results").hidden) candidates(key);
     };
     input.oninput = () => {
       if (key === "from") {
@@ -476,11 +494,13 @@ export function bindRoutes({
       }
       if (e.key === "Escape") closeResults();
       if (e.key === "Enter" && !$("#route-results").hidden) {
-        const selector =
-          key === "from" && input.value.trim()
-            ? "#route-results button[data-id]"
-            : "#route-results button";
-        $(selector)?.click();
+        const selected = key === "from" ? from : to;
+        if (selected?.label === input.value) {
+          closeResults();
+          if (!experience.finishInputEditing?.()) input.blur();
+        } else {
+          $("#route-results button[data-id]")?.click();
+        }
         e.preventDefault();
       }
     };
@@ -680,8 +700,10 @@ export function bindRoutes({
     invalidate();
     if (completed) toast(completion);
     panel(open);
-    if (open) experience.expand(true);
-    else minimizePanel();
+    if (open) {
+      experience.expand(true);
+      candidates("to");
+    } else minimizePanel();
     updateUI();
     saveView();
   }
@@ -1281,7 +1303,7 @@ export function bindRoutes({
     updateUI();
     panel(true);
     experience.expand(true);
-    $("#route-to").focus();
+    focusEndpoint("to");
     $("#route-to").select?.();
   };
   $("#route-fit").onclick = () => {
@@ -1302,9 +1324,23 @@ export function bindRoutes({
     // Focusing the other endpoint can replace the clicked suggestion before
     // this listener runs. Its event path still includes the result list.
     const path = event.composedPath();
+    // Mobile focus can move the field before the tap's click is delivered.
+    // The click may land on the sheet around the still-focused route input.
+    if (
+      document.activeElement === $("#route-" + activeInput) &&
+      path.includes($(".sidebar"))
+    )
+      return;
     if (
       !path.includes($(".route-inputs")) &&
-      !path.includes($("#route-results"))
+      !path.includes($("#route-results")) &&
+      !path.includes($("#route-open")) &&
+      !path.includes($("#route-use-location")) &&
+      !path.includes($("#route-edit")) &&
+      !path.includes($("#route-clear")) &&
+      !path.some((element) =>
+        ["room-to", "route-dock-details"].includes(element?.id),
+      )
     )
       closeResults();
   });
@@ -1411,7 +1447,7 @@ export function bindRoutes({
       if (open) {
         panel(true);
         experience.expand(true);
-        $("#route-" + (key === "from" ? "to" : "from")).focus();
+        focusEndpoint(key === "from" ? "to" : "from");
       }
     },
     setOrigin: (room, { open = false } = {}) => {
@@ -1419,7 +1455,7 @@ export function bindRoutes({
       if (open) {
         panel(true);
         experience.expand(true);
-        $("#route-to").focus();
+        focusEndpoint("to");
       }
     },
     getEndpoints: () => ({ from, to }),
@@ -1443,10 +1479,17 @@ export function bindRoutes({
         $("#route-to").value = to?.label || "";
         panel(true);
         if (a && b) await build();
+        else candidates(b ? "from" : "to");
       }
     },
     changedCampus() {
       if (route && route.campusId !== state.campus.id) invalidate();
+      if (
+        activeInput &&
+        !$("#route-panel").hidden &&
+        !$("#route-results").hidden
+      )
+        candidates(activeInput);
     },
     getRoute: () => route,
   };
