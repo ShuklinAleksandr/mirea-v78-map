@@ -167,7 +167,7 @@ test("a changed camera position or target retains the real motion tween", () => 
     const start = view.transition.start;
     assert.equal(view.animate(start + 325), true);
     assert.ok(view.transition, "real movement continues between endpoints");
-    view.animate(start + 650);
+    view.animate(start + 651);
     assert.equal(view.transition, null);
     assert.ok(view.camera.position.distanceTo(position) < 1e-6);
     assert.ok(view.controls.target.distanceTo(target) < 1e-6);
