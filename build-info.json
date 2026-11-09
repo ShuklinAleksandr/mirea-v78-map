@@ -1,6 +1,6 @@
 {
-  "version": "0.5.8",
-  "sourceCommit": "c725500247a72133f701cf132cb4bccb6ce7f3de",
+  "version": "0.5.9",
+  "sourceCommit": "f19423d78b18a8086c081c1f52fe23d0cea325b8",
   "base": "/mirea-v78-map/",
-  "scope": "V78; direct search field, separate route button and cleaned exterior near the sports hall"
+  "scope": "V78; search suggestions, smooth route following, and stable floor changes"
 }
