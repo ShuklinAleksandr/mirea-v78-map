@@ -8,7 +8,10 @@ import {
 } from "./map-viewport.js";
 import { makeCurrentRouteEndpoint } from "../data/current-route-origin.js";
 import { isCurrentUserLocation } from "../data/user-location.js";
-import { createRouteTracker } from "../data/route-tracking.js";
+import {
+  createRouteTracker,
+  ROUTE_TRACKING_MAX_AGE_MS,
+} from "../data/route-tracking.js";
 import { createRouteTrackingSurfaceGuard } from "../data/route-tracking-surface.js";
 import { findNextPlaces } from "../data/next-place-search.js";
 import { placeLocation, presentPlaceIdentity } from "../data/place-location.js";
@@ -144,6 +147,7 @@ export function bindRoutes({
     guideSection = guideDistance = 0;
     scene.setRouteGuidance?.(null);
     scene.clearRoute();
+    if (state.routeSnapEnabled) scene.refreshUserLocation?.();
     $("#route-panel").dataset.complete = "false";
     $("#route-panel").dataset.guiding = "false";
     for (const id of ["route-summary", "route-steps", "route-actions"])
@@ -219,7 +223,8 @@ export function bindRoutes({
   }
   function locationChanged() {
     refreshCurrentOriginButton();
-    updateLiveGuidance();
+    // The location controller refreshes the marker once, after route matching.
+    updateLiveGuidance(false);
     if (!pendingCurrentOrigin) return;
     const options = pendingCurrentOrigin;
     if (isCurrentUserLocation(state.userLocation)) {
@@ -248,7 +253,32 @@ export function bindRoutes({
     }
     return guard(point, projectedPoint);
   }
-  function updateLiveGuidance() {
+  function routeLocationMatch(location) {
+    if (
+      !state.routeSnapEnabled ||
+      !guiding ||
+      !automatic ||
+      previewing ||
+      document.hidden ||
+      scene.locationPicking ||
+      state.mode !== "floor" ||
+      !liveProgress?.matchedPoint ||
+      !["tracking", "floor-change", "arrived"].includes(liveProgress.status) ||
+      liveProgress.floorId !== state.floor?.id ||
+      location !== state.userLocation ||
+      (location?.trackingStatus &&
+        !["live", "tracking"].includes(location.trackingStatus)) ||
+      location?.timestamp !== liveProgress.locationTimestamp ||
+      Date.now() - location.timestamp > ROUTE_TRACKING_MAX_AGE_MS
+    )
+      return null;
+    return {
+      point: liveProgress.matchedPoint,
+      sourceSegmentIndex:
+        guide.sections[liveProgress.sectionIndex]?.sourceSegmentIndex,
+    };
+  }
+  function updateLiveGuidance(refreshLocation = true) {
     if (!route || !guiding || !automatic || previewing || !liveTracker) return;
     if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
     if (
@@ -262,11 +292,15 @@ export function bindRoutes({
         reason: "navigation-paused",
       };
       updateDockReadout();
+      if (refreshLocation && state.routeSnapEnabled)
+        scene.refreshUserLocation?.();
       return;
     }
     if (state.userLocation?.timestamp <= resumeAfterTimestamp) {
       liveProgress = { ...liveTracker.snapshot(), status: "stale" };
       updateDockReadout();
+      if (refreshLocation && state.routeSnapEnabled)
+        scene.refreshUserLocation?.();
       return;
     }
     const previousTimestamp = liveProgress?.locationTimestamp;
@@ -295,12 +329,15 @@ export function bindRoutes({
           route.segments[sample.sourceSegmentIndex]?.nodes || [],
         );
     }
-    // The only moving location marker is the actual provider position. The
-    // projected route distance is evidence for instructions, not a replacement
-    // coordinate or an orange demonstration marker.
     scene.setRouteGuidance?.(null);
+    if (refreshLocation && state.routeSnapEnabled)
+      scene.refreshUserLocation?.();
     updateProgressReadout();
-    const expires = state.userLocation?.timestamp + 10_001 - Date.now();
+    const expires =
+      state.userLocation?.timestamp +
+      ROUTE_TRACKING_MAX_AGE_MS +
+      1 -
+      Date.now();
     if (expires > 0 && typeof setTimeout === "function")
       liveExpiryTimer = setTimeout(updateLiveGuidance, expires);
   }
@@ -567,13 +604,13 @@ export function bindRoutes({
       b.onclick = () => focusStep(+b.dataset.step);
     renderProgress();
   }
-  function startGuidance() {
+  function startGuidance(index = 0) {
     if (!route) return;
     automatic = true;
     liveTracker ||= createRouteTracker(route);
     guiding = true;
     guideSection = guideDistance = 0;
-    focusStep(0);
+    focusStep(index);
     onLocate?.();
     updateLiveGuidance();
   }
@@ -591,6 +628,79 @@ export function bindRoutes({
     else minimizePanel();
     updateUI();
     saveView();
+  }
+  function advanceStep(index) {
+    const targetFloorId = route?.steps[index]?.targetFloorId;
+    const nextSection = targetFloorId
+      ? guide.sections.find(
+          (section, sectionIndex) =>
+            sectionIndex > guideSection && section.floorId === targetFloorId,
+        )
+      : null;
+    const target = nextSection
+      ? route.segments[nextSection.sourceSegmentIndex]?.nodes?.[0]
+      : null;
+    if (focusStep(index + 1) && automatic && targetFloorId) {
+      // Pressing the stair action is the user's explicit floor confirmation.
+      onConfirmFloor?.({
+        campusId: route.campusId,
+        floorId: targetFloorId,
+        building: target?.building,
+        physicalLevel: target?.physicalLevel,
+      });
+      onLocate?.();
+      updateLiveGuidance();
+    }
+  }
+  function getStairAction() {
+    const section = guide.sections[guideSection];
+    const next = guide.sections[guideSection + 1];
+    const transition = section?.transition;
+    if (
+      !route ||
+      previewing ||
+      transition?.kind !== "stairs" ||
+      transition.fromFloorId !== state.floor?.id ||
+      transition.toFloorId === transition.fromFloorId ||
+      next?.floorId !== transition.toFloorId
+    )
+      return null;
+    const step = guide.anchors.find(
+      (anchor) =>
+        anchor.sectionIndex === guideSection &&
+        route.steps[anchor.stepIndex]?.targetFloorId === next.floorId,
+    )?.stepIndex;
+    const target = route.segments[next.sourceSegmentIndex]?.nodes?.[0];
+    const level = target?.physicalLevel;
+    const sourceLevel =
+      target?.sourceLevel ??
+      state.floorData?.find((floor) => floor.id === next.floorId)?.level;
+    if (
+      step == null ||
+      (!Number.isFinite(level) && !Number.isFinite(sourceLevel))
+    )
+      return null;
+    const id = `route-${revision}-${step}`;
+    return {
+      id,
+      point: transition.point,
+      label:
+        level === -1
+          ? "В цоколь"
+          : Number.isFinite(level)
+            ? `На этаж ${level}`
+            : `На уровень ${sourceLevel}`,
+      nearby:
+        automatic &&
+        ["tracking", "floor-change"].includes(liveProgress?.status) &&
+        liveProgress.sectionIndex === guideSection &&
+        Date.now() - liveProgress.locationTimestamp <=
+          ROUTE_TRACKING_MAX_AGE_MS &&
+        section.length - liveProgress.distance <= 8,
+      open: () => {
+        if (getStairAction()?.id === id) advanceStep(step);
+      },
+    };
   }
   function renderDock() {
     const dock = $("#route-guidance-dock");
@@ -655,30 +765,7 @@ export function bindRoutes({
       if (!route) return;
       if (!guiding) startGuidance();
       else if (stepIndex === route.steps.length - 1) clear({ completed: true });
-      else {
-        const targetFloorId = route.steps[stepIndex]?.targetFloorId;
-        const nextSection = targetFloorId
-          ? guide.sections.find(
-              (section, index) =>
-                index > guideSection && section.floorId === targetFloorId,
-            )
-          : null;
-        const target = nextSection
-          ? route.segments[nextSection.sourceSegmentIndex]?.nodes?.[0]
-          : null;
-        if (focusStep(stepIndex + 1) && automatic && targetFloorId) {
-          // This button is an explicit human confirmation of the staircase
-          // hand-off. The provider itself never measured the new floor.
-          onConfirmFloor?.({
-            campusId: route.campusId,
-            floorId: targetFloorId,
-            building: target?.building,
-            physicalLevel: target?.physicalLevel,
-          });
-          onLocate?.();
-          updateLiveGuidance();
-        }
-      }
+      else advanceStep(stepIndex);
     });
     $("#route-dock-previous")?.addEventListener("click", () =>
       focusStep(stepIndex - 1),
@@ -988,6 +1075,7 @@ export function bindRoutes({
     if (!section || typeof requestAnimationFrame !== "function") return;
     pausePreview(false);
     automatic = false;
+    if (state.routeSnapEnabled) scene.refreshUserLocation?.();
     onPauseFollowing?.();
     guiding = true;
     if (guideDistance >= section.length) guideDistance = 0;
@@ -1090,7 +1178,8 @@ export function bindRoutes({
       minimizePanel();
       renderSteps();
       viewFloor(route.segments[0].floorId, !guide.sections.length);
-      if (guide.sections.length) applyGuidance({ animate: true });
+      if (state.routeSnapEnabled && guide.sections.length) startGuidance();
+      else if (guide.sections.length) applyGuidance({ animate: true });
       saveView();
     } catch (error) {
       if (id === revision) status(error.message, true);
@@ -1147,6 +1236,7 @@ export function bindRoutes({
       resumeAfterTimestamp = Date.now();
       if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
       liveProgress = { ...liveTracker.snapshot(), status: "stale" };
+      if (state.routeSnapEnabled) scene.refreshUserLocation?.();
       updateDockReadout();
     } else updateLiveGuidance();
   });
@@ -1156,6 +1246,7 @@ export function bindRoutes({
     if (automatic) {
       if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
       liveProgress = { ...liveTracker.snapshot(), status: "stale" };
+      if (state.routeSnapEnabled) scene.refreshUserLocation?.();
       updateDockReadout();
     }
   });
@@ -1181,6 +1272,26 @@ export function bindRoutes({
   }
   return {
     getViewportPadding: padding,
+    getStairAction,
+    routeLocationMatch,
+    routeSnapChanged() {
+      if (
+        state.routeSnapEnabled &&
+        route &&
+        !automatic &&
+        guide.sections.length
+      )
+        startGuidance(stepIndex);
+      else {
+        if (!state.routeSnapEnabled && automatic) {
+          automatic = false;
+          liveProgress = null;
+          clearTimeout(liveExpiryTimer);
+          updateProgressReadout();
+        }
+        scene.refreshUserLocation?.();
+      }
+    },
     isFollowingHeading: () =>
       Boolean(
         route &&

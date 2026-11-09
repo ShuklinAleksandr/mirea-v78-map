@@ -54,7 +54,7 @@ test("legacy library point links and new schematic markers preserve the source t
   assert.deepEqual(upper, original);
 });
 
-test("confirmed stairs can be found by library text without changing or deduplicating the archived search index", () => {
+test("confirmed stairs can be found by library text and campus slang without changing the archived search index", () => {
   const source = JSON.parse(
     readFileSync(
       new URL("../public/data/search-index.json", import.meta.url),
@@ -64,7 +64,7 @@ test("confirmed stairs can be found by library text without changing or deduplic
   const original = structuredClone(source);
   const floors = [floor(1), floor(2)];
   const shown = withConfirmedStairSearch(source, floors);
-  assert.equal(shown.length, source.length + 6);
+  assert.equal(shown.length, source.length + 7);
   const additions = shown.slice(source.length);
   assert.deepEqual(
     additions.map((marker) => marker.layoutId).sort(),
@@ -72,13 +72,13 @@ test("confirmed stairs can be found by library text without changing or deduplic
       "v-78-floor1-photo-stair-A154",
       "v-78-floor1-user-stair-basement",
       "v-78-floor2-photo-stair-A154-arrival",
+      "v-78-floor2-photo-stair-wide-hall",
       "v-78-floor2-user-stair-library",
       "v78-Д-scan-v-78-floor1",
       "v78-Д-scan-v-78-floor2",
     ].sort(),
-    "the two new source-guarded D scan views account for the changed count",
   );
-  assert.equal(new Set(additions.map((marker) => marker.id)).size, 6);
+  assert.equal(new Set(additions.map((marker) => marker.id)).size, 7);
   assert.ok(
     additions.every(
       (marker) => !source.some((place) => place.id === marker.id),
@@ -91,6 +91,12 @@ test("confirmed stairs can be found by library text without changing or deduplic
   assert.equal(matches[0].layoutId, "v-78-floor2-user-stair-library");
   assert.equal(matches[0].building, null);
   assert.deepEqual(matches[0].center, [30.523, 33.1784]);
+  const slangMatches = findPlaces(shown, { query: "ШТАНЫ" });
+  assert.deepEqual(
+    slangMatches.map((marker) => marker.label),
+    ["Главная лестница"],
+  );
+  assert.equal(slangMatches[0].layoutId, "v-78-floor2-photo-stair-wide-hall");
   assert.deepEqual(
     withConfirmedStairSearch(shown, floors),
     shown,

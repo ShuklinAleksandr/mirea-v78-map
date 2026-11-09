@@ -110,6 +110,50 @@ test("GPS circle appears in floor and campus views, with an unknown floor and on
   assert.equal(layer.visible, false);
 });
 
+test("the route marker sits on its visible segment while the accuracy circle stays on the GPS fix", (t) => {
+  const view = harness();
+  t.after(() => view.setUserLocation(null));
+  const location = {
+    source: "gps",
+    campusId: "v-78",
+    point: [1, 2],
+    accuracyRadiusMap: 5,
+    timestamp: Date.now(),
+  };
+  let matching = true;
+  view.callbacks.getRouteLocationMatch = () =>
+    matching ? { point: [1, 0], sourceSegmentIndex: 2 } : null;
+  view.routeLayer = {
+    paths: [
+      {
+        sourceSegmentIndex: 0,
+        points: [
+          [0, 0],
+          [4, 0],
+        ],
+      },
+      {
+        sourceSegmentIndex: 2,
+        points: [
+          [0, 0.2],
+          [4, 0.2],
+        ],
+      },
+    ],
+  };
+  view.setUserLocation(location);
+  const layer = view.userLocationLayer;
+  assert.deepEqual(layer.position.toArray(), [1, 0.4, 0.2]);
+  assert.equal(layer.getObjectByName("gps-provider-accuracy").position.z, 1.8);
+  assert.equal(layer.userData.presentation.floorState, "unknown");
+  assert.equal(layer.userData.presentation.label, "GPS · по маршруту");
+  assert.equal(view.userLocation, location);
+  assert.deepEqual(location.point, [1, 2]);
+  matching = false;
+  view.refreshUserLocation();
+  assert.deepEqual(layer.position.toArray(), [1, 0.4, 2]);
+});
+
 test("manual map picking returns the existing room identity and rejects map gaps", () => {
   const view = harness();
   assert.equal(view.setLocationPicking(true), true);

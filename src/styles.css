@@ -533,60 +533,11 @@ summary:focus-visible {
   font-size: 12px;
   line-height: 1.6;
 }
-.section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 18px 0 10px;
-}
-.section-heading h2 {
-  font-size: 12px;
-  font-weight: 600;
-  margin: 0;
-}
-.section-heading > span {
-  font-size: 12px;
-  color: var(--muted);
-}
-.overview-button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid var(--line);
-  padding: 12px;
-  border-radius: 14px;
-  text-align: left;
-  margin: 14px 0;
-}
-.overview-button > span {
-  flex: 1;
-}
-.overview-button b {
-  font-size: 12px;
-  display: block;
-}
-.overview-button small {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-.overview-button > svg {
-  color: var(--green);
-}
-.subheading {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 18px 0 10px;
-}
-.building-grid,
 .floor-list {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
-.building-grid button,
 .floor-button {
   min-width: 38px;
   min-height: 40px;
@@ -595,7 +546,6 @@ summary:focus-visible {
   border-radius: 10px;
   font-size: 12px;
 }
-.building-grid button.active,
 .floor-button.active {
   background: var(--green);
   color: white;
@@ -1310,7 +1260,6 @@ dialog::backdrop {
   color-scheme: dark;
 }
 [data-theme="dark"] .primary-button,
-[data-theme="dark"] .building-grid .active,
 [data-theme="dark"] .floor-button.active {
   color: #101b2e;
 }
@@ -1451,12 +1400,8 @@ dialog::backdrop {
   .search-wrap {
     margin-bottom: 0;
   }
-  .sidebar:not(.expanded) .explore-details,
   .sidebar:not(.expanded) #saved-places {
     display: none;
-  }
-  .sidebar.expanded .explore-details {
-    display: block;
   }
   .sidebar:not(.expanded) #route-steps {
     display: none;
@@ -1868,8 +1813,7 @@ dialog::backdrop {
 .campus-heading {
   display: none;
 }
-.sidebar:has(#results:not([hidden])) #saved-places,
-.sidebar:has(#results:not([hidden])) .explore-details {
+.sidebar:has(#results:not([hidden])) #saved-places {
   display: none;
 }
 
@@ -2406,7 +2350,6 @@ dialog::backdrop {
     flex: 1;
     overscroll-behavior: contain;
   }
-  .sidebar:not(.expanded) .explore-details,
   .sidebar:not(.expanded) #saved-places,
   .sidebar:not(.expanded) .route-inputs {
     display: block;
@@ -2579,4 +2522,19 @@ dialog::backdrop {
   #building-rooms-floor {
     font-size: 16px;
   }
+}
+
+.map-label.stair-action,
+[data-theme="dark"] .map-label.stair-action {
+  min-height: 38px;
+  padding: 6px 10px;
+  border-color: #fff;
+  border-radius: 10px;
+  background: #245ed2;
+  color: #fff;
+  z-index: 5;
+}
+.map-label.stair-action:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
 }

@@ -204,6 +204,7 @@ export function presentLocationOnMap(
             ? "GPS с поправкой"
             : "GPS"
           : "Я здесь",
+    location.routeMatched ? "по маршруту" : null,
     floorLabel,
     gps && Number.isFinite(location.accuracyMeters)
       ? `±${Math.round(location.accuracyMeters)} м`

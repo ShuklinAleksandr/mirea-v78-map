@@ -785,12 +785,18 @@ export function withConfirmedStairSearch(index = [], floors = []) {
     (place) => place.searchEvidence !== "user-confirmed-stair-display",
   );
   for (const floor of floors)
-    for (const marker of getMapStairMarkers(floor))
-      if (marker.shapeReviewStatus === "user-confirmed-schematic")
+    for (const marker of getMapStairMarkers(floor)) {
+      // The campus nickname points to the stair at the main entrance hall.
+      const mainStair = marker.layoutId === "v-78-floor2-photo-stair-wide-hall";
+      if (mainStair || marker.shapeReviewStatus === "user-confirmed-schematic")
         entries.push({
           ...marker,
+          ...(mainStair
+            ? { label: "Главная лестница", searchAliases: ["штаны"] }
+            : {}),
           searchEvidence: "user-confirmed-stair-display",
         });
+    }
   return entries;
 }
 

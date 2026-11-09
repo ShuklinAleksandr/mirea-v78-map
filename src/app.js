@@ -101,6 +101,7 @@ try {
         ? routes.getViewportPadding()
         : roomPadding(),
     shouldFollowHeading: () => routes?.isFollowingHeading(),
+    getRouteLocationMatch: (location) => routes?.routeLocationMatch(location),
     getResizePadding: () =>
       routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),
     onMapInteraction: () => {
@@ -111,6 +112,9 @@ try {
     onFrame: () => queueCameraFloorContext(),
     onMapTap: () => mapHud?.onMapTap(),
     onRoom: (r) => selectRoom(r),
+    getStairTargets: stairTargetsFor,
+    onStairTarget: openStairTarget,
+    getRouteStairAction: () => routes?.getStairAction(),
     onPositionPickPreview: () => userPosition?.previewPicking(),
     onBuilding: (b) => chooseBuilding(b),
     onRouteFloor: (id) =>
@@ -132,7 +136,13 @@ try {
 }
 if (scene) {
   bindCleanMap(scene, () => userPosition?.cancelPicking());
-  experience = bindExperience({ state, scene, navigateRoom, toast });
+  experience = bindExperience({
+    state,
+    scene,
+    navigateRoom,
+    toast,
+    onRouteSnapChange: () => routes?.routeSnapChanged(),
+  });
   routes = bindRoutes({
     state,
     scene,
@@ -406,15 +416,12 @@ function updateUI() {
     );
   $("#breadcrumb").innerHTML =
     `${escape(state.campus.title)} <span>/</span> ${escape(building)}${state.mode === "floor" ? ` <span>/</span> ${floorName(state.floor)}` : ""}`;
-  $("#overview").classList.toggle("active", state.mode === "overview");
   $("#campus-overview").hidden = !state.building && state.mode !== "floor";
   $("#facades").closest("label").hidden = state.mode !== "overview";
   $("#context").closest("label").hidden = state.mode !== "overview";
   $("#neighbors").closest("label").hidden =
     state.mode !== "floor" || !state.building;
   $("#exterior-actions").hidden = state.mode !== "overview";
-  for (const b of $("#buildings").children)
-    b.classList.toggle("active", b.dataset.building === (state.building || ""));
   $("#building-rooms-open").hidden = !state.building;
   $("#view-eyebrow").textContent =
     state.mode === "overview" ? "ПРОСТРАНСТВО УНИВЕРСИТЕТА" : "ВНУТРИ КАМПУСА";
@@ -519,24 +526,6 @@ async function loadCampus(id, { navigationToken = null } = {}) {
     state.floorContext = null;
     state.mode = "overview";
     $("#address").textContent = campus.address;
-    const buildings = [
-      ...new Set(
-        floors.flatMap((f) =>
-          (f.polygons || []).map((p) => p.building).filter(Boolean),
-        ),
-      ),
-    ].sort((a, b) => a.localeCompare(b, "ru"));
-    $("#building-count").textContent = `${buildings.length} корпусов`;
-    $("#buildings").innerHTML =
-      `<button data-building="" class="active">Все</button>` +
-      buildings
-        .map(
-          (b) =>
-            `<button data-building="${escape(b)}" aria-label="Корпус ${escape(b)}">${escape(b)}</button>`,
-        )
-        .join("");
-    for (const b of $("#buildings").children)
-      b.onclick = () => chooseBuilding(b.dataset.building || null);
     scene.setCampus(campus, floors);
     if (typeof userPosition !== "undefined") userPosition?.refresh?.();
     if (typeof routes !== "undefined") routes?.changedCampus();
@@ -704,28 +693,8 @@ const kindNames = {
   unknown: "Назначение не уточнено",
   hall: "Холл",
 };
-function selectRoom(room, focus = true) {
-  if (!room || !state.floor || !state.campus || state.mode !== "floor") return;
-  room = presentPlaceIdentity(
-    presentStairIdentity(
-      resolveRoom(getHallAdjacencyView(state.floor), room) || room,
-      state.floor,
-    ),
-    state.floor,
-  );
-  state.selected = room;
-  floorContextOwner = "selection";
-  const selectedBuilding = placeLocation(room, state.floor).building;
-  if (selectedBuilding)
-    state.floorContext = {
-      floorId: state.floor.id,
-      building: selectedBuilding,
-      source: "selection",
-    };
-  const card = $("#room-card");
-  card.hidden = false;
-  $(".sidebar").dataset.place = "true";
-  const stairTargets = (room.targets || [])
+function stairTargetsFor(room) {
+  return (room.targets || [])
     .filter((target) => target.floorId !== state.floor.id)
     .map((target) => {
       const targetFloor = state.floorData.find(
@@ -759,6 +728,12 @@ function selectRoom(room, focus = true) {
         targetFloor,
         targetMarker,
         targetBuilding: targetLocation?.building || null,
+        buttonLabel:
+          physical === -1
+            ? "В цоколь"
+            : physical != null
+              ? `На этаж ${physical}`
+              : `На уровень ${targetFloor?.level}`,
         label:
           physical != null
             ? `${physical === -1 ? "Цоколь" : `${physical} этаж`}${targetLocation.building ? ` корпуса ${targetLocation.building}` : " · корпус уточняется"}`
@@ -766,10 +741,54 @@ function selectRoom(room, focus = true) {
               ? `Уровень ${targetFloor.level} плана`
               : "Этаж пока недоступен",
       };
-    });
+    })
+    .filter(
+      (target, index, targets) =>
+        target.targetFloor &&
+        target.targetMarker &&
+        targets.findIndex(
+          (other) =>
+            other.floorId === target.floorId &&
+            other.targetMarker?.id === target.targetMarker.id,
+        ) === index,
+    );
+}
+function openStairTarget(target) {
+  if (!target?.targetFloor || !target.targetMarker) return;
+  const previousBuilding = state.building;
+  // The source stair's wing does not establish the destination's floor.
+  state.building = target.targetBuilding;
+  if (!chooseFloor(target.floorId, { fit: false })) {
+    state.building = previousBuilding;
+    return;
+  }
+  selectRoom(target.targetMarker, true);
+}
+function selectRoom(room, focus = true) {
+  if (!room || !state.floor || !state.campus || state.mode !== "floor") return;
+  room = presentPlaceIdentity(
+    presentStairIdentity(
+      resolveRoom(getHallAdjacencyView(state.floor), room) || room,
+      state.floor,
+    ),
+    state.floor,
+  );
+  state.selected = room;
+  floorContextOwner = "selection";
+  const selectedBuilding = placeLocation(room, state.floor).building;
+  if (selectedBuilding)
+    state.floorContext = {
+      floorId: state.floor.id,
+      building: selectedBuilding,
+      source: "selection",
+    };
+  const card = $("#room-card");
+  card.hidden = false;
+  $(".sidebar").dataset.place = "true";
+  const availableTargets = stairTargetsFor(room);
   const stairDescription =
     room.note ||
-    (stairTargets.length
+    (availableTargets.length
       ? "Выберите этаж, чтобы посмотреть продолжение пути."
       : "Переход на другой этаж пока не указан.");
   const evidence =
@@ -794,16 +813,6 @@ function selectRoom(room, focus = true) {
             ) < 1,
         )
       : [];
-  const availableTargets = stairTargets.filter(
-    (target, index, targets) =>
-      target.targetFloor &&
-      target.targetMarker &&
-      targets.findIndex(
-        (other) =>
-          other.floorId === target.floorId &&
-          other.targetMarker?.id === target.targetMarker.id,
-      ) === index,
-  );
   const description =
     room.kind === "stairs"
       ? stairDescription
@@ -823,20 +832,8 @@ function selectRoom(room, focus = true) {
   for (const button of card.querySelectorAll("[data-stair-variant]"))
     button.onclick = () =>
       selectRoom(nearbyStairs[+button.dataset.stairVariant], true);
-  for (const b of document.querySelectorAll("[data-target]"))
-    b.onclick = () => {
-      const t = availableTargets[+b.dataset.target];
-      if (!t?.targetFloor || !t.targetMarker) return;
-      const previousBuilding = state.building;
-      // The source stair's selected wing does not establish the destination's
-      // ownership or physical floor (e.g. the library corridor at edge 20734).
-      state.building = t.targetBuilding;
-      if (!chooseFloor(t.floorId, { fit: false })) {
-        state.building = previousBuilding;
-        return;
-      }
-      selectRoom(t.targetMarker, true);
-    };
+  for (const b of card.querySelectorAll("[data-target]"))
+    b.onclick = () => openStairTarget(availableTargets[+b.dataset.target]);
   const indexed = state.search?.find(
     (r) => r.id === room.roomId || r.id === room.id,
   ) || { ...room, campusId: state.campus.id, floorId: state.floor.id };
@@ -924,7 +921,6 @@ async function navigateRoom(r) {
   return true;
 }
 
-$("#overview").onclick = overview;
 $("#campus-overview").onclick = overview;
 $("#next-floor-open").onclick = () => $("#next-floor-dialog").showModal();
 $("#next-floor-close").onclick = () => $("#next-floor-dialog").close();

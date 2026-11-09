@@ -11,6 +11,7 @@ const isPoint = (p) =>
 // shortcut when a route visits the same floor more than once.
 export function visibleRouteSegments(route, floorId) {
   return (route?.segments || [])
+    .map((segment, sourceSegmentIndex) => ({ ...segment, sourceSegmentIndex }))
     .filter(
       (segment) =>
         segment.floorId === floorId &&
@@ -32,6 +33,32 @@ export function visibleRouteSegments(route, floorId) {
       };
     })
     .filter((segment) => segment.points.length > 0);
+}
+
+export function nearestRouteLinePoint(points, point) {
+  let best = null;
+  // Rounded corners may shift the visible line by at most 0.75 map units.
+  let squaredLimit = 0.75 ** 2;
+  for (let i = 1; i < points.length; i++) {
+    const [x, z] = points[i - 1];
+    const [nextX, nextZ] = points[i];
+    const dx = nextX - x;
+    const dz = nextZ - z;
+    const squaredLength = dx * dx + dz * dz;
+    if (!squaredLength) continue;
+    const t = Math.max(
+      0,
+      Math.min(1, ((point[0] - x) * dx + (point[1] - z) * dz) / squaredLength),
+    );
+    const candidate = [x + t * dx, z + t * dz];
+    const squaredError =
+      (candidate[0] - point[0]) ** 2 + (candidate[1] - point[1]) ** 2;
+    if (squaredError < squaredLimit) {
+      best = candidate;
+      squaredLimit = squaredError;
+    }
+  }
+  return best;
 }
 
 export function routeBounds(route, floorId, margin = 3) {

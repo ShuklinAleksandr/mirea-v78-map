@@ -99,6 +99,10 @@ export function findPlaces(
       const terms = PLACE_CATEGORIES.find((item) => item.id === kind)?.terms;
       return (
         normalizePlaceQuery(room.label).includes(q) ||
+        (q.length >= 3 &&
+          room.searchAliases?.some((alias) =>
+            normalizePlaceQuery(alias).startsWith(q),
+          )) ||
         terms?.split(" ").some((term) => normalizePlaceQuery(term).includes(q))
       );
     })

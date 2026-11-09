@@ -3,8 +3,8 @@ import {
   guidanceAnchorForStep,
 } from "../map/route-guidance.js";
 
-// This estimates progress on an existing path. It never changes the GPS point,
-// infers a floor, creates a shortcut, or claims indoor positioning accuracy.
+// This estimates progress and an optional display point on the existing path.
+// The observation itself and its floor evidence are never changed.
 export const ROUTE_TRACKING_MAX_ACCURACY_METERS = 12;
 export const ROUTE_TRACKING_MAX_AGE_MS = 10_000;
 const EPSILON = 1e-7;
@@ -199,7 +199,8 @@ export function createRouteTracker(route) {
     continuity = null,
     observedTimestamp = -Infinity,
     correction = null,
-    endCount = 0;
+    endCount = 0,
+    matchedPoint = null;
 
   function snapshot() {
     const section = guide.sections[state.sectionIndex];
@@ -209,6 +210,7 @@ export function createRouteTracker(route) {
       nextStepIndex: state.stepIndex,
       floorId: section?.floorId || null,
       transition: section?.transition || null,
+      matchedPoint: matchedPoint?.slice() ?? null,
       distanceToNextMeters:
         metric && anchor?.sectionIndex === state.sectionIndex
           ? Math.max(0, anchor.distance - state.distance)
@@ -229,6 +231,7 @@ export function createRouteTracker(route) {
   function hold(status, reason) {
     probe = null;
     endCount = 0;
+    matchedPoint = null;
     state = { ...state, status, reason };
     return snapshot();
   }
@@ -250,6 +253,7 @@ export function createRouteTracker(route) {
     probe = null;
     continuity = null;
     endCount = 0;
+    matchedPoint = null;
     return snapshot();
   }
 
@@ -382,6 +386,7 @@ export function createRouteTracker(route) {
       location.accuracyMeters <= 6;
     endCount = nearEnd ? endCount + 1 : 0;
     if (!previous) {
+      matchedPoint = null;
       state = {
         ...state,
         status: "acquiring",
@@ -390,6 +395,7 @@ export function createRouteTracker(route) {
       };
       return snapshot();
     }
+    matchedPoint = candidate.point;
     state = {
       ...state,
       status: "tracking",
