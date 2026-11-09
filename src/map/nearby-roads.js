@@ -114,19 +114,23 @@ function roadSurface(road, start, end, halfWidth) {
 }
 
 /** The known access roads form one flat surface around mapped buildings. */
-export function nearbyRoadPolygons(roads, footprints) {
+export function nearbyRoadPolygons(roads, footprints, excludedFootprint) {
   if (!roads?.length || !footprints?.length) return [];
   let byRoads = cachedRoads.get(footprints);
   if (!byRoads) cachedRoads.set(footprints, (byRoads = new WeakMap()));
-  if (byRoads.has(roads)) return byRoads.get(roads);
+  const cached = byRoads.get(roads);
+  if (cached && cached.excludedFootprint === excludedFootprint)
+    return cached.polygons;
 
   const buildings = footprints.map((p) => [p.points, ...(p.holes || [])]);
-  const boundaries = buildings.flatMap((rings) =>
-    rings.flatMap((ring) =>
-      ring
-        .map((point, i) => edge(point, ring[(i + 1) % ring.length]))
-        .filter(Boolean),
-    ),
+  const boundaries = buildings.flatMap((rings, index) =>
+    footprints[index] === excludedFootprint
+      ? []
+      : rings.flatMap((ring) =>
+          ring
+            .map((point, i) => edge(point, ring[(i + 1) % ring.length]))
+            .filter(Boolean),
+        ),
   );
   const surfaces = [];
   for (const road of roads) {
@@ -156,6 +160,6 @@ export function nearbyRoadPolygons(roads, footprints) {
           holes: holes.map((ring) => ring.slice(0, -1)),
         }))
     : [];
-  byRoads.set(roads, visible);
+  byRoads.set(roads, { excludedFootprint, polygons: visible });
   return visible;
 }

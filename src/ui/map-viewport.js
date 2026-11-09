@@ -12,7 +12,7 @@ export function measuredLandscapePadding(width, height, rectangles) {
   };
   const left = ["sidebar", "dock"].map(visible).filter(Boolean);
   const top = ["top", "status", "floorPicker"].map(visible).filter(Boolean);
-  const right = ["tools", "floors"].map(visible).filter(Boolean);
+  const right = ["tools", "floors", "route"].map(visible).filter(Boolean);
   const location = visible("location");
   return {
     left: Math.max(16, ...left.map((rect) => rect.right + 12)),
@@ -38,7 +38,9 @@ export function measuredPortraitPadding(width, height, rectangles) {
   };
   const top = ["top", "back", "settings"].map(visible).filter(Boolean);
   const right = ["floorPicker", "tools"].map(visible).filter(Boolean);
-  const bottom = ["sidebar", "dock", "location"].map(visible).filter(Boolean);
+  const bottom = ["sidebar", "dock", "location", "route"]
+    .map(visible)
+    .filter(Boolean);
   return {
     left: 16,
     top: Math.max(64, ...top.map((rect) => rect.bottom + 12)),
@@ -74,6 +76,7 @@ export function portraitMapPadding() {
     sidebar: ".sidebar",
     dock: "#route-guidance-dock",
     location: "#location-pick-banner",
+    route: "#route-open",
   });
   return measuredPortraitPadding(innerWidth, innerHeight, rectangles);
 }
@@ -88,6 +91,7 @@ export function landscapeMapPadding() {
     floors: "#floor-rail",
     tools: ".map-tools",
     location: "#location-pick-banner",
+    route: "#route-open",
   });
   return measuredLandscapePadding(innerWidth, innerHeight, rectangles);
 }

@@ -76,6 +76,7 @@ export function bindExperience({
   navigateRoom,
   toast,
   onRouteSnapChange,
+  onOpenSearch,
 }) {
   const sidebar = $(".sidebar"),
     handle = $("#sheet-toggle"),
@@ -151,7 +152,7 @@ export function bindExperience({
       editing
         ? "Завершить ввод"
         : sheetState === "minimized" && mobile()
-          ? "Открыть поиск и маршрут"
+          ? "Открыть поиск помещения"
           : sheetState === "expanded" || landscape()
             ? "Свернуть панель"
             : "Развернуть панель",
@@ -212,6 +213,12 @@ export function bindExperience({
     updateVisibleBounds();
   };
   const expand = (value) => setSheetState(value ? "expanded" : "peek");
+  function openSearch() {
+    onOpenSearch?.();
+    setSheetState("expanded");
+    // iOS only opens the keyboard if focus happens in the same tap handler.
+    $("#search").focus({ preventScroll: true });
+  }
   function finishInputEditing({ focusHandle = true } = {}) {
     if (!editingInput || !mobile()) return false;
     const input = editingInput;
@@ -234,8 +241,12 @@ export function bindExperience({
     }
     suppressDragClick = false;
     if (finishInputEditing()) return;
+    if (sheetState === "minimized") {
+      openSearch();
+      return;
+    }
     if (landscape()) {
-      setSheetState(sheetState === "minimized" ? "expanded" : "minimized");
+      setSheetState("minimized");
       return;
     }
     setSheetState(sheetState === "expanded" ? "peek" : "expanded");
@@ -405,7 +416,7 @@ export function bindExperience({
   window.addEventListener("pointercancel", releaseEditingPointer, true);
   visualViewport?.addEventListener("resize", updateVisibleBounds);
   visualViewport?.addEventListener("scroll", updateVisibleBounds);
-  setSheetState("peek");
+  setSheetState(mobile() ? "minimized" : "peek");
   const themeQuery = matchMedia("(prefers-color-scheme: dark)");
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const settings = readSaved("settings", {
@@ -570,6 +581,7 @@ export function bindExperience({
   });
   return {
     expand,
+    openSearch,
     finishInputEditing,
     minimize: () => setSheetState("minimized"),
     getSheetState: () => sheetState,

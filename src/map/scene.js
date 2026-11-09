@@ -7,7 +7,7 @@ import { createEntranceHall, createIndoorHallDetails } from "./hall.js";
 import { presentPlaceIdentity } from "../data/place-location.js";
 import { roomLabelAnchor, roomLabelScale } from "./room-labels.js";
 import { placeCategory, PLACE_CATEGORY_COLORS } from "../data/place-search.js";
-import { GPS_MAX_AGE_MS } from "../location.js";
+import { GPS_MAX_AGE_MS, pointInLocationPolygon } from "../location.js";
 import {
   pickLocationSurface,
   presentLocationOnMap,
@@ -68,7 +68,7 @@ const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
 const HEADING_DEADBAND = (2 * Math.PI) / 180;
 const LABEL_OBSTACLES =
-  ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit,#next-floor-open";
+  ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit,#next-floor-open,#route-open";
 const shapes = (polygon) => {
   if (!polygon.points || polygon.points.length < 3) return null;
   const s = new THREE.Shape(
@@ -1903,8 +1903,20 @@ export class AtlasScene {
       this.exteriorRoads?.length
     ) {
       try {
+        const sportsHall = this.floors
+          .find((floor) => floor.id === "v-78-floor1")
+          ?.polygons.find((room) => room.id === "v-78--floor-1--6kk");
+        // The detached sports hall remains visible. Its rear service spur
+        // should not pull a separate road fragment into the campus view.
+        const detachedSportsFootprint = exteriorData.footprints.find((p) =>
+          pointInLocationPolygon(sportsHall?.center, p),
+        );
         this.addNearbyRoads(
-          nearbyRoadPolygons(this.exteriorRoads, exteriorData.footprints),
+          nearbyRoadPolygons(
+            this.exteriorRoads,
+            exteriorData.footprints,
+            detachedSportsFootprint,
+          ),
         );
       } catch {
         // Optional roads cannot stop the building view from opening.

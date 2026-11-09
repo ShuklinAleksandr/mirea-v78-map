@@ -141,6 +141,7 @@ if (scene) {
     navigateRoom,
     toast,
     onRouteSnapChange: () => routes?.routeSnapChanged(),
+    onOpenSearch: () => routes?.showSearch(),
   });
   routes = bindRoutes({
     state,
@@ -987,7 +988,11 @@ new ResizeObserver(() => {
     scene.selectRoom(state.selected, { focus: true, padding: roomPadding() });
 }).observe($(".sidebar"));
 document.addEventListener("click", (e) => {
-  if (!e.target.closest(".search-wrap, #place-categories")) {
+  if (
+    !e.target.closest(
+      ".search-wrap, #place-categories, #sheet-toggle, #route-back-search",
+    )
+  ) {
     searchUI.close();
   }
 });
@@ -999,8 +1004,7 @@ document.addEventListener("keydown", (e) => {
     !$("dialog[open]")
   ) {
     e.preventDefault();
-    $("#explore-tab").click();
-    $("#search").focus();
+    experience?.openSearch();
   }
   if (e.key === "Escape" && !$("dialog[open]")) dismissRoom();
 });

@@ -116,17 +116,10 @@ export function bindRoutes({
     if (!routeMode) pausePreview(false);
     $("#explore-panel").hidden = routeMode;
     $("#route-panel").hidden = !routeMode;
-    for (const [id, on] of [
-      ["explore-tab", !routeMode],
-      ["route-tab", routeMode],
-    ]) {
-      $("#" + id).classList.toggle("active", on);
-      $("#" + id).setAttribute("aria-pressed", on);
-    }
     closeRoom();
   }
-  $("#explore-tab").onclick = () => panel(false);
-  $("#route-tab").onclick = () => {
+  $("#route-back-search").onclick = () => experience.openSearch();
+  $("#route-open").onclick = () => {
     panel(true);
     experience.expand(!route);
   };
@@ -1272,6 +1265,7 @@ export function bindRoutes({
   }
   return {
     getViewportPadding: padding,
+    showSearch: () => panel(false),
     getStairAction,
     routeLocationMatch,
     routeSnapChanged() {

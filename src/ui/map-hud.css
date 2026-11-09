@@ -16,6 +16,10 @@
   visibility: hidden;
 }
 
+[data-map-hud-hidden="true"] #route-open {
+  display: none;
+}
+
 #map-hud-reveal:focus-visible {
   position: fixed;
   z-index: 24;

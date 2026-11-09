@@ -265,12 +265,26 @@ test("outdoor views omit surrounding features and merge overlapping 2D floor out
 
 test("nearby access roads form one untextured, non-pickable mesh outside only", () => {
   const { view, floor } = overviewHarness();
+  const sportsFootprint = {
+    points: footprint.points.map(([x, z]) => [x + 80, z]),
+    holes: [],
+  };
+  floor.polygons.push({
+    ...sportsFootprint,
+    id: "v-78--floor-1--6kk",
+    center: [85, 5],
+    label: "Спортивный зал",
+    kind: "room",
+  });
   view.setExterior(
     {
       campuses: {
         "v-78": {
-          footprints: [footprint],
-          shells: [{ ...footprint, height: 3.6 }],
+          footprints: [footprint, sportsFootprint],
+          shells: [footprint, sportsFootprint].map((p) => ({
+            ...p,
+            height: 3.6,
+          })),
           facadeBands: [],
         },
       },
@@ -284,6 +298,14 @@ test("nearby access roads form one untextured, non-pickable mesh outside only", 
         points: [
           [-5, -4],
           [-5, 14],
+        ],
+        width: 3,
+      },
+      {
+        kind: "service",
+        points: [
+          [75, 0],
+          [75, 12],
         ],
         width: 3,
       },
@@ -306,6 +328,9 @@ test("nearby access roads form one untextured, non-pickable mesh outside only", 
       assert.equal(roads.material.map, null);
       assert.ok(!view.pickables.includes(roads));
       assert.ok(roads.geometry.index.count > 6);
+      roads.geometry.computeBoundingBox();
+      assert.ok(roads.geometry.boundingBox.max.x < 20, "rear spur is omitted");
+      assert.ok(new THREE.Box3().setFromObject(view.model).max.x >= 90);
     }
     view.setFloor(floor);
     assert.equal(view.context.children.length, 0);
