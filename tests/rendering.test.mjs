@@ -371,6 +371,50 @@ test("the separate entrance roof is visible over its body without a duplicate ge
   }
 });
 
+test("shared entrance and canopy walls have one surface owner at each height", () => {
+  const rectangle = (left, right, front, back) => ({
+    points: [
+      [left, front],
+      [right, front],
+      [right, back],
+      [left, back],
+    ],
+    holes: [],
+  });
+  const pavilion = {
+    id: "test-entrance",
+    height: 5,
+    lowPolygon: rectangle(0, 6, 0, 2),
+    canopy: { ...rectangle(0, 6, -1, 0), base: 4.45, height: 0.4 },
+  };
+  const exterior = createExterior(
+    { shells: [{ ...rectangle(2, 8, 0, 2), height: 9 }] },
+    { hall: pavilion },
+  );
+  const entrance = createEntranceHall(pavilion);
+  try {
+    for (const [x, y, isEntrance] of [
+      [3.3, 1, true],
+      [3.3, 4.65, true],
+      [3.3, 7, false],
+      [7.1, 1, false],
+    ]) {
+      const ray = new THREE.Raycaster(
+        new THREE.Vector3(x, y, -0.5),
+        new THREE.Vector3(0, 0, 1),
+      );
+      const hits = ray
+        .intersectObjects([...exterior.pickables, ...entrance.pickables], false)
+        .filter((hit) => Math.abs(hit.point.z) < 0.0001);
+      assert.equal(new Set(hits.map((hit) => hit.object)).size, 1);
+      assert.equal(entrance.pickables.includes(hits[0].object), isEntrance);
+    }
+  } finally {
+    dispose(exterior.group);
+    dispose(entrance.group);
+  }
+});
+
 test("detailed campus plus entrance stays within the overview material and triangle budget", () => {
   const exterior = createExterior(data.campuses["v-78"], {
     photoDetail: true,

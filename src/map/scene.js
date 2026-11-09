@@ -1,6 +1,7 @@
 import * as THREE from "three";
+import polygonClipping from "polygon-clipping";
 import { buildingAtPoint, convexHull } from "../data/spatial.js";
-import { createExterior, createMapContext } from "./exterior.js";
+import { createExterior } from "./exterior.js";
 import { createEntranceHall, createIndoorHallDetails } from "./hall.js";
 import { presentPlaceIdentity } from "../data/place-location.js";
 import { roomLabelAnchor, roomLabelScale } from "./room-labels.js";
@@ -250,7 +251,6 @@ export class AtlasScene {
       if (hit?.routeFloor) this.callbacks.onRouteFloor?.(hit.routeFloor);
       else if (hit?.room) this.callbacks.onRoom?.(hit.room);
       else if (hit?.building) this.callbacks.onBuilding?.(hit.building);
-      else if (hit?.external) this.callbacks.onExternal?.(hit.external);
       else this.callbacks.onEmpty?.();
     });
     host.addEventListener("pointermove", (e) => {
@@ -476,12 +476,11 @@ export class AtlasScene {
     this.wallHeight = a.wallHeight;
     this.assumptions = a;
   }
-  setExterior(data, context = null, style = {}, hall = null, special = null) {
+  setExterior(data, style = {}, hall = null, special = null) {
     this.specialExterior = special;
     this.entranceHall = hall;
     this.exteriorStyle = style;
     this.exteriorData = data.campuses;
-    this.exteriorContext = context;
   }
   streetView() {
     this.setProjection(false);
@@ -1813,11 +1812,21 @@ export class AtlasScene {
     const exteriorData = this.exteriorData?.[this.campus.id];
     let exteriorReady = this.plan;
     if (this.plan) {
-      const footprints = exteriorData?.footprints?.length
-        ? exteriorData.footprints
-        : this.floors.flatMap(
-            (floor) => floor.exteriorFootprints || floor.footprints || [],
-          );
+      let footprints = exteriorData?.footprints;
+      if (!footprints?.length) {
+        const source = this.floors.flatMap(
+          (floor) => floor.exteriorFootprints || floor.footprints || [],
+        );
+        // Several floors can cover the same area. Draw the fallback silhouette once.
+        footprints = source.length
+          ? polygonClipping
+              .union(...source.map((p) => [p.points, ...(p.holes || [])]))
+              .map(([points, ...holes]) => ({
+                points: points.slice(0, -1),
+                holes: holes.map((ring) => ring.slice(0, -1)),
+              }))
+          : [];
+      }
       this.addPlanFootprints(footprints);
     } else if (exteriorData) {
       const staging = new THREE.Group();
@@ -1886,33 +1895,6 @@ export class AtlasScene {
         this.model.add(edges);
       });
     }
-    // Keep the approaches to the entrance and library without the long strip
-    // along Koshtoyants Street. Its source polygon is still used by routing.
-    this.addOutdoor(
-      this.floors
-        .flatMap((f) => f.outdoorPolygons || [])
-        .filter((p) => p.id !== "v-78--floor-2--9y1"),
-    );
-    if (
-      this.campus.id === this.exteriorContext?.campusId &&
-      this.contextOn !== false
-    ) {
-      try {
-        const c = createMapContext(this.exteriorContext, {
-          plan: this.plan,
-          detail: this.qualityProfile?.detail,
-        });
-        this.context.add(c.group);
-        this.pickables.push(...c.pickables);
-      } catch {
-        cleanup(this.context);
-        this.pickables = this.pickables.filter(
-          (mesh) => !mesh.userData.external,
-        );
-        this.exteriorContext = null;
-      }
-    }
-    this.addUncertainty(this.floors[0]?.uncertaintyRegions || []);
     for (const [b, p] of Object.entries(this.buildingCenters))
       this.addLabel(
         `Корпус ${b}`,
@@ -2445,22 +2427,6 @@ export class AtlasScene {
     }
     if (treads.length) this.model.add(planOutline(treads));
   }
-  addOutdoor(polygons) {
-    const geoms = polygons.map((p) => flatGeometry(p, -0.12)).filter(Boolean);
-    if (!geoms.length) return;
-    const geo = mergeGeometries(geoms);
-    geoms.forEach((g) => g.dispose());
-    const mesh = new THREE.Mesh(
-      geo,
-      surfaceMaterial(this.plan, {
-        color: 0xd0d8cc,
-        roughness: 1,
-        side: THREE.DoubleSide,
-      }),
-    );
-    mesh.receiveShadow = true;
-    this.context.add(mesh);
-  }
   addUncertainty(regions) {
     for (const p of regions) {
       const geo = flatGeometry(p, -0.08);
@@ -2957,8 +2923,6 @@ export class AtlasScene {
       hit.object.userData.routeFloorId
     )
       return { routeFloor: hit.object.userData.routeFloorId };
-    if (hit.object.userData.external)
-      return { external: hit.object.userData.external };
     if (hit.object.userData.room) return { room: hit.object.userData.room };
     if (hit.object.userData.faceRooms)
       return { room: hit.object.userData.faceRooms[hit.faceIndex] };

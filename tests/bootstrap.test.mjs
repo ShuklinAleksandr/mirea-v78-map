@@ -27,7 +27,7 @@ test("all optional assets may fail while the complete V78 indoor catalog still b
   assert.equal(data.manifest.campuses[0].floors.length, 5);
   assert.equal(data.search.length, 1148);
   assert.ok(data.search.every((room) => room.campusId === "v-78"));
-  assert.equal(data.unavailable.length, 6);
+  assert.equal(data.unavailable.length, 5);
   assert.deepEqual(data.exterior, { campuses: {} });
   assert.deepEqual(data.photos, { images: [] });
   assert.equal(
@@ -78,11 +78,14 @@ test("stale catalog entries cannot expose removed campuses or missing floors", a
 });
 
 test("the current optional packages all pass structural validation", async () => {
-  const data = await loadBootstrapData(async (url) =>
-    read(url.replace("/data/", "").replace(/\.json$/, "")),
-  );
+  const requests = [];
+  const data = await loadBootstrapData(async (url) => {
+    requests.push(url);
+    return read(url.replace("/data/", "").replace(/\.json$/, ""));
+  });
   assert.deepEqual(data.unavailable, []);
   assert.ok(data.exterior.campuses["v-78"].shells.length);
+  assert.ok(!requests.includes("/data/exterior-context.json"));
 });
 
 test("a hung optional request reaches its deadline while essential maps still boot", async () => {
@@ -133,7 +136,6 @@ test("all optional deadlines are cleaned up when essential startup fails", async
 test("malformed optional geometry is rejected before reaching the scene", async () => {
   const damaged = {
     "/data/exterior-shells.json": { campuses: { "v-78": {} } },
-    "/data/exterior-context.json": { campusId: "v-78", roads: {} },
     "/data/exterior-hall.json": { campusId: "v-78", lowPolygon: {} },
     "/data/exterior-special.json": { campusId: "v-78", features: {} },
     "/data/facade-style.json": { roofFeatures: {} },
@@ -142,7 +144,6 @@ test("malformed optional geometry is rejected before reaching the scene", async 
     structuredClone(assets[url] ?? damaged[url] ?? { images: [] }),
   );
   assert.deepEqual(data.unavailable.sort(), [
-    "context",
     "exterior",
     "facadeStyle",
     "hall",
@@ -181,8 +182,6 @@ function overviewHarness() {
     wallHeight: 2.7,
     buildingCenters: {},
     callbacks: {},
-    addOutdoor() {},
-    addUncertainty() {},
     addLabel() {
       return {};
     },
@@ -213,7 +212,6 @@ test("damaged exterior, special, hall or facade falls back to plans and keeps in
     const { view, floor } = overviewHarness();
     view.setExterior(
       damaged.exterior ?? exterior,
-      null,
       damaged.style,
       damaged.hall,
       damaged.special,
@@ -238,17 +236,28 @@ test("damaged exterior, special, hall or facade falls back to plans and keeps in
   }
 });
 
-test("damaged optional outdoor context cannot discard the main building or indoor map", () => {
+test("outdoor views omit surrounding features and merge overlapping 2D floor outlines", () => {
   const { view, floor } = overviewHarness();
-  view.setExterior({ campuses: {} }, { campusId: "v-78", roads: [{}] });
+  floor.outdoorPolygons = [footprint];
+  floor.uncertaintyRegions = [{ ...footprint, kind: "test-area" }];
+  view.floors.push({ ...floor, id: "v-78-floor2", level: 2 });
+  view.setExterior({ campuses: {} });
   try {
-    assert.doesNotThrow(() => view.setOverview());
+    view.setOverview();
     assert.ok(
       view.model.children.some((mesh) => mesh.userData.floor === floor),
     );
-    assert.equal(view.exteriorContext, null);
-    assert.doesNotThrow(() => view.setFloor(floor));
+    assert.equal(view.context.children.length, 0);
+    view.plan = true;
+    view.setOverview();
+    assert.equal(view.context.children.length, 0);
+    assert.equal(view.pickables[0].geometry.index.count, 6);
+    view.setFloor(floor);
     assert.equal(view.mode, "floor");
+    assert.ok(
+      view.context.children.length,
+      "indoor uncertainty remains available",
+    );
   } finally {
     view.clear();
   }

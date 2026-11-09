@@ -121,7 +121,6 @@ try {
       routes?.getRoute() ? routes.showFloor(id) : chooseFloor(id),
     onEmpty: () => dismissRoom(),
     onUncertainty: () => toast("Положение этого участка требует уточнения"),
-    onExternal: (b) => showExternal(b),
     onHover: (r) => {
       const tip = $("#hover-tip");
       tip.hidden = !r?.label;
@@ -418,7 +417,6 @@ function updateUI() {
     `${escape(state.campus.title)} <span>/</span> ${escape(building)}${state.mode === "floor" ? ` <span>/</span> ${floorName(state.floor)}` : ""}`;
   $("#campus-overview").hidden = !state.building && state.mode !== "floor";
   $("#facades").closest("label").hidden = state.mode !== "overview";
-  $("#context").closest("label").hidden = state.mode !== "overview";
   $("#neighbors").closest("label").hidden =
     state.mode !== "floor" || !state.building;
   $("#exterior-actions").hidden = state.mode !== "overview";
@@ -644,15 +642,6 @@ function saveView() {
   routes?.appendURL(p);
   if (state.selected?.id) p.set("room", state.selected.id);
   history.replaceState(null, "", `#${p}`);
-}
-function showExternal(b) {
-  state.selected = null;
-  $(".sidebar").dataset.place = "true";
-  $("#room-card").hidden = false;
-  $("#room-card").innerHTML =
-    `<button class="card-close icon-button" aria-label="Закрыть карточку">${icon("close", 17)}</button><div class="eyebrow">Рядом с кампусом</div><h2>${escape(b.name)}</h2><p class="room-location">${escape(b.address || "Площадка Вернадского, 78")}</p><p class="room-note">Внутренняя карта этого здания пока недоступна.</p>`;
-  $(".card-close").onclick = dismissRoom;
-  saveView();
 }
 function closeRoom() {
   state.selected = null;
@@ -958,11 +947,6 @@ $("#mode-toggle").onclick = () => {
   updateUI();
   saveView();
 };
-$("#context").onchange = () => {
-  scene.contextOn = $("#context").checked;
-  if (state.mode === "overview") scene.setOverview();
-  updateUI();
-};
 $("#facades").onchange = () => {
   scene.facadesOn = $("#facades").checked;
   if (state.mode === "overview") scene.setOverview();
@@ -1030,7 +1014,6 @@ async function boot() {
       assumptions,
       photos,
       exterior,
-      context,
       facadeStyle,
       hall,
       special,
@@ -1043,7 +1026,7 @@ async function boot() {
       ? photos
       : photos.photos || photos.images;
     scene.setAssumptions(assumptions);
-    scene.setExterior(exterior, context, facadeStyle, hall, special);
+    scene.setExterior(exterior, facadeStyle, hall, special);
     const restored = resolveInitialView(initial, manifest);
     if (!restored || !(await loadCampus(restored.campusId))) return;
     state.building = restored.building;

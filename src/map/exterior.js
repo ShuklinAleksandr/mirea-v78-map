@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { subtractWallSpans, wallSpans } from "./wall-spans.js";
 
 function pointInRing(p, ring) {
   let inside = false;
@@ -20,44 +21,37 @@ function shape(p) {
     s.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, -y))));
   return s;
 }
-function solid(p, height, base = 0) {
-  const g = new THREE.ExtrudeGeometry(shape(p), {
-    depth: height,
-    bevelEnabled: false,
-    curveSegments: 2,
-  });
-  g.rotateX(-Math.PI / 2);
-  g.translate(0, base, 0);
-  return g;
-}
-// ExtrudeGeometry includes both caps. The exterior roof owns the top surface,
-// so keep only wall triangles instead of placing a second cap 2.5 cm above it.
-function wallGeometry(p) {
-  const source = solid(p, p.height, p.base || 0),
-    g = new THREE.BufferGeometry();
-  const wallGroups = source.groups.filter((group) => group.materialIndex === 1);
-  for (const [name, attribute] of Object.entries(source.attributes)) {
-    const values = new Float32Array(
-      wallGroups.reduce(
-        (sum, group) => sum + group.count * attribute.itemSize,
-        0,
-      ),
-    );
-    let offset = 0;
-    for (const group of wallGroups) {
-      const part = attribute.array.subarray(
-        group.start * attribute.itemSize,
-        (group.start + group.count) * attribute.itemSize,
-      );
-      values.set(part, offset);
-      offset += part.length;
+// Roofs own the caps. The entrance hall owns the shared lower wall faces.
+function wallGeometry(p, hallWalls) {
+  const base = p.base || 0,
+    top = base + p.height;
+  const positions = [];
+  for (const [index, ring] of [p.points, ...(p.holes || [])].entries()) {
+    const forward = signedRingArea(ring) > 0 !== index > 0;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i],
+        b = ring[(i + 1) % ring.length];
+      for (const span of subtractWallSpans(a, b, base, top, hallWalls)) {
+        const [start, end] = forward ? [span.a, span.b] : [span.b, span.a];
+        const lowStart = [start[0], span.base, start[1]],
+          highStart = [start[0], span.top, start[1]],
+          lowEnd = [end[0], span.base, end[1]],
+          highEnd = [end[0], span.top, end[1]];
+        positions.push(
+          ...lowStart,
+          ...highStart,
+          ...highEnd,
+          ...lowStart,
+          ...highEnd,
+          ...lowEnd,
+        );
+      }
     }
-    g.setAttribute(
-      name,
-      new THREE.Float32BufferAttribute(values, attribute.itemSize),
-    );
   }
-  source.dispose();
+  if (!positions.length) return null;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  g.computeVertexNormals();
   return g;
 }
 function inPolygon(point, p) {
@@ -66,12 +60,14 @@ function inPolygon(point, p) {
     !(p.holes || []).some((h) => pointInRing(point, h))
   );
 }
-function outwardNormal(ring, isHole, dx, dz, len) {
-  const area = ring.reduce((s, a, i) => {
+function signedRingArea(ring) {
+  return ring.reduce((s, a, i) => {
     const b = ring[(i + 1) % ring.length];
     return s + a[0] * b[1] - b[0] * a[1];
   }, 0);
-  const sign = (area > 0 ? 1 : -1) * (isHole ? -1 : 1);
+}
+function outwardNormal(ring, isHole, dx, dz, len) {
+  const sign = (signedRingArea(ring) > 0 ? 1 : -1) * (isHole ? -1 : 1);
   return [(sign * dz) / len, (-sign * dx) / len];
 }
 function roofBoundarySegments(shells) {
@@ -313,6 +309,13 @@ export function createExterior(
       !replaced.has(p.overrideRoomId || p.overrideSourceId || p.sourceRoomId),
   );
   const facadeBands = data.displayFacadeBands || data.facadeBands;
+  const hallWalls = hall?.lowPolygon
+    ? wallSpans(
+        hall.volumePolygons?.length ? hall.volumePolygons : [hall.lowPolygon],
+        hall.base || 0,
+        hall.height || 5,
+      )
+    : [];
   const hallFacades = [
     ...(hall?.frontGlazingSegments || []).map((s) => ({
       ...s,
@@ -352,7 +355,8 @@ export function createExterior(
     });
   for (const p of shellData) {
     if (p.points.length < 3) continue;
-    shells.push(wallGeometry(p));
+    const walls = wallGeometry(p, hallWalls);
+    if (walls) shells.push(walls);
     const roof = new THREE.ShapeGeometry(shape(p));
     roof.rotateX(-Math.PI / 2);
     roof.translate(0, (p.base || 0) + p.height, 0);
@@ -380,7 +384,6 @@ export function createExterior(
     underside.userData.exteriorRole = "underside";
   }
   const windows = [],
-    sills = [],
     parapets = [];
   if (photoDetail) {
     for (const band of facadeBands) {
@@ -423,24 +426,6 @@ export function createExterior(
                 );
                 windows.push(g);
               }
-              if (
-                !customFacade(
-                  (a[0] + b[0]) / 2,
-                  (a[1] + b[1]) / 2,
-                  rowY,
-                  dx,
-                  dz,
-                )
-              ) {
-                const g = new THREE.BoxGeometry(len - 1.1, 0.1, 0.13);
-                g.rotateY(angle);
-                g.translate(
-                  (a[0] + b[0]) / 2 + nx * 0.04,
-                  rowY - 0.76,
-                  (a[1] + b[1]) / 2 + nz * 0.04,
-                );
-                sills.push(g);
-              }
             }
           }
         }
@@ -467,7 +452,6 @@ export function createExterior(
     group,
     { shadow: false },
   );
-  merged(sills, material(0xf3f1e7), group, { shadow: false });
   merged(parapets, material(0xcdd3ca), group);
   if (photoDetail) {
     const details = new THREE.Group();
@@ -597,91 +581,6 @@ export function createExterior(
     const rounded = roundedHall(feature, photoDetail);
     group.add(rounded.group);
     pickables.push(...rounded.pickables);
-  }
-  return { group, pickables };
-}
-
-/** Render available OSM features as context, kept independent of the measured plan. */
-export function createMapContext(data, { plan = false, detail = true } = {}) {
-  const group = new THREE.Group();
-  group.name = "OSM context — approximate alignment";
-  if (!data) return { group, pickables: [] };
-  const drivewayGeoms = [],
-    pathGeoms = [],
-    surfaceGeoms = [];
-  const contextMaterial = (color) =>
-    plan ? new THREE.MeshBasicMaterial({ color }) : material(color);
-  for (const p of data.roads || []) {
-    if (!Array.isArray(p.points)) throw new TypeError("Invalid context road");
-    const pedestrian = ["footway", "path", "pedestrian", "steps"].includes(
-      p.kind,
-    );
-    if (!pedestrian && p.kind !== "service") continue;
-    const target = pedestrian ? pathGeoms : drivewayGeoms;
-    for (let i = 1; i < p.points.length; i++) {
-      const a = p.points[i - 1],
-        b = p.points[i],
-        dx = b[0] - a[0],
-        dz = b[1] - a[1],
-        len = Math.hypot(dx, dz);
-      const g = plan
-        ? new THREE.PlaneGeometry(len, p.width || 3).rotateX(-Math.PI / 2)
-        : new THREE.BoxGeometry(len, 0.025, p.width || 3);
-      g.rotateY(-Math.atan2(dz, dx));
-      g.translate((a[0] + b[0]) / 2, -0.16, (a[1] + b[1]) / 2);
-      target.push(g);
-    }
-  }
-  for (const p of data.surfaces || []) {
-    if (p.kind === "grass") continue;
-    const g = new THREE.ShapeGeometry(shape(p));
-    g.rotateX(-Math.PI / 2);
-    g.translate(0, -0.19, 0);
-    surfaceGeoms.push(g);
-  }
-  merged(drivewayGeoms, contextMaterial(0xc9d0c8), group, { shadow: false });
-  merged(pathGeoms, contextMaterial(0xe1e3d9), group, { shadow: false });
-  merged(surfaceGeoms, contextMaterial(0xc7d8bd), group, { shadow: false });
-  const pickables = [];
-  for (const b of data.buildings || []) {
-    const geos = b.polygons.map((p) =>
-      plan
-        ? new THREE.ShapeGeometry(shape(p)).rotateX(-Math.PI / 2)
-        : solid(p, b.height, b.base || 0),
-    );
-    const mesh = merged(geos, contextMaterial(0xd2d2c4), group, {
-      shadow: !plan,
-    });
-    if (mesh) {
-      mesh.userData.external = b;
-      pickables.push(mesh);
-      const line = new THREE.LineSegments(
-        new THREE.EdgesGeometry(mesh.geometry, 30),
-        new THREE.LineBasicMaterial({
-          color: 0x999d89,
-          transparent: true,
-          opacity: 0.35,
-        }),
-      );
-      group.add(line);
-    }
-  }
-  const trees = (data.trees || [])
-    .map((tree) => tree.position || tree.center)
-    .filter(Boolean);
-  if (!plan && detail && trees.length) {
-    const crowns = new THREE.InstancedMesh(
-      new THREE.IcosahedronGeometry(2.1, 1),
-      material(0xc2d0ad),
-      trees.length,
-    );
-    const transform = new THREE.Matrix4();
-    trees.forEach(([x, z], i) =>
-      crowns.setMatrixAt(i, transform.makeTranslation(x, 3.1, z)),
-    );
-    crowns.castShadow = true;
-    crowns.computeBoundingSphere();
-    group.add(crowns);
   }
   return { group, pickables };
 }

@@ -3,7 +3,6 @@ import { getJSON } from "./client.js";
 const OPTIONAL = [
   ["photos", "/data/photo-index.json", { images: [] }],
   ["exterior", "/data/exterior-shells.json", { campuses: {} }],
-  ["context", "/data/exterior-context.json", null],
   ["facadeStyle", "/data/facade-style.json", {}],
   ["hall", "/data/exterior-hall.json", null],
   ["special", "/data/exterior-special.json", null],
@@ -46,13 +45,6 @@ function validOptional(key, value) {
               (shell.base == null || Number.isFinite(shell.base)),
           ) &&
           Array.isArray(campus.displayFacadeBands || campus.facadeBands),
-      )
-    );
-  if (key === "context")
-    return (
-      typeof value.campusId === "string" &&
-      ["roads", "surfaces", "buildings", "trees"].every(
-        (name) => value[name] == null || Array.isArray(value[name]),
       )
     );
   if (key === "hall")
