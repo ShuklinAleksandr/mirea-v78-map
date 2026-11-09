@@ -377,11 +377,14 @@ export function bindRoutes({
     if (expires > 0 && typeof setTimeout === "function")
       liveExpiryTimer = setTimeout(updateLiveGuidance, expires);
   }
+  function chooseCurrentOrigin() {
+    if (!experience.finishInputEditing?.({ focusHandle: false }))
+      $("#route-from").blur();
+    closeResults();
+    if (useCurrentLocation({ open: !to }) && to) build();
+  }
   const currentOriginButton = $("#route-use-location");
-  if (currentOriginButton)
-    currentOriginButton.onclick = () => {
-      if (useCurrentLocation({ open: true }) && to) build();
-    };
+  if (currentOriginButton) currentOriginButton.onclick = chooseCurrentOrigin;
   function candidates(key) {
     activeInput = key;
     const query = $("#route-" + key).value;
@@ -426,10 +429,19 @@ export function bindRoutes({
       : nextInterface
         ? '<div class="search-empty">Ничего не найдено. Попробуйте номер аудитории или категорию: еда, туалеты, гардероб.</div>'
         : '<div class="search-empty">Ничего не найдено. Попробуйте номер аудитории.</div>';
+    if (key === "from")
+      list.innerHTML =
+        `<button type="button" role="option" data-current-origin><span class="result-icon">${icon("locate", 17)}</span><span><b>Моё местоположение</b></span></button>` +
+        list.innerHTML;
     list.hidden = false;
+    list.scrollTop = 0;
     $("#route-" + key).setAttribute("aria-expanded", "true");
     for (const b of list.querySelectorAll("button"))
       b.onclick = () => {
+        if (b.dataset.currentOrigin !== undefined) {
+          chooseCurrentOrigin();
+          return;
+        }
         const room = state.search.find((r) => r.id === b.dataset.id);
         if (!room) return;
         setEndpoint(key, room);
@@ -464,7 +476,11 @@ export function bindRoutes({
       }
       if (e.key === "Escape") closeResults();
       if (e.key === "Enter" && !$("#route-results").hidden) {
-        $("#route-results button")?.click();
+        const selector =
+          key === "from" && input.value.trim()
+            ? "#route-results button[data-id]"
+            : "#route-results button";
+        $(selector)?.click();
         e.preventDefault();
       }
     };
@@ -724,6 +740,7 @@ export function bindRoutes({
     return {
       id,
       point: transition.point,
+      targetFloorId: next.floorId,
       label:
         level === -1
           ? "В цоколь"

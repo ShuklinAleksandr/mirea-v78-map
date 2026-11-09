@@ -353,6 +353,36 @@ test("current location owns its projected pixel ahead of a room label without mo
   assert.equal(view.userLocationOverlay.hidden, true);
 });
 
+test("hidden phone controls stop occupying space in front of room labels", (t) => {
+  const view = harness();
+  const { element } = withLabelDocument(t, view);
+  view.host.clientWidth = 390;
+  view.host.clientHeight = 844;
+  document.body = { dataset: { mapHudHidden: "false" } };
+  const label = element();
+  label.textContent = "Г-209";
+  view.roomLabels = [
+    {
+      el: label,
+      id: "room-1",
+      kind: "room",
+      roomRadius: 1.8,
+      position: new THREE.Vector3(0, 0.13, 0),
+    },
+  ];
+  view.labelObstacles = [
+    {
+      matches: (selector) => selector.includes(".sidebar"),
+      getBoundingClientRect: () => ({ x: 24, y: 390, width: 342, height: 96 }),
+    },
+  ];
+  view.updateLabels();
+  assert.equal(label.style.display, "none");
+  document.body.dataset.mapHudHidden = "true";
+  view.updateLabels();
+  assert.equal(label.style.display, "block");
+});
+
 test("route clearing and floor rebuilds preserve the current marker with explicit floor projection", (t) => {
   const view = harness();
   withLabelDocument(t, view);
@@ -419,23 +449,27 @@ test("a route on a short screen keeps useful markers clear of the dock and hides
     return { el, id, kind, position: new THREE.Vector3(x, 0.5, z) };
   };
   const room = makeLabel("room-1", "room", "Г-209", -10, -8);
+  const unrelatedRoom = makeLabel("room-2", "room", "Г-208", 0, 0);
   const stair = makeLabel("stair-1", "stairs", "ЛК1", 10, -8);
   const start = makeLabel("route-0", "route", "Старт", -10, 14);
   const end = makeLabel("route-1", "route", "Назначение", 10, 14);
   const route = { group: new THREE.Group() };
   route.group.add(new THREE.Object3D());
-  view.roomLabels = [room, stair, start, end];
+  view.roomLabels = [room, unrelatedRoom, stair, start, end];
   view.selectedId = room.id;
   view.routeLayer = route;
   view.updateLabels();
   assert.equal(start.el.style.display, "block");
   assert.equal(end.el.style.display, "none");
-  assert.equal(room.el.style.display, "none");
-  assert.equal(stair.el.style.display, "none");
+  assert.equal(room.el.style.display, "block");
+  assert.equal(unrelatedRoom.el.style.display, "none");
+  assert.equal(stair.el.style.display, "block");
 
   view.setCleanMap(true);
   view.updateLabels();
   assert.equal(start.el.style.display, "block");
+  assert.equal(room.el.style.display, "none");
+  assert.equal(stair.el.style.display, "none");
 
   view.routeLayer = null;
   view.roomLabels = [room, stair];

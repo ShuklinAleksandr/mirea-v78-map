@@ -2588,3 +2588,17 @@ dialog::backdrop {
   outline: 2px solid #fff;
   outline-offset: -4px;
 }
+
+.map-label.room.compact-room,
+[data-theme="dark"] .map-label.room.compact-room {
+  border: 0;
+  padding: 0 1px;
+  line-height: 1.1;
+  background: none;
+  box-shadow: none;
+  font-weight: 700;
+  text-shadow: 0 0 1px #fff;
+}
+[data-theme="dark"] .map-label.room.compact-room {
+  text-shadow: 0 0 1px #101624;
+}

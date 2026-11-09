@@ -395,48 +395,123 @@ test("2D zoom buttons change orthographic magnification without moving the camer
   assert.ok(view.camera.zoom < oldZoom / 0.75);
 });
 
-test("approaching a linked stair with the map camera exposes its floor action in 2D and 3D", () => {
+test("both nearby main stair directions stay visible and the active route replaces only its duplicate", () => {
+  const floor = JSON.parse(
+    readFileSync(
+      new URL("../public/data/campuses/v-78/v-78-floor2.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const markers = getMapStairMarkers(floor).filter((marker) =>
+    [
+      "v-78-floor2-photo-stair-wide-hall",
+      "v-78-floor2-photo-stair-A154-arrival",
+    ].includes(marker.layoutId),
+  );
   for (const plan of [false, true]) {
     const view = cameraHarness();
-    const destination = { floorId: "plan-3", buttonLabel: "На этаж 4" };
-    const lower = { floorId: "plan-1", buttonLabel: "На этаж 2" };
     const opened = [];
+    const host = {
+      clientWidth: 390,
+      clientHeight: 844,
+      getBoundingClientRect: () => ({ x: 0, y: 0 }),
+    };
+    const aspect = host.clientWidth / host.clientHeight;
     Object.assign(view, {
       plan,
       camera: plan ? view.planCamera : view.perspectiveCamera,
       mode: "floor",
+      building: "А",
+      labelsOn: true,
+      host,
+      labelObstacles: [],
       roomLabels: [],
-      stairCandidates: [
-        { marker: { id: "lower" }, point: [12, -4] },
-        { marker: { id: "upper", layoutId: "upper-flight" }, point: [12, -6] },
-      ],
+      stairCandidates: markers.map((marker, index) => ({
+        marker,
+        point: marker.center,
+        labelHeight: plan ? 0.5 : index === 0 ? 4.2 : 1.25,
+      })),
       callbacks: {
-        getStairTargets: (marker) => [
-          marker.id === "upper" ? destination : lower,
-        ],
-        onStairTarget: (target) => opened.push(target),
+        getStairTargets: (marker) =>
+          marker.targets.map(({ floorId }) => ({
+            floorId,
+            buttonLabel: `На этаж ${floorId.at(-1)}`,
+          })),
+        onStairTarget: (target) => opened.push(target.floorId),
       },
-      addLabel(text, point, y, kind, open) {
-        const el = { text, open, remove() {} };
-        this.roomLabels.push({ el, kind });
+      addLabel(text, [x, z], y, kind, open, id) {
+        const el = {
+          textContent: text,
+          open,
+          remove() {},
+          style: {},
+          classList: { toggle() {} },
+        };
+        this.roomLabels.push({
+          el,
+          kind,
+          id,
+          position: new THREE.Vector3(x, y, z),
+        });
         return el;
       },
+      updateUserLocationOverlay: () => null,
     });
-    view.updateStairActions();
-    assert.equal(view.roomLabels.length, 0);
-    if (plan) view.camera.zoom = 5;
-    else view.camera.position.set(12, 35, 5);
-    view.updateStairActions();
-    assert.equal(view.roomLabels[0].el.text, "На этаж 2");
-    view.selectedId = "search-result";
-    view.selectedRoom = { layoutId: "upper-flight" };
-    view.updateStairActions();
-    assert.equal(view.roomLabels[0].el.text, "На этаж 4");
-    view.roomLabels[0].el.open();
-    assert.deepEqual(opened, [destination]);
-    view.controls.target.set(80, 0, 30);
-    view.updateStairActions();
-    assert.equal(view.roomLabels.length, 0);
+    view.perspectiveCamera.aspect = aspect;
+    view.planCamera.left = -100 * aspect;
+    view.planCamera.right = 100 * aspect;
+    for (const stair of view.stairCandidates)
+      view.addLabel(
+        stair.marker.label,
+        stair.point,
+        stair.labelHeight,
+        "stairs",
+        null,
+        stair.marker.id,
+      );
+    const aim = (x, z, near) => {
+      view.controls.target.set(x, 0, z);
+      view.camera.position.set(x, near ? 40 : 180, z + (plan ? 0 : 15));
+      view.camera.zoom = plan && near ? 5 : 1;
+      view.camera.lookAt(view.controls.target);
+      view.camera.updateProjectionMatrix();
+      view.camera.updateMatrixWorld();
+      view.updateLabels();
+    };
+    const shown = (kind) =>
+      view.roomLabels.filter(
+        (label) => label.kind === kind && label.el.style.display === "block",
+      );
+    aim(50, -18, false);
+    assert.deepEqual(shown("stair-action"), []);
+    aim(50, -18, true);
+    const ordinary = shown("stair-action");
+    assert.deepEqual(ordinary.map(({ el }) => el.textContent).sort(), [
+      "На этаж 1",
+      "На этаж 3",
+    ]);
+    assert.equal(shown("stairs").length, 2);
+    ordinary.find(({ el }) => el.textContent === "На этаж 1").el.open();
+    assert.deepEqual(opened, ["v-78-floor1"]);
+    view.routeLayer = { group: { children: [{}] } };
+    view.callbacks.getRouteStairAction = () => ({
+      id: "route-stair-test",
+      point: [50, -18],
+      targetFloorId: "v-78-floor3",
+      label: "На этаж 3",
+      open: () => opened.push("route"),
+    });
+    view.updateLabels();
+    const onRoute = shown("stair-action");
+    assert.deepEqual(onRoute.map(({ el }) => el.textContent).sort(), [
+      "На этаж 1",
+      "На этаж 3",
+    ]);
+    assert.equal(shown("stairs").length, 2);
+    onRoute.find((label) => label.onRoute).el.open();
+    assert.deepEqual(opened, ["v-78-floor1", "route"]);
+    aim(80, 30, true);
+    assert.deepEqual(shown("stair-action"), []);
   }
 });
 

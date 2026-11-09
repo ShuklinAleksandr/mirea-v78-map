@@ -16,7 +16,12 @@ const readFloor = (level) =>
     ),
   );
 
-function renderConnections(floor, stackDisplay = false, building = "А") {
+function renderConnections(
+  floor,
+  stackDisplay = false,
+  building = "А",
+  preserveSharedComponents = false,
+) {
   const labels = [];
   const view = Object.assign(Object.create(AtlasScene.prototype), {
     model: new THREE.Group(),
@@ -24,6 +29,7 @@ function renderConnections(floor, stackDisplay = false, building = "А") {
     assumptions: { floorHeight: 3.6 },
     building,
     neighborsOn: false,
+    preserveSharedComponents,
     stackDisplay,
     callbacks: {},
     addLabel(text, point, y, kind, onClick, id) {
@@ -68,6 +74,26 @@ function renderConnections(floor, stackDisplay = false, building = "А") {
     },
   };
 }
+
+test("rendered shared stair geometry keeps its label and linked floors when outside the selected wing", () => {
+  const floor = readFloor(2);
+  const stair = "v-78-floor2-photo-stair-wide-hall";
+  const scoped = renderConnections(floor, false, "Е");
+  const shared = renderConnections(floor, false, "Е", true);
+  try {
+    assert.equal(scoped.layouts.has(stair), false);
+    assert.ok(shared.layouts.has(stair));
+    assert.ok(shared.labels.some(({ id }) => id === `photo-stair:${stair}`));
+    assert.ok(
+      shared.view.stairCandidates.some(
+        ({ marker }) => marker.layoutId === stair,
+      ),
+    );
+  } finally {
+    scoped.dispose();
+    shared.dispose();
+  }
+});
 
 test("the library return stair survives the real hall display adapter and stacked rendering without a guessed lower duplicate", () => {
   const floor = readFloor(2);
