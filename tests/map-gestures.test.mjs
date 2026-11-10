@@ -254,6 +254,195 @@ function movePair(h, points, { frame = true, order = [1, 2] } = {}) {
 function endPair(h, points, order = [2, 1]) {
   for (const id of order) h.pointer("pointerup", id, ...points[id - 1]);
 }
+function observeInteraction(h) {
+  const events = [];
+  h.controls.addEventListener("start", () => events.push("start"));
+  h.controls.addEventListener("end", () => events.push("end"));
+  return events;
+}
+
+test("a map tap reveals controls without interrupting following or a recenter animation", () => {
+  for (const plan of [false, true]) {
+    const h = harness(plan);
+    try {
+      let following = true;
+      const transition = { recenter: true };
+      h.view.transition = transition;
+      h.view.userLocationFollowPath = true;
+      h.view.callbacks = {
+        onMapInteraction: () => (following = false),
+      };
+      h.controls.addEventListener("start", () => h.view.beginMapInteraction());
+      const events = observeInteraction(h);
+      const before = snapshot(h);
+      h.pointer("pointerdown", 1, 170, 450);
+      h.pointer("pointermove", 1, 172, 451);
+      h.frame();
+      h.pointer("pointerup", 1, 172, 451);
+      assert.equal(h.picks, 1, "ordinary map tap still reaches the UI");
+      assert.equal(following, true);
+      assert.equal(h.view.transition, transition);
+      assert.equal(h.view.userLocationFollowPath, true);
+      assert.deepEqual(events, []);
+      assertStill(h, before);
+
+      h.pointer("pointerdown", 2, 170, 450);
+      h.pointer("pointermove", 2, 195, 460);
+      h.frame();
+      assert.equal(following, false, "a real drag pauses camera following");
+      assert.equal(h.view.transition, null);
+      assert.equal(h.view.userLocationFollowPath, false);
+      assert.deepEqual(events, ["start"]);
+      h.pointer("pointerup", 2, 195, 460);
+      assert.deepEqual(events, ["start", "end"]);
+    } finally {
+      h.dispose();
+    }
+  }
+});
+
+test("stationary and undecided two-finger gestures never pause navigation", () => {
+  for (const order of [
+    [1, 2],
+    [2, 1],
+  ]) {
+    const h = harness();
+    try {
+      const events = observeInteraction(h);
+      const before = snapshot(h);
+      startPair(h, pair(170, 450, 65));
+      movePair(h, pair(172, 453, 66, 1));
+      endPair(h, pair(172, 453, 66, 1), order);
+      assert.deepEqual(events, []);
+      assertStill(h, before);
+      assert.equal(h.picks, 0);
+    } finally {
+      h.dispose();
+    }
+  }
+});
+
+test("recognized pan, pinch, rotation and tilt each start once before changing the camera", () => {
+  for (const [name, plan, moved] of [
+    ["3D pair pan", false, pair(195, 450, 65)],
+    ["2D pair pan", true, pair(170, 480, 65)],
+    ["3D pinch", false, pair(170, 450, 90)],
+    ["2D pinch", true, pair(170, 450, 90)],
+    ["3D rotation", false, pair(170, 450, 65, 20)],
+    ["2D rotation", true, pair(170, 450, 65, 20)],
+    ["3D tilt", false, pair(170, 500, 65)],
+  ]) {
+    const h = harness(plan);
+    try {
+      const before = snapshot(h);
+      const events = observeInteraction(h);
+      h.controls.addEventListener("start", () => assertStill(h, before));
+      startPair(h, pair(170, 450, 65));
+      assert.deepEqual(events, [], `${name}: touch-down is not an action`);
+      movePair(h, moved);
+      assert.deepEqual(events, ["start"], name);
+      movePair(h, moved);
+      endPair(h, moved);
+      assert.deepEqual(events, ["start", "end"], name);
+    } finally {
+      h.dispose();
+    }
+  }
+});
+
+test("disabled movements leave navigation running and do not emit unmatched end events", () => {
+  const h = harness();
+  try {
+    const events = observeInteraction(h);
+    const before = snapshot(h);
+    h.controls.enablePan = false;
+    h.controls.enableZoom = false;
+    h.controls.enableTouchRotate = false;
+    h.pointer("pointerdown", 1, 170, 450);
+    h.pointer("pointermove", 1, 200, 475);
+    h.frame();
+    h.pointer("pointerup", 1, 200, 475);
+    startPair(h, pair(170, 450));
+    movePair(h, pair(195, 480, 90, 30));
+    endPair(h, pair(195, 480, 90, 30));
+    assert.deepEqual(events, []);
+    assertStill(h, before);
+  } finally {
+    h.dispose();
+  }
+});
+
+test("one interaction spans 1→2→1 contacts and ends only when the last finger is released", () => {
+  const h = harness();
+  try {
+    const events = observeInteraction(h);
+    h.pointer("pointerdown", 1, 120, 450);
+    h.pointer("pointermove", 1, 140, 450);
+    h.frame();
+    h.pointer("pointerdown", 2, 240, 450);
+    movePair(h, [
+      [130, 450],
+      [270, 450],
+    ]);
+    h.pointer("pointerup", 2, 270, 450);
+    h.pointer("pointermove", 1, 150, 470);
+    h.frame();
+    assert.deepEqual(events, ["start"]);
+    h.pointer("pointerup", 1, 150, 470);
+    assert.deepEqual(events, ["start", "end"]);
+    assert.equal(h.picks, 0);
+    h.pointer("pointerdown", 3, 150, 470);
+    h.pointer("pointerup", 3, 150, 470);
+    assert.deepEqual(events, ["start", "end"]);
+    assert.equal(h.picks, 1);
+  } finally {
+    h.dispose();
+  }
+});
+
+test("final pointerup movement starts and ends the interaction even before a queued frame", () => {
+  const h = harness();
+  try {
+    const events = observeInteraction(h);
+    startPair(h, pair(170, 450));
+    movePair(h, pair(170, 450, 90), { frame: false });
+    assert.deepEqual(events, []);
+    endPair(h, pair(170, 450, 90));
+    assert.deepEqual(events, ["start", "end"]);
+    assert.equal(h.pendingFrames, 0);
+  } finally {
+    h.dispose();
+  }
+});
+
+test("cancel, lost capture, blur and disposal balance only interactions that actually started", () => {
+  for (const begun of [false, true]) {
+    for (const ending of [
+      "pointercancel",
+      "lostpointercapture",
+      "blur",
+      "dispose",
+    ]) {
+      const h = harness();
+      try {
+        const events = observeInteraction(h);
+        startPair(h, pair(170, 450));
+        movePair(h, pair(195, 470, 90, 20), { frame: begun });
+        if (ending === "blur") h.window.dispatchEvent(new Event("blur"));
+        else if (ending === "dispose") h.touch.dispose();
+        else {
+          h.pointer(ending, 2, 270, 470);
+          h.pointer(ending, 1, 120, 450);
+        }
+        h.frame();
+        assert.deepEqual(events, begun ? ["start", "end"] : [], ending);
+        assert.equal(h.pendingFrames, 0);
+      } finally {
+        h.dispose();
+      }
+    }
+  }
+});
 function worldAt(h, x, y) {
   const rect = h.element.getBoundingClientRect();
   h.camera.updateMatrixWorld();

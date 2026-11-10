@@ -79,6 +79,21 @@ test("Next never hides the manual fallback or claims distance after GPS uncertai
   );
 });
 
+test("camera return remains available beside position refinement after GPS drift", () => {
+  for (const status of ["low-accuracy", "off-route", "floor-mismatch"]) {
+    const current = view({
+      following: false,
+      liveProgress: { status },
+    });
+    assert.equal(current.showRecenter, true, status);
+    assert.ok(current.contextAction, status);
+    assert.equal(current.distance, "", status);
+  }
+  const stale = view({ following: false, liveProgress: { status: "stale" } });
+  assert.equal(stale.contextAction, "locate");
+  assert.equal(stale.showRecenter, false, "one action resumes GPS and camera");
+});
+
 test("progress counts the accepted mapped path across sections without inventing a stair distance", () => {
   const guide = { sections: [{ length: 60 }, { length: 30 }] };
   const acceptedProgress = { sectionIndex: 1, distance: 15 };

@@ -64,6 +64,7 @@ export function bindMapTouchRotation(
   let baseline = null;
   let frame = null;
   let active = false;
+  let interactionStarted = false;
   let disposed = false;
   let singleDragStarted = false;
   let pairOrigin = null;
@@ -311,6 +312,30 @@ export function bindMapTouchRotation(
       controls.enablePan !== false
         ? groundPoint(pivotBefore, rect, camera, height)
         : null;
+    const canMove =
+      (anchor &&
+        (pivotBefore.x !== pivotAfter.x || pivotBefore.y !== pivotAfter.y)) ||
+      (tilting && before.y !== after.y) ||
+      (pair &&
+        !tilting &&
+        ((pinchStarted &&
+          controls.enableZoom !== false &&
+          controls.zoomSpeed !== 0 &&
+          before.span !== after.span) ||
+          (twistStarted &&
+            controls.enableTouchRotate !== false &&
+            before.angle !== after.angle)));
+    if (!canMove) {
+      rebase();
+      return;
+    }
+    // A touch-down may only reveal the map buttons. Notify the application
+    // after a supported movement is recognized, so a tap does not stop GPS
+    // following or cancel an in-progress recenter animation.
+    if (!interactionStarted) {
+      interactionStarted = true;
+      controls.dispatchEvent({ type: "start" });
+    }
     if (tilting) {
       const offset = camera.position.clone().sub(controls.target);
       const distance = offset.length();
@@ -418,7 +443,10 @@ export function bindMapTouchRotation(
     pairUpdates.clear();
     if (!active) return;
     active = false;
-    controls.dispatchEvent({ type: "end" });
+    if (interactionStarted) {
+      interactionStarted = false;
+      controls.dispatchEvent({ type: "end" });
+    }
   };
   const reset = () => {
     const ids = [...pointers.keys(), ...ignoredPointers];
@@ -457,7 +485,6 @@ export function bindMapTouchRotation(
     capture(event.pointerId);
     if (!active) {
       active = true;
-      controls.dispatchEvent({ type: "start" });
       drainDamping();
     }
     rebase();

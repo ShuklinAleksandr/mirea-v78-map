@@ -344,3 +344,91 @@ test("manual placement containment excludes holes and arbitrary map background",
   assert.equal(pointInLocationPolygon([10, 10], polygon), false);
   assert.equal(pointInLocationPolygon([-1, 5], polygon), false);
 });
+
+test("one-shot GPS allows a slow native permission decision before starting its sensor deadline", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let grant,
+    requests = 0,
+    settled = false;
+  const task = requestGpsLocation({
+    native: true,
+    now: () => now,
+    lifecycleTarget: new EventTarget(),
+    documentTarget: Object.assign(new EventTarget(), { hidden: false }),
+    plugin: {
+      async checkPermissions() {
+        return { location: "prompt" };
+      },
+      requestPermissions() {
+        return new Promise((resolve) => {
+          grant = resolve;
+        });
+      },
+      async getCurrentPosition() {
+        requests++;
+        return position();
+      },
+    },
+  });
+  const outcome = task.then(
+    (value) => {
+      settled = true;
+      return value;
+    },
+    (error) => {
+      settled = true;
+      throw error;
+    },
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  t.mock.timers.tick(60_000);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(settled, false);
+  assert.equal(requests, 0);
+  grant({ location: "granted" });
+  const actual = await outcome;
+  assert.equal(requests, 1);
+  assert.equal(actual.source, "gps");
+  assert.equal(actual.timestamp, now);
+});
+
+test("one-shot GPS retains a real timeout after permission is granted", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let grant, result;
+  const task = requestGpsLocation({
+    native: true,
+    lifecycleTarget: new EventTarget(),
+    documentTarget: Object.assign(new EventTarget(), { hidden: false }),
+    plugin: {
+      async checkPermissions() {
+        return { location: "prompt" };
+      },
+      requestPermissions() {
+        return new Promise((resolve) => {
+          grant = resolve;
+        });
+      },
+      getCurrentPosition() {
+        return new Promise(() => {});
+      },
+    },
+  });
+  const outcome = task.then(
+    () => assert.fail("missing GPS returned success"),
+    (error) => {
+      result = error;
+    },
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  t.mock.timers.tick(60_000);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(result, undefined);
+  grant({ location: "granted" });
+  await new Promise((resolve) => setImmediate(resolve));
+  t.mock.timers.tick(15_999);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(result, undefined);
+  t.mock.timers.tick(1);
+  await outcome;
+  assert.match(result.message, /вовремя/);
+});

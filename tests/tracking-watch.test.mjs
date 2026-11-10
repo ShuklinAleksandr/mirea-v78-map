@@ -325,3 +325,104 @@ test("watch never requests permission on a hidden page or an already canceled st
   await assert.rejects(watchGpsLocation(options), { name: "AbortError" });
   assert.equal(calls, 0);
 });
+
+test("a slow native permission decision does not consume the watch registration timeout", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let grant,
+    watches = 0,
+    stopped = 0;
+  const task = watchGpsLocation({
+    ...surfaces(),
+    native: true,
+    onPosition() {},
+    plugin: {
+      async checkPermissions() {
+        return { location: "prompt" };
+      },
+      requestPermissions() {
+        return new Promise((resolve) => {
+          grant = resolve;
+        });
+      },
+      async watchPosition() {
+        watches++;
+        return "after-human-decision";
+      },
+      async clearWatch() {
+        stopped++;
+      },
+    },
+  });
+  let settled = false;
+  const outcome = task.then(
+    (value) => {
+      settled = true;
+      return value;
+    },
+    (error) => {
+      settled = true;
+      throw error;
+    },
+  );
+  await tick();
+  t.mock.timers.tick(60_000);
+  await tick();
+  assert.equal(settled, false);
+  assert.equal(watches, 0);
+  grant({ location: "granted" });
+  const stop = await outcome;
+  assert.equal(watches, 1);
+  await stop();
+  assert.equal(stopped, 1);
+});
+
+test("watch registration still times out after a fresh sensor budget and clears a late native ID", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let grant, completeRegistration;
+  const cleared = [];
+  const task = watchGpsLocation({
+    ...surfaces(),
+    native: true,
+    onPosition() {},
+    plugin: {
+      async checkPermissions() {
+        return { location: "prompt" };
+      },
+      requestPermissions() {
+        return new Promise((resolve) => {
+          grant = resolve;
+        });
+      },
+      watchPosition() {
+        return new Promise((resolve) => {
+          completeRegistration = resolve;
+        });
+      },
+      async clearWatch(value) {
+        cleared.push(value.id);
+      },
+    },
+  });
+  let result;
+  const outcome = task.then(
+    () => assert.fail("stalled registration succeeded"),
+    (error) => {
+      result = error;
+    },
+  );
+  await tick();
+  t.mock.timers.tick(60_000);
+  await tick();
+  assert.equal(result, undefined);
+  grant({ location: "granted" });
+  await tick();
+  t.mock.timers.tick(15_999);
+  await tick();
+  assert.equal(result, undefined);
+  t.mock.timers.tick(1);
+  await outcome;
+  assert.equal(result.code, "GPS_START_TIMEOUT");
+  completeRegistration("late-id");
+  await tick();
+  assert.deepEqual(cleared, ["late-id"]);
+});

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { escape } from "../src/ui/dom.js";
+import { gpsSurveyAvailable } from "../src/ui/gps-survey.js";
 import { projectGpsToMap } from "../src/location.js";
 import {
   GPS_CALIBRATION_SURVEY_STORAGE_KEY,
@@ -95,6 +96,7 @@ function harness({
   pendingStart = false,
   now = Date.now,
   surveyStorage,
+  native = true,
 } = {}) {
   const saved = new Map();
   const storage = surveyStorage || {
@@ -212,6 +214,12 @@ function harness({
   }
   const sandbox = {
     $,
+    Capacitor: {
+      isNativePlatform: () => native,
+      getPlatform: () => (native ? "android" : "web"),
+    },
+    gpsSurveyAvailable,
+    bindGpsSurvey() {},
     escape,
     document,
     window,
@@ -969,4 +977,74 @@ test("failed new recording does not disable export of earlier good records, incl
   assert.equal(h.exported.length, 1);
   assert.equal(JSON.parse(h.exported[0]).records.length, 1);
   assert.match(h.toasts.at(-1), /копия.*памяти/);
+});
+
+test("Android survey picker confirms an anchor without moving or recalibrating the user's position", async () => {
+  const time = Date.now() + 100;
+  const h = harness({ now: () => time });
+  h.controller.startTracking();
+  await turn();
+  h.watches[0].emit({
+    ...fix([10, -20], time),
+    latitude: 55.669957,
+    longitude: 37.480225,
+  });
+  const before = JSON.stringify(h.state.userLocation);
+  const focusCount = h.focuses;
+  let anchor;
+  assert.equal(
+    h.controller.beginPicking({
+      purpose: "gps-survey",
+      onPicked(value) {
+        anchor = value;
+      },
+    }),
+    true,
+  );
+  h.setPick({
+    campusId: "v-78",
+    floorId: floor.id,
+    building: "Г",
+    roomId: room.id,
+    point: room.center.slice(),
+  });
+  h.$("#location-pick-confirm").onclick();
+  assert.deepEqual(anchor.point, room.center);
+  assert.equal(JSON.stringify(h.state.userLocation), before);
+  assert.equal(h.focuses, focusCount);
+  assert.equal(readGpsCalibrationSurvey(h.storage), null);
+  assert.equal(h.scene.locationPicking, false);
+});
+
+test("canceling survey selection returns to its owner without creating a position", () => {
+  const h = harness();
+  let canceled = 0;
+  h.controller.beginPicking({
+    purpose: "gps-survey",
+    onCanceled() {
+      canceled++;
+    },
+  });
+  h.$("#location-pick-cancel").onclick();
+  assert.equal(canceled, 1);
+  assert.equal(h.state.userLocation, null);
+  assert.equal(h.watches.length, 0);
+});
+
+test("website keeps manual position refinement but cannot start or silently record GPS survey", async () => {
+  const time = Date.now() + 100;
+  const h = harness({ native: false, now: () => time });
+  assert.equal(h.controller.beginPicking({ purpose: "gps-survey" }), false);
+  h.controller.startTracking();
+  await turn();
+  const latitude = 55.669957,
+    longitude = 37.480225;
+  h.watches[0].emit({
+    ...fix(projectGpsToMap(longitude, latitude), time),
+    latitude,
+    longitude,
+  });
+  confirmExactGpsPin(h);
+  assert.ok(h.state.userLocation);
+  assert.equal(readGpsCalibrationSurvey(h.storage), null);
 });

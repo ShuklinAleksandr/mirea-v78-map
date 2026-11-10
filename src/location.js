@@ -164,6 +164,7 @@ export async function requestGpsLocation({
   )
     throw new DOMException("Отменено", "AbortError");
   let timer,
+    armTimeout,
     abort,
     requestingPermission = false,
     ended = false;
@@ -196,18 +197,23 @@ export async function requestGpsLocation({
     documentTarget?.addEventListener("visibilitychange", background);
     lifecycleTarget?.addEventListener("atlas:app-state", background);
     lifecycleTarget?.addEventListener("pagehide", background);
-    timer = setTimeout(
-      () =>
-        reject(
-          Object.assign(
-            new Error(
-              "GPS не ответил вовремя. Попробуйте у окна или укажите точку вручную.",
+    armTimeout = () => {
+      clearTimeout(timer);
+      if (ended) return;
+      timer = setTimeout(
+        () =>
+          reject(
+            Object.assign(
+              new Error(
+                "GPS не ответил вовремя. Попробуйте у окна или укажите точку вручную.",
+              ),
+              { code: 3 },
             ),
-            { code: 3 },
           ),
-        ),
-      GPS_TIMEOUT_MS + 1000,
-    );
+        GPS_TIMEOUT_MS + 1000,
+      );
+    };
+    armTimeout();
   });
   const locate = async () => {
     const options = {
@@ -227,12 +233,16 @@ export async function requestGpsLocation({
         checkActive();
         let result;
         requestingPermission = true;
+        // A person deciding in Android's permission sheet is not a stalled GPS
+        // request. Keep cancellation active, then give the sensor its own budget.
+        clearTimeout(timer);
         try {
           result = await api.requestPermissions({
             permissions: ["location"],
           });
         } finally {
           requestingPermission = false;
+          armTimeout();
         }
         if (
           result.location !== "granted" &&
@@ -398,16 +408,21 @@ export async function watchGpsLocation({
   documentTarget?.addEventListener("visibilitychange", background);
   lifecycleTarget?.addEventListener("atlas:app-state", background);
   lifecycleTarget?.addEventListener("pagehide", background);
-  startupTimer = setTimeout(
-    () =>
-      terminate(
-        Object.assign(
-          new Error("Не удалось включить обновления GPS. Повторите попытку."),
-          { code: "GPS_START_TIMEOUT" },
+  const armStartupTimeout = () => {
+    clearTimeout(startupTimer);
+    if (stopped) return;
+    startupTimer = setTimeout(
+      () =>
+        terminate(
+          Object.assign(
+            new Error("Не удалось включить обновления GPS. Повторите попытку."),
+            { code: "GPS_START_TIMEOUT" },
+          ),
         ),
-      ),
-    GPS_TIMEOUT_MS + 1000,
-  );
+      GPS_TIMEOUT_MS + 1000,
+    );
+  };
+  armStartupTimeout();
   const register = async () => {
     const options = {
       enableHighAccuracy: true,
@@ -428,10 +443,12 @@ export async function watchGpsLocation({
       ) {
         requestingPermission = true;
         let result;
+        clearTimeout(startupTimer);
         try {
           result = await api.requestPermissions({ permissions: ["location"] });
         } finally {
           requestingPermission = false;
+          armStartupTimeout();
         }
         if (stopped) throw aborted();
         if (
