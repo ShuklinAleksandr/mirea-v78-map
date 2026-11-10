@@ -1,6 +1,6 @@
 {
-  "version": "0.5.13",
-  "sourceCommit": "947334ffdfc859f61518b2f6c592f3117b617b36",
+  "version": "0.5.14",
+  "sourceCommit": "7b4d09e4793ed27bca03f90992eeb125deae5e0f",
   "base": "/mirea-v78-map/",
-  "scope": "V78; route suggestions before typing and location action for origin only"
+  "scope": "V78; smoother route following, GPS drift handling, checkpoints and progress"
 }
