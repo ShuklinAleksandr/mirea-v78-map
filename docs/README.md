@@ -6,10 +6,12 @@
 
 - [Запуск на Mac/Windows/Linux и команды](../README.md)
 - [Открыть сайт карты](https://shuklinaleksandr.github.io/mirea-v78-map/)
+- [Устойчивое разделение наклона, щипка и поворота — v0.5.17](STABLE_TOUCH_2026-11-10.md)
 - [Наклон 3D на телефоне, серый пройденный путь и аудит пожеланий — v0.5.16](MOBILE_TILT_AUDIT_2026-11-10.md)
 - [Удобство на компьютере, мышь и клавиатура — v0.5.15](DESKTOP_UX_2026-11-10.md)
 - [Единый интерфейс, перенос избранного и публикация сайта](INTERFACE_COMPARISON.md)
-- [v0.5.5 в GitHub Releases](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.5)
+- [Текущий Android APK v0.5.17 в GitHub Releases](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.17)
+- [Исторический выпуск v0.5.5](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.5)
 - [Фокусированный ввод и скрытие кнопок карты — v0.5.5](FOCUSED_INPUT_2026-11-09.md)
 - [Аудит маршрутов и входы группы Г-424 — v0.5.4](ROUTING_ENTRANCE_AUDIT_2026-11-08.md)
 - [110 вопросов о похожих кабинетах для проверки на месте](ROUTE_QUESTIONS_2026-11-08.md)

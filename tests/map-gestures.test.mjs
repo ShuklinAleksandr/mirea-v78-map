@@ -294,7 +294,7 @@ function assertStill(h, before) {
   close(after.zoom, before.zoom, "zoom");
 }
 
-test("two fingers moving vertically tilt 3D without changing bearing or distance", () => {
+test("two fingers tilt 3D around a fixed map pivot without changing bearing or distance", () => {
   const h = harness(false, { damping: true });
   try {
     const start = pair(180, 440, 65);
@@ -303,14 +303,15 @@ test("two fingers moving vertically tilt 3D without changing bearing or distance
     const bearing = h.controls.getAzimuthalAngle();
     const distance = offset(h).length();
     startPair(h, start);
-    movePair(h, pair(180, 490, 65));
+    movePair(h, pair(180, 390, 65));
     assert.ok(h.controls.getPolarAngle() < initialPolar - 0.15);
     close(h.controls.getAzimuthalAngle(), bearing, "tilt preserves bearing");
     close(offset(h).length(), distance, "tilt preserves distance");
-    assertAnchor(h, anchor, 180, 490);
-    movePair(h, pair(180, 390, 65));
+    assertAnchor(h, anchor, 180, 440);
+    movePair(h, pair(180, 490, 65));
     assert.ok(h.controls.getPolarAngle() > initialPolar);
-    endPair(h, pair(180, 390, 65));
+    assertAnchor(h, anchor, 180, 440);
+    endPair(h, pair(180, 490, 65));
     const final = snapshot(h);
     for (let i = 0; i < 30; i++) h.controls.update();
     assertStill(h, final);
@@ -320,20 +321,28 @@ test("two fingers moving vertically tilt 3D without changing bearing or distance
   }
 });
 
-test("a large tilt stays above the floor; a later pinch and twist take over continuously", () => {
+test("tilt stays bounded and locked until a fresh contact pair starts pinch and rotation", () => {
   const h = harness();
   try {
     startPair(h, pair(180, 440, 65));
-    movePair(h, pair(180, -360, 65));
-    assert.ok(h.controls.getPolarAngle() <= (70 * Math.PI) / 180 + 1e-6);
     movePair(h, pair(180, 1240, 65));
+    close(h.controls.getPolarAngle(), (70 * Math.PI) / 180, "side tilt limit");
+    movePair(h, pair(180, -360, 65));
     close(h.controls.getPolarAngle(), (5 * Math.PI) / 180, "top tilt limit");
     const distance = offset(h).length();
     const polar = h.controls.getPolarAngle();
-    movePair(h, pair(180, 1240, 100, 35));
-    close(offset(h).length(), (distance * 65) / 100, "pinch after tilt");
-    close(h.controls.getPolarAngle(), polar, "pinch does not add tilt");
-    endPair(h, pair(180, 1240, 100, 35));
+    const bearing = h.controls.getAzimuthalAngle();
+    movePair(h, pair(180, -360, 100, 35));
+    close(offset(h).length(), distance, "locked tilt ignores span drift");
+    close(h.controls.getAzimuthalAngle(), bearing, "locked tilt ignores twist");
+    close(h.controls.getPolarAngle(), polar, "stationary centroid keeps tilt");
+    endPair(h, pair(180, -360, 100, 35));
+    startPair(h, pair(180, 440, 65));
+    movePair(h, pair(180, 440, 100, 35));
+    close(offset(h).length(), (distance * 65) / 100, "fresh gesture pinches");
+    assert.ok(Math.abs(h.controls.getAzimuthalAngle() - bearing) > 0.4);
+    close(h.controls.getPolarAngle(), polar, "new pinch preserves tilt");
+    endPair(h, pair(180, 440, 100, 35));
   } finally {
     h.dispose();
   }
@@ -357,8 +366,232 @@ test("the same parallel vertical gesture pans 2D and keeps the plan flat", () =>
   }
 });
 
+test("two-finger microjitter does not move the map or choose a gesture", () => {
+  for (const plan of [false, true]) {
+    const h = harness(plan);
+    try {
+      const before = snapshot(h);
+      startPair(h, pair(180, 440, 65));
+      for (const points of [
+        [
+          [116, 441],
+          [244, 439],
+        ],
+        [
+          [114, 439],
+          [247, 442],
+        ],
+        [
+          [116, 442],
+          [246, 441],
+        ],
+      ]) {
+        movePair(h, points);
+        assertStill(h, before);
+      }
+      endPair(h, pair(180, 440, 65));
+      assertStill(h, before);
+      assert.equal(h.picks, 0);
+    } finally {
+      h.dispose();
+    }
+  }
+});
+
+test("uneven parallel swipes and finger drift keep only tilt around the original pivot", () => {
+  const h = harness();
+  try {
+    const anchor = worldAt(h, 180, 440);
+    const bearing = h.controls.getAzimuthalAngle();
+    const distance = offset(h).length();
+    const polar = h.controls.getPolarAngle();
+    startPair(h, pair(180, 440, 65));
+    movePair(h, [
+      [116, 400],
+      [243, 404],
+    ]);
+    assert.ok(h.controls.getPolarAngle() < polar - 0.1);
+    close(h.controls.getAzimuthalAngle(), bearing, "uneven swipe bearing");
+    close(offset(h).length(), distance, "uneven swipe scale");
+    assertAnchor(h, anchor, 180, 440);
+    // Drift large enough to trigger the previous tilt-to-transform switch.
+    movePair(h, pair(186, 370, 82, 15));
+    close(h.controls.getAzimuthalAngle(), bearing, "long swipe bearing");
+    close(offset(h).length(), distance, "long swipe scale");
+    assertAnchor(h, anchor, 180, 440);
+    endPair(h, pair(186, 370, 82, 15));
+    assert.equal(h.picks, 0);
+  } finally {
+    h.dispose();
+  }
+});
+
+test("one-frame-separated finger updates become a tilt without an initial rotation or zoom", () => {
+  const h = harness();
+  try {
+    const before = snapshot(h);
+    const polar = h.controls.getPolarAngle();
+    const bearing = h.controls.getAzimuthalAngle();
+    const distance = offset(h).length();
+    startPair(h, pair(180, 440, 65));
+    h.pointer("pointermove", 1, 115, 460);
+    h.frame();
+    assertStill(h, before);
+    h.pointer("pointermove", 2, 245, 460);
+    h.frame();
+    assert.ok(h.controls.getPolarAngle() > polar + 0.04);
+    close(h.controls.getAzimuthalAngle(), bearing, "asynchronous tilt bearing");
+    close(offset(h).length(), distance, "asynchronous tilt scale");
+    endPair(h, pair(180, 460, 65));
+  } finally {
+    h.dispose();
+  }
+});
+
+test("a stationary finger and a vertically moving finger rotate without being mistaken for tilt", () => {
+  const h = harness();
+  try {
+    const polar = h.controls.getPolarAngle();
+    const bearing = h.controls.getAzimuthalAngle();
+    startPair(h, pair(180, 440, 65));
+    h.pointer("pointermove", 2, 245, 480);
+    h.frame();
+    h.frame(); // The stationary finger cannot provide a second move event.
+    close(h.controls.getPolarAngle(), polar, "one moving finger never tilts");
+    assert.ok(Math.abs(h.controls.getAzimuthalAngle() - bearing) > 0.15);
+    h.pointer("pointermove", 2, 245, 520);
+    h.frame();
+    close(h.controls.getPolarAngle(), polar, "continued twist keeps pitch");
+    endPair(h, [
+      [115, 440],
+      [245, 520],
+    ]);
+  } finally {
+    h.dispose();
+  }
+});
+
+test("tilt sensitivity is consistent in portrait and landscape with a slanted finger pair", () => {
+  const changes = [];
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    const h = harness(false, viewport);
+    try {
+      const distance = offset(h).length();
+      h.camera.position
+        .copy(h.controls.target)
+        .add(
+          new THREE.Vector3().setFromSphericalCoords(
+            distance,
+            Math.PI / 4,
+            0.5,
+          ),
+        );
+      h.controls.update();
+      const polar = h.controls.getPolarAngle();
+      const x = viewport.width / 2,
+        y = viewport.height / 2;
+      startPair(h, pair(x, y, 65, 35));
+      movePair(h, pair(x, y + 50, 65, 35));
+      const change = h.controls.getPolarAngle() - polar;
+      assert.ok(
+        change > 0.1 && change < 0.22,
+        "50 CSS pixels gives a moderate tilt",
+      );
+      changes.push(change);
+      endPair(h, pair(x, y + 50, 65, 35));
+    } finally {
+      h.dispose();
+    }
+  }
+  close(changes[0], changes[1], "orientation-independent tilt sensitivity");
+});
+
+test("replacing one contact releases the tilt lock without moving the camera on touch-down", () => {
+  const h = harness();
+  try {
+    startPair(h, pair(180, 440, 65));
+    movePair(h, pair(180, 400, 65));
+    h.pointer("pointerup", 2, 245, 400);
+    const tilted = snapshot(h);
+    h.pointer("pointerdown", 3, 245, 400);
+    h.frame();
+    assertStill(h, tilted);
+    const distance = offset(h).length();
+    const polar = h.controls.getPolarAngle();
+    h.pointer("pointermove", 1, 90, 400);
+    h.pointer("pointermove", 3, 270, 400);
+    h.frame();
+    assert.ok(offset(h).length() < distance * 0.8);
+    close(
+      h.controls.getPolarAngle(),
+      polar,
+      "replacement pair pinches without pitch",
+    );
+    h.pointer("pointerup", 3, 270, 400);
+    h.pointer("pointerup", 1, 90, 400);
+    assert.equal(h.picks, 0);
+  } finally {
+    h.dispose();
+  }
+});
+
 for (const plan of [false, true]) {
   const mode = plan ? "2D" : "3D";
+  test(`${mode}: pinch ignores rotation jitter but admits a later deliberate twist without tilt`, () => {
+    const h = harness(plan);
+    try {
+      const direction = offset(h).normalize(),
+        up = h.camera.up.clone();
+      const polar = h.controls.getPolarAngle();
+      const distance = offset(h).length();
+      startPair(h, pair(180, 440, 65));
+      movePair(h, pair(180, 460, 95, 2));
+      assert.ok(
+        (plan ? h.camera.up : offset(h).normalize()).distanceTo(
+          plan ? up : direction,
+        ) < 1e-5,
+      );
+      if (plan) assert.ok(h.camera.zoom > 1.3);
+      else assert.ok(offset(h).length() < distance * 0.8);
+      movePair(h, pair(180, 490, 96, 20));
+      assert.ok(
+        (plan ? h.camera.up : offset(h).normalize()).distanceTo(
+          plan ? up : direction,
+        ) > 0.15,
+      );
+      close(h.controls.getPolarAngle(), polar, "pinch and twist keep pitch");
+      endPair(h, pair(180, 490, 96, 20));
+    } finally {
+      h.dispose();
+    }
+  });
+
+  test(`${mode}: twist ignores span jitter but admits a later deliberate pinch`, () => {
+    const h = harness(plan);
+    try {
+      const distance = offset(h).length();
+      const zoom = h.camera.zoom;
+      const polar = h.controls.getPolarAngle();
+      startPair(h, pair(180, 440, 65));
+      movePair(h, pair(190, 460, 66, 20));
+      close(offset(h).length(), distance, "rotation span jitter distance");
+      close(h.camera.zoom, zoom, "rotation span jitter scale");
+      movePair(h, pair(190, 490, 90, 35));
+      if (plan) assert.ok(h.camera.zoom > zoom * 1.2);
+      else assert.ok(offset(h).length() < distance * 0.8);
+      close(
+        h.controls.getPolarAngle(),
+        polar,
+        "combined transform keeps pitch",
+      );
+      endPair(h, pair(190, 490, 90, 35));
+    } finally {
+      h.dispose();
+    }
+  });
   test(`${mode}: one finger pans on the map plane and retains orientation and scale`, () => {
     const h = harness(plan);
     try {
@@ -466,7 +699,7 @@ for (const plan of [false, true]) {
     });
   }
 
-  test(`${mode}: a pure twist crosses either ±180° boundary by two degrees, not a full turn`, () => {
+  test(`${mode}: an activated twist crosses either ±180° boundary without a full-turn jump`, () => {
     for (const [from, to] of [
       [179, 181],
       [-179, -181],
@@ -478,6 +711,8 @@ for (const plan of [false, true]) {
           up = h.camera.up.clone(),
           zoom = h.camera.zoom;
         startPair(h, pair(180, 450, 70, from));
+        // Establish intentional rotation before crossing the wrap boundary.
+        movePair(h, pair(180, 450, 70, from > 0 ? 169 : -169));
         movePair(h, pair(180, 450, 70, to));
         const expected = (
           plan ? up : initialOffset.clone().normalize()
