@@ -23,9 +23,9 @@ const view = (options = {}) =>
     ...options,
   });
 
-test("Next leaves only the upcoming action while fresh GPS is tracking", () => {
+test("Next keeps step correction available while fresh GPS is tracking", () => {
   const current = view();
-  assert.equal(current.showNext, false);
+  assert.equal(current.showNext, true);
   assert.equal(current.showRecenter, false);
   assert.equal(current.contextAction, null);
   assert.equal(current.direction, "right");
@@ -37,6 +37,7 @@ test("Next never hides the manual fallback or claims distance after GPS uncertai
   for (const status of [
     "waiting",
     "acquiring",
+    "uncertain",
     "low-accuracy",
     "stale",
     "off-route",
@@ -71,10 +72,39 @@ test("Next never hides the manual fallback or claims distance after GPS uncertai
     liveProgress: { status: "off-route" },
   });
   assert.equal(offRoute.contextAction, null);
-  assert.match(offRoute.note, /вернитесь к линии/);
+  assert.match(offRoute.note, /Уточняем положение.*по линии маршрута/);
   assert.match(
     view({ liveProgress: { status: "wrong-way" } }).note,
-    /автосмена шагов на паузе/,
+    /по линии в сторону назначения/,
+  );
+});
+
+test("progress counts the accepted mapped path across sections without inventing a stair distance", () => {
+  const guide = { sections: [{ length: 60 }, { length: 30 }] };
+  const acceptedProgress = { sectionIndex: 1, distance: 15 };
+  const current = view({
+    route: { ...route, distanceMeters: null },
+    guide,
+    acceptedProgress,
+    liveProgress: { status: "uncertain", sectionIndex: 1, distance: 20 },
+  });
+  assert.equal(current.progress.percent, 83);
+  assert.equal(current.progress.completed, "Пройдено 83%");
+  assert.equal(current.progress.remaining, "Осталось 17%");
+  assert.equal(current.progress.valueText, "Пройдено 83% нанесённого пути");
+  assert.equal(current.distance, "");
+  assert.equal(
+    view({ guide, acceptedProgress }).progress.completed,
+    "Пройдено ≈ 75 м",
+  );
+  assert.equal(
+    view({ guide, acceptedProgress }).progress.remaining,
+    "Осталось ≈ 15 м",
+  );
+  assert.equal(view({ guide }).progress.valueText, "Уточняем положение");
+  assert.equal(
+    view({ guide, acceptedProgress, previewing: true }).progress,
+    null,
   );
 });
 

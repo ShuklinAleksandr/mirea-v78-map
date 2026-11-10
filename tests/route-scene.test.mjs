@@ -98,6 +98,86 @@ test("invalid route vertices do not become fabricated shortcuts", () => {
   assert.deepEqual(visibleRouteSegments(invalid, "f1"), []);
 });
 
+test("GPS progress colors only the traveled polyline and keeps repeated floor visits distinct", () => {
+  const itinerary = {
+    ...route,
+    steps: [
+      { kind: "start", floorId: "f1", position: [0, 0] },
+      { kind: "turn", floorId: "f1", position: [12, 0] },
+      {
+        kind: "stairs",
+        floorId: "f1",
+        targetFloorId: "f2",
+        position: [12, 15],
+      },
+      {
+        kind: "stairs",
+        floorId: "f2",
+        targetFloorId: "f1",
+        position: [12, 30],
+      },
+      { kind: "arrive", floorId: "f1", position: [20, 30] },
+    ],
+  };
+  const layer = createRouteLayer(itinerary, "f1");
+  const marker = (type) =>
+    layer.markers.find((item) => item.userData.routeMarker === type);
+  const activeTraveled = () =>
+    layer.group.children.find(
+      (item) => item.name === "Traveled route" && item.visible,
+    );
+  const vertices = (stroke, name) => {
+    const attribute = stroke.geometry.getAttribute(name);
+    return Array.from({ length: attribute.count }, (_, index) => [
+      attribute.getX(index),
+      attribute.getZ(index),
+    ]);
+  };
+  try {
+    assert.equal(
+      layer.labels.some(({ type }) => type === "turn"),
+      false,
+    );
+    layer.setProgress({
+      sourceSegmentIndex: 0,
+      position: [12, 3],
+      distance: 15,
+      length: 27,
+      nextStepIndex: 2,
+    });
+    assert.deepEqual(vertices(activeTraveled(), "instanceStart"), [
+      [0, 0],
+      [12, 0],
+    ]);
+    assert.deepEqual(vertices(activeTraveled(), "instanceEnd"), [
+      [12, 0],
+      [12, 3],
+    ]);
+    assert.equal(marker("turn").userData.routeProgress, "passed");
+    assert.equal(marker("transition").userData.routeProgress, "next");
+    assert.equal(marker("end").userData.routeProgress, "remaining");
+
+    layer.setProgress({
+      sourceSegmentIndex: 2,
+      position: [16, 30],
+      distance: 4,
+      length: 8,
+      nextStepIndex: 4,
+    });
+    assert.deepEqual(vertices(activeTraveled(), "instanceStart"), [[12, 30]]);
+    assert.deepEqual(vertices(activeTraveled(), "instanceEnd"), [[16, 30]]);
+    assert.equal(marker("transition").userData.routeProgress, "passed");
+    assert.equal(marker("end").userData.routeProgress, "next");
+
+    layer.setProgress(null);
+    assert.equal(activeTraveled(), undefined);
+    assert.equal(marker("turn").userData.routeProgress, "remaining");
+    assert.ok(layer.arrows.every((arrow) => !arrow.userData.routePassed));
+  } finally {
+    disposeRouteLayer(layer);
+  }
+});
+
 test("stacked route draws after transparent slabs, with all path cues visible through upper floors", () => {
   const stairPaths = [
     {

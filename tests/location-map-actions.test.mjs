@@ -139,6 +139,50 @@ test("following translates an existing camera smoothly without pumping zoom or c
   );
 });
 
+test("route following moves the camera with the rendered marker around a bend", (t) => {
+  const { view } = viewHarness();
+  t.after(() => view.setUserLocation(null));
+  const now = Date.now();
+  let point = [2, 0];
+  view.callbacks.getRouteLocationMatch = (location) =>
+    location && { point, sourceSegmentIndex: 0, status: "tracking" };
+  view.routeLayer = {
+    paths: [
+      {
+        sourceSegmentIndex: 0,
+        points: [
+          [0, 0],
+          [4, 0],
+          [4, 8],
+        ],
+      },
+    ],
+  };
+  view.fit = () => {};
+  view.setUserLocation(gps([2, 1], { timestamp: now - 1000 }));
+  view.focusUserLocation();
+  const marker = view.userLocationLayer.position;
+  const initialOffset = marker.clone().sub(view.controls.target);
+  const initialZoom = view.camera.zoom;
+  point = [4, 3];
+  view.setUserLocation(gps([5, 3], { timestamp: now }));
+  view.followUserLocation();
+  const motion = view.routeLocationMotion;
+  for (const portion of [0.1, 0.4, 0.8]) {
+    view.updateRouteLocationMotion(motion.start + motion.duration * portion);
+    assert.deepEqual(
+      marker.clone().sub(view.controls.target).toArray(),
+      initialOffset.toArray(),
+    );
+  }
+  assert.equal(view.camera.zoom, initialZoom);
+  const cameraAtPause = view.camera.position.clone();
+  view.beginMapInteraction();
+  view.updateRouteLocationMotion(motion.start + motion.duration);
+  assert.ok(view.camera.position.equals(cameraAtPause));
+  assert.deepEqual(marker.toArray(), [4, 0.4, 3]);
+});
+
 test("following re-centers once after changing the viewed floor or projection without assigning it as the real floor", (t) => {
   const { view } = viewHarness();
   t.after(() => view.setUserLocation(null));
@@ -387,4 +431,34 @@ test("compass turns take the short arc and stop after manual pause or heading lo
   view.setUserHeading({ ...heading, timestamp: Date.now() - 5001 });
   view.updateNavigationHeading(48);
   assert.deepEqual(view.camera.up.toArray(), paused.toArray());
+});
+
+test("confirmed route tangent turns without a compass and pauses during uncertain or stair fixes", () => {
+  const { view } = viewHarness();
+  view.callbacks.shouldFollowHeading = () => true;
+  view.callbacks.shouldFollowRouteLine = () => true;
+  view.setHeadingFollow(true);
+  view.reducedMotion = true;
+  view.routeLocationFix = {
+    path: {
+      points: [
+        [0, 0],
+        [4, 0],
+        [4, 8],
+      ],
+    },
+    distance: 2,
+    status: "tracking",
+  };
+  assert.equal(view.updateNavigationHeading(16), true);
+  assert.ok(view.camera.up.angleTo(new THREE.Vector3(1, 0, 0)) < 0.01);
+  view.routeLocationFix.distance = 8;
+  assert.equal(view.updateNavigationHeading(32), true);
+  assert.ok(view.camera.up.angleTo(new THREE.Vector3(0, 0, 1)) < 0.01);
+  for (const status of ["uncertain", "wrong-way", "floor-change"]) {
+    view.routeLocationFix.distance = 2;
+    view.routeLocationFix.status = status;
+    assert.equal(view.updateNavigationHeading(48), undefined);
+    assert.ok(view.camera.up.angleTo(new THREE.Vector3(0, 0, 1)) < 0.01);
+  }
 });

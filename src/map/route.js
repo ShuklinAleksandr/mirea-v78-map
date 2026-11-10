@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { createRouteGuidance } from "./route-guidance.js";
 import { roundWalkingRoute } from "./route-rounding.js";
 
 const isPoint = (p) =>
@@ -53,11 +54,11 @@ function lineDistances(points) {
   return distances;
 }
 
-export function nearestRouteLinePosition(points, point) {
+export function nearestRouteLinePosition(points, point, expectedDistance) {
   const distances = lineDistances(points);
   let best = null;
   // Rounded corners may shift the visible line by at most 0.75 map units.
-  let squaredLimit = 0.75 ** 2;
+  let bestScore = Infinity;
   for (let i = 1; i < points.length; i++) {
     const [x, z] = points[i - 1];
     const [nextX, nextZ] = points[i];
@@ -72,12 +73,17 @@ export function nearestRouteLinePosition(points, point) {
     const candidate = [x + t * dx, z + t * dz];
     const squaredError =
       (candidate[0] - point[0]) ** 2 + (candidate[1] - point[1]) ** 2;
-    if (squaredError < squaredLimit) {
-      best = {
-        point: candidate,
-        distance: THREE.MathUtils.lerp(distances[i - 1], distances[i], t),
-      };
-      squaredLimit = squaredError;
+    if (squaredError >= 0.75 ** 2) continue;
+    const distance = THREE.MathUtils.lerp(distances[i - 1], distances[i], t);
+    // Prefer the right visit where a route crosses its own geometry.
+    const score =
+      squaredError +
+      (Number.isFinite(expectedDistance)
+        ? Math.min(20, Math.abs(distance - expectedDistance)) * 0.01
+        : 0);
+    if (score < bestScore) {
+      best = { point: candidate, distance };
+      bestScore = score;
     }
   }
   return best;
@@ -131,6 +137,7 @@ export function routeArrowAnchors(points, spacing = 6) {
         result.push({
           point: [a[0] + t * dx, a[1] + t * dz],
           angle: -Math.atan2(dz, dx),
+          distance: next,
         });
       }
       next += spacing;
@@ -173,6 +180,10 @@ export function createRouteLayer(
     0,
   );
   const blue = dark ? 0x75a8ff : 0x246bfd;
+  const traveled = dark ? 0x7f91ad : 0x8294ad;
+  const nextColor = dark ? 0xffca72 : 0xb0600e;
+  const legs = new Map(),
+    checkpoints = [];
   // In the stacked cutaway, transparent slabs are drawn after opaque objects.
   // Put the entire route in their queue with a later render order so the path
   // remains legible through upper floors without moving its real geometry.
@@ -182,9 +193,13 @@ export function createRouteLayer(
     depthWrite: false,
   };
 
+  function lineGeometry(points, elevation) {
+    return new LineGeometry().setPositions(
+      points.flatMap(([x, z]) => [x, elevation, z]),
+    );
+  }
   function line(points, color, linewidth, elevation, order) {
-    const geometry = new LineGeometry();
-    geometry.setPositions(points.flatMap(([x, z]) => [x, elevation, z]));
+    const geometry = lineGeometry(points, elevation);
     const material = new LineMaterial({
       color,
       linewidth,
@@ -199,11 +214,20 @@ export function createRouteLayer(
     object.frustumCulled = false;
     materials.push(material);
     group.add(object);
+    return object;
   }
   for (const segment of paths) {
     if (segment.points.length < 2) continue;
     line(segment.points, dark ? 0x182a49 : 0xffffff, 12, 0.29, 8);
-    line(segment.points, blue, 7, 0.31, 9);
+    const stroke = line(segment.points, blue, 7, 0.31, 9);
+    const leg = {
+      points: segment.points,
+      distances: lineDistances(segment.points),
+      stroke,
+      arrows: [],
+      traveledDistance: 0,
+    };
+    legs.set(segment.sourceSegmentIndex, leg);
     for (const anchor of routeArrowAnchors(segment.points)) {
       const geometry = new THREE.BufferGeometry();
       // Chevron points along +X; all vertices stay in the floor plane.
@@ -229,6 +253,7 @@ export function createRouteLayer(
       arrow.position.set(anchor.point[0], 0.35, anchor.point[1]);
       arrow.rotation.y = anchor.angle;
       arrow.renderOrder = 10;
+      leg.arrows.push({ arrow, distance: anchor.distance });
       arrows.push(arrow);
       group.add(arrow);
     }
@@ -281,12 +306,13 @@ export function createRouteLayer(
       group.add(dashed);
     }
   }
-  function marker(point, type, label) {
+  function marker(point, type, label, checkpoint) {
     if (!isPoint(point)) return;
     const object = new THREE.Group();
     object.position.set(point[0], 0.38, point[1]);
+    const turn = type === "turn";
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.65, 1, 40),
+      new THREE.RingGeometry(turn ? 0.3 : 0.65, turn ? 0.5 : 1, 24),
       new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -297,7 +323,7 @@ export function createRouteLayer(
     ring.rotation.x = -Math.PI / 2;
     ring.renderOrder = 13;
     const dot = new THREE.Mesh(
-      new THREE.CircleGeometry(0.7, 40),
+      new THREE.CircleGeometry(turn ? 0.33 : 0.7, 24),
       new THREE.MeshBasicMaterial({
         color: type === "start" ? 0x172b4d : blue,
         side: THREE.DoubleSide,
@@ -312,23 +338,145 @@ export function createRouteLayer(
     object.userData.routeMarker = type;
     group.add(object);
     markers.push(object);
-    labels.push({ point, text: label, type });
+    if (label) labels.push({ point, text: label, type });
+    if (checkpoint) {
+      checkpoints.push({ ...checkpoint, object, ring, dot });
+      object.userData.routeCheckpoint = checkpoint.stepIndex;
+    }
+  }
+  const guide = createRouteGuidance(route);
+  const transitionCheckpoints = new Map();
+  let endCheckpoint;
+  for (const anchor of guide.anchors) {
+    const step = route.steps[anchor.stepIndex];
+    if (step.kind !== "turn" && step.kind !== "arrive" && !step.targetFloorId)
+      continue;
+    const section = guide.sections[anchor.sectionIndex];
+    if (section.floorId !== floorId) continue;
+    const leg = legs.get(section.sourceSegmentIndex);
+    if (!leg) continue;
+    const estimatedDistance =
+      (anchor.distance / section.length) * leg.distances.at(-1);
+    const projection = nearestRouteLinePosition(
+      leg.points,
+      step.position,
+      estimatedDistance,
+    );
+    if (!projection) continue;
+    const checkpoint = {
+      sourceSegmentIndex: section.sourceSegmentIndex,
+      stepIndex: anchor.stepIndex,
+      distance: projection.distance,
+    };
+    if (step.kind === "turn") {
+      if (!overlay) marker(projection.point, "turn", null, checkpoint);
+    } else if (step.kind === "arrive") endCheckpoint = checkpoint;
+    else if (section.transition)
+      transitionCheckpoints.set(section.transition, checkpoint);
   }
   if (route?.start?.floorId === floorId)
     marker(route.start.point, "start", "Старт");
   if (route?.end?.floorId === floorId)
-    marker(route.end.point, "end", route.end.label || "Назначение");
+    marker(
+      route.end.point,
+      "end",
+      route.end.label || "Назначение",
+      endCheckpoint,
+    );
   for (const transition of route?.transitions || []) {
     if (transition.fromFloorId === floorId)
       marker(
         transition.point,
         "transition",
         transition.label || "Переход на другой этаж",
+        transitionCheckpoints.get(transition),
       );
     if (transition.toFloorId === floorId)
       marker(transition.targetPoint, "arrival", "Продолжение маршрута");
   }
-  return { group, materials, markers, arrows, labels, paths };
+  checkpoints.sort((a, b) => a.stepIndex - b.stepIndex);
+
+  function paintLeg(leg, distance) {
+    if (leg.traveledDistance === distance) return false;
+    leg.traveledDistance = distance;
+    const length = leg.distances.at(-1);
+    const full = distance >= length;
+    leg.stroke.material.color.setHex(full ? traveled : blue);
+    if (distance > 0 && !full) {
+      const end = leg.distances.findIndex((item) => item >= distance);
+      const prefix = [
+        ...leg.points.slice(0, end),
+        routeLinePointAtDistance(leg.points, distance),
+      ];
+      if (!leg.traveledStroke) {
+        leg.traveledStroke = line(prefix, traveled, 7, 0.32, 10);
+        leg.traveledStroke.name = "Traveled route";
+      } else {
+        leg.traveledStroke.geometry.dispose();
+        leg.traveledStroke.geometry = lineGeometry(prefix, 0.32);
+      }
+    }
+    if (leg.traveledStroke) leg.traveledStroke.visible = distance > 0 && !full;
+    for (const { arrow, distance: at } of leg.arrows)
+      arrow.userData.routePassed = at <= distance;
+    return true;
+  }
+
+  function setProgress(sample) {
+    const sourceIndex = sample?.sourceSegmentIndex;
+    const currentLeg = legs.get(sourceIndex);
+    const projection =
+      currentLeg && isPoint(sample?.position)
+        ? nearestRouteLinePosition(
+            currentLeg.points,
+            sample.position,
+            (sample.distance / sample.length) * currentLeg.distances.at(-1),
+          )
+        : null;
+    const currentDistance =
+      projection?.distance ?? currentLeg?.traveledDistance ?? 0;
+    let changed = false;
+    for (const [index, leg] of legs) {
+      const distance =
+        index < sourceIndex
+          ? leg.distances.at(-1)
+          : index === sourceIndex
+            ? currentDistance
+            : 0;
+      changed = paintLeg(leg, distance) || changed;
+    }
+    const next =
+      checkpoints.find(
+        (point) =>
+          point.sourceSegmentIndex === sourceIndex &&
+          point.stepIndex === sample?.nextStepIndex,
+      ) ||
+      checkpoints.find(
+        (point) =>
+          point.sourceSegmentIndex === sourceIndex &&
+          point.distance > currentDistance + 0.1,
+      );
+    for (const checkpoint of checkpoints) {
+      const { object, ring, dot } = checkpoint;
+      const status =
+        checkpoint === next
+          ? "next"
+          : checkpoint.sourceSegmentIndex < sourceIndex ||
+              (checkpoint.sourceSegmentIndex === sourceIndex &&
+                checkpoint.distance <= currentDistance)
+            ? "passed"
+            : "remaining";
+      if (object.userData.routeProgress === status) continue;
+      object.userData.routeProgress = status;
+      dot.material.color.setHex(
+        status === "next" ? nextColor : status === "passed" ? traveled : blue,
+      );
+      ring.scale.setScalar(status === "next" ? 1.2 : 1);
+      changed = true;
+    }
+    return changed;
+  }
+  return { group, materials, markers, arrows, labels, paths, setProgress };
 }
 
 export function disposeRouteLayer(layer) {

@@ -16,6 +16,8 @@ export const routeTrackingMatchRadius = (location) =>
     ),
   );
 const EPSILON = 1e-7;
+const MAX_AMBIGUOUS_ROUTE_AGE_MS = 30_000;
+const MAX_AMBIGUOUS_FIX_GAP_MS = 4_000;
 const pointValid = (point) =>
   Array.isArray(point) &&
   point.length >= 2 &&
@@ -150,7 +152,15 @@ function matchesManualContext(location, source, section, candidate, levels) {
   return contexts.some((node) => node.building === building);
 }
 
-function project(section, legs, point, reference, budget, allowRetreat) {
+function project(
+  section,
+  legs,
+  point,
+  reference,
+  budget,
+  allowRetreat,
+  onlyLeg = null,
+) {
   if (section.points.length === 1)
     return {
       distance: 0,
@@ -172,7 +182,7 @@ function project(section, legs, point, reference, budget, allowRetreat) {
   )
     allowed.push(legs[legIndex - 1]);
   let best = null;
-  for (const leg of allowed) {
+  for (const leg of onlyLeg ? [onlyLeg] : allowed) {
     if (!leg) continue;
     for (let i = leg.first; i <= leg.last; i++) {
       const a = section.points[i],
@@ -209,6 +219,7 @@ function project(section, legs, point, reference, budget, allowRetreat) {
           error,
           point: projected,
           edgeIndex: i,
+          leg,
           score,
         };
     }
@@ -223,6 +234,7 @@ export function createRouteTracker(route) {
     sourceContexts(route, section),
   );
   const metric = Number.isFinite(route?.distanceMeters);
+  const metricPlan = metric || Number.isFinite(route?.horizontalDistanceMeters);
   let state = {
     status: "waiting",
     reason: "waiting-for-gps",
@@ -235,6 +247,7 @@ export function createRouteTracker(route) {
   };
   let probe = null,
     continuity = null,
+    ambiguousProbe = null,
     observedTimestamp = -Infinity,
     correction = null,
     endCount = 0,
@@ -275,6 +288,7 @@ export function createRouteTracker(route) {
     locationTimestamp = state.locationTimestamp,
   ) {
     probe = null;
+    ambiguousProbe = null;
     endCount = 0;
     reverse = null;
     matchedPoint = point;
@@ -298,6 +312,7 @@ export function createRouteTracker(route) {
     };
     probe = null;
     continuity = null;
+    ambiguousProbe = null;
     endCount = 0;
     reverse = null;
     recoveringFromReverse = false;
@@ -325,6 +340,7 @@ export function createRouteTracker(route) {
       correction = blobKey(location);
       probe = null;
       continuity = null;
+      ambiguousProbe = null;
       endCount = 0;
       reverse = null;
       observedTimestamp = -Infinity;
@@ -365,23 +381,25 @@ export function createRouteTracker(route) {
     )
       return hold("low-accuracy", "position-too-uncertain");
 
-    const gap = continuity ? location.timestamp - continuity.timestamp : null;
+    let priorFix = ambiguousProbe || continuity;
+    const gap = priorFix ? location.timestamp - priorFix.timestamp : null;
     if (gap != null && gap > 15_000) {
       probe = null;
       continuity = null;
+      ambiguousProbe = priorFix = null;
       endCount = 0;
       reverse = null;
     }
-    const elapsed = continuity
-      ? (location.timestamp - continuity.timestamp) / 1000
+    const elapsed = priorFix
+      ? (location.timestamp - priorFix.timestamp) / 1000
       : null;
     const budget =
       elapsed == null ? 18 : Math.max(4, Math.min(18, elapsed * 3 + 3));
-    if (continuity && distance(continuity.point, location.point) > budget)
-      return hold("off-route", "position-jump");
+    const rawJump =
+      priorFix && distance(priorFix.point, location.point) > budget;
     const reference =
-      pauseOnReverse && continuity
-        ? continuity.distance
+      pauseOnReverse && priorFix
+        ? priorFix.distance
         : Math.max(state.distance, continuity?.distance || 0);
     const candidate = project(
       section,
@@ -392,41 +410,116 @@ export function createRouteTracker(route) {
       pauseOnReverse,
     );
     const crossTrackLimit = routeTrackingMatchRadius(location);
-    if (!candidate || candidate.error > crossTrackLimit)
-      return hold("off-route", "away-from-current-path");
-    if (
-      !matchesManualContext(
+    const allowedContext = (match) =>
+      matchesManualContext(
         location,
         contexts[state.sectionIndex],
         section,
-        candidate,
+        match,
         typeof allowPoint === "function" ? floorBuildingLevels : null,
-      )
-    )
+      );
+    if (candidate?.error <= crossTrackLimit && !allowedContext(candidate))
       return hold("floor-mismatch", "confirm-route-physical-floor");
-    if (duplicate) return snapshot();
-    if (
-      continuity &&
-      Math.abs(candidate.distance - continuity.distance) > budget + EPSILON
-    )
-      return hold("off-route", "route-progress-jump");
-    if (typeof allowPoint === "function") {
-      let allowed = false;
+    const connectorClear = (from, to, match) => {
+      if (typeof allowPoint !== "function") return true;
       try {
-        allowed = Boolean(
-          allowPoint(
-            location.point.slice(0, 2),
-            [...candidate.point],
-            section,
-            candidate.edgeIndex,
-          ),
+        return Boolean(
+          allowPoint([...from], [...to], section, match.edgeIndex),
         );
       } catch {
         // A missing/invalid source footprint cannot authorize progress.
+        return false;
       }
-      if (!allowed) return hold("off-route", "unverified-map-connector");
+    };
+    const closeMatch = candidate?.error <= crossTrackLimit;
+    if (duplicate && closeMatch) return snapshot();
+    const progressJump =
+      candidate &&
+      priorFix &&
+      Math.abs(candidate.distance - priorFix.distance) > budget + EPSILON;
+    const safeMatch =
+      closeMatch &&
+      !rawJump &&
+      !progressJump &&
+      connectorClear(location.point, candidate.point, candidate);
+    if (!safeMatch) {
+      // A GPS accuracy disc can still cover the same corridor even when its
+      // reported centre drifts across a wall. This permits only a tentative
+      // marker on that already verified straight leg, never route progress.
+      const leg = continuity?.leg;
+      if (
+        pauseOnReverse &&
+        metricPlan &&
+        leg &&
+        matchedPoint &&
+        !state.atEnd &&
+        ["tracking", "uncertain"].includes(state.status) &&
+        gap <= MAX_AMBIGUOUS_FIX_GAP_MS &&
+        location.timestamp - continuity.timestamp <=
+          MAX_AMBIGUOUS_ROUTE_AGE_MS &&
+        typeof allowPoint === "function"
+      ) {
+        const nearby =
+          candidate?.leg === leg
+            ? candidate
+            : project(
+                section,
+                legs[state.sectionIndex],
+                location.point,
+                reference,
+                budget,
+                true,
+                leg,
+              );
+        const radius = Math.min(
+          ROUTE_TRACKING_MAX_ACCURACY_METERS,
+          location.accuracyRadiusMap || location.accuracyMeters,
+        );
+        if (
+          nearby?.error <= radius &&
+          allowedContext(nearby) &&
+          connectorClear(nearby.point, nearby.point, nearby)
+        ) {
+          if (duplicate) return snapshot();
+          const travel = nearby.distance - priorFix.distance;
+          if (Math.abs(travel) <= 1.25 + elapsed * 2.7) {
+            if (
+              ambiguousProbe &&
+              travel >= -0.5 &&
+              nearby.distance >= continuity.distance &&
+              connectorClear(matchedPoint, nearby.point, nearby)
+            )
+              matchedPoint = nearby.point;
+            ambiguousProbe = {
+              timestamp: location.timestamp,
+              point: location.point.slice(0, 2),
+              distance: nearby.distance,
+            };
+            probe = null;
+            endCount = 0;
+            reverse = null;
+            state = {
+              ...state,
+              status: "uncertain",
+              reason: "ambiguous-route-position",
+              locationTimestamp: location.timestamp,
+            };
+            return snapshot();
+          }
+        }
+      }
+      const reason = rawJump
+        ? "position-jump"
+        : progressJump
+          ? "route-progress-jump"
+          : closeMatch
+            ? "unverified-map-connector"
+            : "away-from-current-path";
+      return hold("off-route", reason);
     }
 
+    const wasAmbiguous = Boolean(ambiguousProbe);
+    ambiguousProbe = null;
     const previous = probe;
     const lastMatch =
       previous || (state.status === "wrong-way" ? continuity : null);
@@ -434,6 +527,7 @@ export function createRouteTracker(route) {
       timestamp: location.timestamp,
       point: location.point.slice(0, 2),
       distance: candidate.distance,
+      leg: candidate.leg,
     };
     continuity = probe;
     if (pauseOnReverse && lastMatch) {
@@ -466,16 +560,24 @@ export function createRouteTracker(route) {
       location.accuracyMeters <= 6;
     endCount = nearEnd ? endCount + 1 : 0;
     if (!previous) {
-      matchedPoint = null;
+      matchedPoint = wasAmbiguous ? candidate.point : null;
       state = {
         ...state,
-        status: "acquiring",
-        reason: "confirming-position",
+        status: wasAmbiguous ? "uncertain" : "acquiring",
+        reason: wasAmbiguous
+          ? "ambiguous-route-position"
+          : "confirming-position",
         locationTimestamp: location.timestamp,
       };
       return snapshot();
     }
-    matchedPoint = candidate.point;
+    if (
+      !pauseOnReverse ||
+      !matchedPoint ||
+      previous.leg !== candidate.leg ||
+      candidate.distance >= previous.distance - 0.5
+    )
+      matchedPoint = candidate.point;
     const confirmedDistance = Math.min(previous.distance, candidate.distance);
     const resumeBehind = pauseOnReverse && recoveringFromReverse;
     state = {
