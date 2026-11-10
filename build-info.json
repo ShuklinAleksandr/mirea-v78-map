@@ -1,6 +1,6 @@
 {
-  "version": "0.5.17",
-  "sourceCommit": "c73911e65531ad00dd0159d6438edeed8cb85e95",
+  "version": "0.5.18",
+  "sourceCommit": "e7a0ad80fe725e0e9b19ea6243b39ab9520ad06d",
   "base": "/mirea-v78-map/",
-  "scope": "Stable mobile tilt intent and pinch/rotation jitter thresholds"
+  "scope": "Android-only GPS measurements; route camera follow and passed-path contrast; GPS permission timing"
 }
