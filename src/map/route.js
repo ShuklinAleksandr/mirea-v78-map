@@ -180,7 +180,7 @@ export function createRouteLayer(
     0,
   );
   const blue = dark ? 0x75a8ff : 0x246bfd;
-  const traveled = dark ? 0x7f91ad : 0x8294ad;
+  const traveled = dark ? 0x9a9da4 : 0x74787f;
   const nextColor = dark ? 0xffca72 : 0xb0600e;
   const legs = new Map(),
     checkpoints = [];

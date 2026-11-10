@@ -4,6 +4,9 @@ const touchBindings = new WeakMap();
 const planModes = new WeakMap();
 const UP = new Vector3(0, 1, 0);
 const MIN_SPAN = 12;
+const TILT_START_PIXELS = 12;
+const MIN_TOUCH_TILT = (5 * Math.PI) / 180;
+const MAX_TOUCH_TILT = (70 * Math.PI) / 180;
 
 export function configureMapTouchControls(controls, plan) {
   planModes.set(controls, Boolean(plan));
@@ -30,8 +33,8 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const finitePoint = (event) =>
   Number.isFinite(event.clientX) && Number.isFinite(event.clientY);
 
-/** A single touch pans the map; two touches simultaneously pan, pinch and turn
- * its bearing. Touches never change camera pitch. Stable pointer IDs and one
+/** A single touch pans; a pair pinches and turns, or tilts 3D when both fingers
+ * deliberately move vertically together. Stable pointer IDs and one
  * update per animation frame avoid the half-gesture caused by sequential
  * pointermove events. Camera math uses only public Three/OrbitControls APIs.
  */
@@ -59,9 +62,15 @@ export function bindMapTouchRotation(
   let active = false;
   let disposed = false;
   let singleDragStarted = false;
+  let pairOrigin = null;
+  let pairIntent = null;
 
   const points = () =>
     [...pointers.entries()].map(([id, point]) => ({ id, ...point }));
+  const resetPairIntent = () => {
+    pairOrigin = pointers.size === 2 ? shape(points()) : null;
+    pairIntent = null;
+  };
   const rectangle = () => {
     const rect = element.getBoundingClientRect();
     return rect.width > 0 &&
@@ -171,6 +180,7 @@ export function bindMapTouchRotation(
       )
     ) {
       rebase();
+      resetPairIntent();
       return;
     }
     const before = shape(previous.points);
@@ -193,7 +203,51 @@ export function bindMapTouchRotation(
         : null;
     const pair =
       current.length === 2 && before.span >= MIN_SPAN && after.span >= MIN_SPAN;
-    if (pair && controls.enableZoom !== false) {
+    if (pair && pairOrigin && !planModes.get(controls)) {
+      const dx = after.x - pairOrigin.x;
+      const dy = after.y - pairOrigin.y;
+      const pinch = Math.abs(Math.log(after.span / pairOrigin.span));
+      const twist = Math.abs(
+        Math.atan2(
+          Math.sin(after.angle - pairOrigin.angle),
+          Math.cos(after.angle - pairOrigin.angle),
+        ),
+      );
+      if (!pairIntent) {
+        if (pinch > 0.06 || twist > 0.12) pairIntent = "transform";
+        else if (
+          Math.abs(dy) >= TILT_START_PIXELS &&
+          Math.abs(dy) > Math.abs(dx) * 1.8
+        )
+          pairIntent = "tilt";
+        else if (Math.abs(dx) >= TILT_START_PIXELS) pairIntent = "transform";
+      } else if (pairIntent === "tilt" && (pinch > 0.12 || twist > 0.2)) {
+        // A deliberate pinch/twist can take over without lifting the fingers.
+        // The per-frame baseline prevents replaying the earlier tilt movement.
+        pairIntent = "transform";
+      }
+    }
+    const tilting =
+      pair && pairIntent === "tilt" && controls.enableTouchRotate !== false;
+    if (tilting) {
+      const offset = camera.position.clone().sub(controls.target);
+      const distance = offset.length();
+      if (distance > 0) {
+        const polar = Math.acos(clamp(offset.y / distance, -1, 1));
+        const next = clamp(
+          polar - ((after.y - before.y) / rect.height) * Math.PI,
+          Math.max(MIN_TOUCH_TILT, controls.minPolarAngle ?? 0),
+          Math.min(MAX_TOUCH_TILT, controls.maxPolarAngle ?? Math.PI),
+        );
+        offset.setFromSphericalCoords(
+          distance,
+          next,
+          Math.atan2(offset.x, offset.z),
+        );
+        camera.position.copy(controls.target).add(offset);
+      }
+    }
+    if (pair && !tilting && controls.enableZoom !== false) {
       const speed = Number.isFinite(controls.zoomSpeed)
         ? controls.zoomSpeed
         : 1;
@@ -222,7 +276,7 @@ export function bindMapTouchRotation(
         }
       }
     }
-    if (pair && controls.enableTouchRotate !== false) {
+    if (pair && !tilting && controls.enableTouchRotate !== false) {
       const angle = Math.atan2(
         Math.sin(after.angle - before.angle),
         Math.cos(after.angle - before.angle),
@@ -272,6 +326,7 @@ export function bindMapTouchRotation(
     cancelPending();
     baseline = null;
     singleDragStarted = false;
+    pairOrigin = pairIntent = null;
     if (!active) return;
     active = false;
     controls.dispatchEvent({ type: "end" });
@@ -309,6 +364,7 @@ export function bindMapTouchRotation(
     if (pointers.size) apply();
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     singleDragStarted = false;
+    resetPairIntent();
     capture(event.pointerId);
     if (!active) {
       active = true;
@@ -348,6 +404,7 @@ export function bindMapTouchRotation(
     } else cancelPending();
     pointers.delete(event.pointerId);
     singleDragStarted = false;
+    resetPairIntent();
     release(event.pointerId);
     if (pointers.size) rebase();
     else finishSession();

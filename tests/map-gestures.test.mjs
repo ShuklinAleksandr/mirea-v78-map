@@ -294,6 +294,69 @@ function assertStill(h, before) {
   close(after.zoom, before.zoom, "zoom");
 }
 
+test("two fingers moving vertically tilt 3D without changing bearing or distance", () => {
+  const h = harness(false, { damping: true });
+  try {
+    const start = pair(180, 440, 65);
+    const anchor = worldAt(h, 180, 440);
+    const initialPolar = h.controls.getPolarAngle();
+    const bearing = h.controls.getAzimuthalAngle();
+    const distance = offset(h).length();
+    startPair(h, start);
+    movePair(h, pair(180, 490, 65));
+    assert.ok(h.controls.getPolarAngle() < initialPolar - 0.15);
+    close(h.controls.getAzimuthalAngle(), bearing, "tilt preserves bearing");
+    close(offset(h).length(), distance, "tilt preserves distance");
+    assertAnchor(h, anchor, 180, 490);
+    movePair(h, pair(180, 390, 65));
+    assert.ok(h.controls.getPolarAngle() > initialPolar);
+    endPair(h, pair(180, 390, 65));
+    const final = snapshot(h);
+    for (let i = 0; i < 30; i++) h.controls.update();
+    assertStill(h, final);
+    assert.equal(h.picks, 0);
+  } finally {
+    h.dispose();
+  }
+});
+
+test("a large tilt stays above the floor; a later pinch and twist take over continuously", () => {
+  const h = harness();
+  try {
+    startPair(h, pair(180, 440, 65));
+    movePair(h, pair(180, -360, 65));
+    assert.ok(h.controls.getPolarAngle() <= (70 * Math.PI) / 180 + 1e-6);
+    movePair(h, pair(180, 1240, 65));
+    close(h.controls.getPolarAngle(), (5 * Math.PI) / 180, "top tilt limit");
+    const distance = offset(h).length();
+    const polar = h.controls.getPolarAngle();
+    movePair(h, pair(180, 1240, 100, 35));
+    close(offset(h).length(), (distance * 65) / 100, "pinch after tilt");
+    close(h.controls.getPolarAngle(), polar, "pinch does not add tilt");
+    endPair(h, pair(180, 1240, 100, 35));
+  } finally {
+    h.dispose();
+  }
+});
+
+test("the same parallel vertical gesture pans 2D and keeps the plan flat", () => {
+  const h = harness(true);
+  try {
+    const anchor = worldAt(h, 180, 440);
+    const bearing = h.camera.up.clone();
+    const distance = offset(h).length();
+    startPair(h, pair(180, 440, 65));
+    movePair(h, pair(180, 500, 65));
+    assertAnchor(h, anchor, 180, 500);
+    assert.ok(h.camera.up.distanceTo(bearing) < 1e-6);
+    close(offset(h).length(), distance, "2D distance");
+    close(h.camera.zoom, 1, "2D scale");
+    endPair(h, pair(180, 500, 65));
+  } finally {
+    h.dispose();
+  }
+});
+
 for (const plan of [false, true]) {
   const mode = plan ? "2D" : "3D";
   test(`${mode}: one finger pans on the map plane and retains orientation and scale`, () => {

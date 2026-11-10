@@ -20,7 +20,7 @@ export function partialRouteInfo(route) {
   };
 }
 
-function pathProgress(route, guide, sample) {
+function pathProgress(route, guide, sample, mode = "live") {
   const sections = guide?.sections ?? [];
   let length = 0;
   let covered = 0;
@@ -37,20 +37,26 @@ function pathProgress(route, guide, sample) {
     ? Math.round((route.distanceMeters * covered) / length)
     : 0;
   const left = metres ? Math.round(route.distanceMeters) - walked : 0;
+  const prefix =
+    mode === "live"
+      ? "Пройдено"
+      : mode === "preview"
+        ? "Просмотрено"
+        : "По шагам";
   return {
     percent,
     completed: metres
-      ? `Пройдено ≈ ${walked} м`
+      ? `${prefix} ≈ ${walked} м`
       : sample
-        ? `Пройдено ${percent}%`
-        : "Пройдено",
+        ? `${prefix} ${percent}%`
+        : prefix,
     remaining: metres
       ? `Осталось ≈ ${left} м`
       : sample
         ? `Осталось ${100 - percent}%`
         : "Осталось",
     valueText: sample
-      ? `Пройдено ${percent}% нанесённого пути`
+      ? `${prefix} ${percent}% нанесённого пути`
       : "Уточняем положение",
   };
 }
@@ -71,6 +77,7 @@ export function nextRouteReadout({
   transitionLevel,
   guide,
   acceptedProgress,
+  manualProgress,
 }) {
   const step = route?.steps?.[stepIndex];
   const partial = partialRouteInfo(route);
@@ -138,7 +145,14 @@ export function nextRouteReadout({
     progress:
       guiding && automatic && !previewing
         ? pathProgress(route, guide, acceptedProgress)
-        : null,
+        : guiding && manualProgress
+          ? pathProgress(
+              route,
+              guide,
+              manualProgress,
+              previewing ? "preview" : "steps",
+            )
+          : null,
     meta: guiding
       ? `${partial ? `До ${partial.via}` : to?.label || "Назначение"} · шаг ${stepIndex + 1} из ${route.steps.length}`
       : `${route?.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route?.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}${partial ? ` · до ${partial.via}` : ""}`,
