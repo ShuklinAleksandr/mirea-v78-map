@@ -180,7 +180,9 @@ export function createRouteLayer(
     0,
   );
   const blue = dark ? 0x75a8ff : 0x246bfd;
-  const traveled = dark ? 0x9a9da4 : 0x74787f;
+  // A pale gray fill disappears into the floor and leaves only two dark edges.
+  // Keep the passed path visibly filled in both map themes.
+  const traveled = 0x4b5563;
   const nextColor = dark ? 0xffca72 : 0xb0600e;
   const legs = new Map(),
     checkpoints = [];
@@ -220,6 +222,7 @@ export function createRouteLayer(
     if (segment.points.length < 2) continue;
     line(segment.points, dark ? 0x182a49 : 0xffffff, 12, 0.29, 8);
     const stroke = line(segment.points, blue, 7, 0.31, 9);
+    stroke.name = "Route path";
     const leg = {
       points: segment.points,
       distances: lineDistances(segment.points),
@@ -402,20 +405,28 @@ export function createRouteLayer(
     const length = leg.distances.at(-1);
     const full = distance >= length;
     leg.stroke.material.color.setHex(full ? traveled : blue);
+    let remaining = leg.points;
     if (distance > 0 && !full) {
       const end = leg.distances.findIndex((item) => item >= distance);
-      const prefix = [
-        ...leg.points.slice(0, end),
-        routeLinePointAtDistance(leg.points, distance),
+      const split = routeLinePointAtDistance(leg.points, distance);
+      const prefix = [...leg.points.slice(0, end), split];
+      // The gray and blue strokes share one outline, but never cover the same
+      // route section. Keeping both fills at the same height also prevents a
+      // sideways blue fringe when the camera is close to the floor.
+      remaining = [
+        split,
+        ...leg.points.slice(leg.distances[end] === distance ? end + 1 : end),
       ];
       if (!leg.traveledStroke) {
-        leg.traveledStroke = line(prefix, traveled, 7, 0.32, 10);
+        leg.traveledStroke = line(prefix, traveled, 7, 0.31, 9);
         leg.traveledStroke.name = "Traveled route";
       } else {
         leg.traveledStroke.geometry.dispose();
-        leg.traveledStroke.geometry = lineGeometry(prefix, 0.32);
+        leg.traveledStroke.geometry = lineGeometry(prefix, 0.31);
       }
     }
+    leg.stroke.geometry.dispose();
+    leg.stroke.geometry = lineGeometry(remaining, 0.31);
     if (leg.traveledStroke) leg.traveledStroke.visible = distance > 0 && !full;
     for (const { arrow, distance: at } of leg.arrows)
       arrow.userData.routePassed = at <= distance;

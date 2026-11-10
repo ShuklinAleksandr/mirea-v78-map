@@ -186,7 +186,7 @@ export function nextRouteReadout({
       locate: "Обновить геопозицию",
     }[contextAction],
     showRecenter: Boolean(
-      guiding && !following && !contextAction && !manualOnly,
+      guiding && !following && contextAction !== "locate" && !manualOnly,
     ),
   };
 }

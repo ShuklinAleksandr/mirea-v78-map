@@ -1,4 +1,6 @@
 import { $ } from "./dom.js";
+import { Capacitor } from "@capacitor/core";
+import { bindGpsSurvey, gpsSurveyAvailable } from "./gps-survey.js";
 import { watchGpsLocation } from "../location.js";
 import { watchHeading } from "../heading.js";
 import {
@@ -38,6 +40,12 @@ export function bindLocation({
   surveyStorage,
 }) {
   const dialog = $("#location-dialog");
+  const nativeSurvey = gpsSurveyAvailable({
+    native: Capacitor.isNativePlatform(),
+    platform: Capacitor.getPlatform(),
+  });
+  const legacySurveyPanel = dialog.querySelector?.(".gps-refinement-records");
+  if (legacySurveyPanel) legacySurveyPanel.hidden = true;
   const tracking = (state.locationTracking = {
     enabled: false,
     status: "off",
@@ -56,6 +64,8 @@ export function bindLocation({
     stopHeading = null,
     headingGeneration = 0,
     pickCompletion = null,
+    pickCanceled = null,
+    pickPurpose = "manual",
     closeOnFix = false;
   state.headingStatus = "off";
   let refinementSurvey = null,
@@ -103,7 +113,7 @@ export function bindLocation({
     }
   }
   function recordRefinement(anchor) {
-    if (!tracking.enabled || !rawFix) return "";
+    if (!nativeSurvey || !tracking.enabled || !rawFix) return "";
     try {
       const record = createGpsCalibrationRecord(anchor, rawFix, {
         now: Date.now(),
@@ -388,12 +398,16 @@ export function bindLocation({
     beginHeading();
     beginWatch();
   }
-  function stopPicking() {
+  function stopPicking({ notify = false } = {}) {
+    const canceled = pickCanceled;
     pickCompletion = null;
+    pickCanceled = null;
+    pickPurpose = "manual";
     scene.setLocationPicking(false);
     $("#location-pick-banner").hidden = true;
     $("#location-crosshair").hidden = true;
     document.body.dataset.locationPicking = "false";
+    if (notify) canceled?.();
   }
   function open() {
     stopPicking();
@@ -465,8 +479,9 @@ export function bindLocation({
       : "Передвиньте карту: метка должна быть на полу, вне стены и лестничного проёма.";
     return pick;
   }
-  function beginPicking({ onPicked, purpose = "manual" } = {}) {
-    if (purpose !== "manual") return false;
+  function beginPicking({ onPicked, onCanceled, purpose = "manual" } = {}) {
+    if (purpose !== "manual" && !(purpose === "gps-survey" && nativeSurvey))
+      return false;
     stopPicking();
     document.activeElement?.blur?.();
     if (dialog.open) dialog.close();
@@ -486,11 +501,16 @@ export function bindLocation({
       return false;
     }
     pickCompletion = onPicked || null;
+    pickCanceled = onCanceled || null;
+    pickPurpose = purpose;
     $("#location-pick-banner").hidden = false;
     $("#location-crosshair").hidden = false;
     $("#location-pick-banner-text").textContent =
-      "Выберите этаж и передвиньте карту под меткой к своему месту.";
-    $("#location-pick-confirm").textContent = "Я здесь";
+      purpose === "gps-survey"
+        ? "Отметьте место замера. Эта метка не изменит вашу геопозицию."
+        : "Выберите этаж и передвиньте карту под меткой к своему месту.";
+    $("#location-pick-confirm").textContent =
+      purpose === "gps-survey" ? "Место замера" : "Я здесь";
     document.body.dataset.locationPicking = "true";
     previewPicking();
     refresh();
@@ -501,7 +521,13 @@ export function bindLocation({
     const location = manualMapLocation(pick, floor, state.search);
     if (!location) return false;
     const complete = pickCompletion;
+    const survey = pickPurpose === "gps-survey";
     stopPicking();
+    if (survey) {
+      refresh();
+      complete?.(location);
+      return true;
+    }
     assignManual(location, { record: true });
     tracking.following = true;
     experience.minimize();
@@ -547,7 +573,7 @@ export function bindLocation({
   $("#location-gps").onclick = () =>
     tracking.enabled ? stopTracking() : locate();
   $("#location-map").onclick = () => beginPicking();
-  $("#location-pick-cancel").onclick = stopPicking;
+  $("#location-pick-cancel").onclick = () => stopPicking({ notify: true });
   $("#location-pick-confirm").onclick = () => {
     const point = previewPicking();
     if (point) pick(point);
@@ -629,11 +655,11 @@ export function bindLocation({
     if (tracking.following) locate();
   };
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") stopPicking();
+    if (e.key === "Escape") stopPicking({ notify: true });
   });
   window.addEventListener("atlas:back", (e) => {
     if (!$("#location-pick-banner").hidden) {
-      stopPicking();
+      stopPicking({ notify: true });
       e.preventDefault();
     }
   });
@@ -657,6 +683,17 @@ export function bindLocation({
     if (e.detail?.isActive === true) resume();
   });
   window.addEventListener("pagehide", suspend);
+  bindGpsSurvey({
+    native: Capacitor.isNativePlatform(),
+    platform: Capacitor.getPlatform(),
+    storage: refinementStorage,
+    beginPicking,
+    closeLocation: () => {
+      if (dialog.open) dialog.close();
+    },
+    toast,
+    startWatching,
+  });
   refresh();
   return {
     open,

@@ -113,8 +113,8 @@ try {
       routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),
     onMapInteraction: () => {
       floorContextOwner = "camera";
-      routes?.pauseGuidance?.();
       userPosition?.pauseFollowing();
+      routes?.pauseGuidance?.();
     },
     onFrame: () => refreshCameraFloorContext(),
     onMapTap: () => mapHud?.onMapTap(),

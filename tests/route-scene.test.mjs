@@ -178,6 +178,132 @@ test("GPS progress colors only the traveled polyline and keeps repeated floor vi
   }
 });
 
+test("passed and remaining route fills meet without overlap, including retreat and exact turns", () => {
+  const itinerary = { segments: [route.segments[0]] };
+  const layer = createRouteLayer(itinerary, "f1", { dark: true });
+  const strokes = () =>
+    layer.group.children.filter((object) => object.isLine2 && object.visible);
+  const path = () => strokes().find((object) => object.name === "Route path");
+  const passed = () =>
+    strokes().find((object) => object.name === "Traveled route");
+  const edges = (stroke) => {
+    const a = stroke.geometry.getAttribute("instanceStart");
+    const b = stroke.geometry.getAttribute("instanceEnd");
+    return Array.from({ length: a.count }, (_, i) => [
+      [a.getX(i), a.getZ(i)],
+      [b.getX(i), b.getZ(i)],
+    ]);
+  };
+  const set = (position, distance) =>
+    layer.setProgress({
+      sourceSegmentIndex: 0,
+      position,
+      distance,
+      length: 27,
+    });
+  try {
+    const initialColor = path().material.color.getHex();
+    for (const [position, distance, expectedPassed, expectedRemaining] of [
+      [
+        [12, 3],
+        15,
+        [
+          [
+            [0, 0],
+            [12, 0],
+          ],
+          [
+            [12, 0],
+            [12, 3],
+          ],
+        ],
+        [
+          [
+            [12, 3],
+            [12, 15],
+          ],
+        ],
+      ],
+      [
+        [6, 0],
+        6,
+        [
+          [
+            [0, 0],
+            [6, 0],
+          ],
+        ],
+        [
+          [
+            [6, 0],
+            [12, 0],
+          ],
+          [
+            [12, 0],
+            [12, 15],
+          ],
+        ],
+      ],
+      [
+        [12, 0],
+        12,
+        [
+          [
+            [0, 0],
+            [12, 0],
+          ],
+        ],
+        [
+          [
+            [12, 0],
+            [12, 15],
+          ],
+        ],
+      ],
+    ]) {
+      set(position, distance);
+      assert.deepEqual(edges(passed()), expectedPassed);
+      assert.deepEqual(edges(path()), expectedRemaining);
+      assert.equal(strokes().length, 3, "one outline and two adjoining fills");
+      assert.equal(
+        passed().geometry.getAttribute("instanceStart").getY(0),
+        path().geometry.getAttribute("instanceStart").getY(0),
+        "progress does not offset the gray path above its blue continuation",
+      );
+      assert.equal(path().material.color.getHex(), initialColor);
+      assert.notEqual(passed().material.color.getHex(), initialColor);
+      const geometry = path().geometry;
+      assert.equal(set(position, distance), false);
+      assert.equal(
+        path().geometry,
+        geometry,
+        "unchanged progress keeps buffers",
+      );
+    }
+    set([12, 15], 27);
+    assert.equal(passed(), undefined);
+    assert.equal(strokes().length, 2, "a completed leg has only one fill");
+    assert.notEqual(path().material.color.getHex(), initialColor);
+    const fullPath = [
+      [
+        [0, 0],
+        [12, 0],
+      ],
+      [
+        [12, 0],
+        [12, 15],
+      ],
+    ];
+    assert.deepEqual(edges(path()), fullPath);
+    layer.setProgress(null);
+    assert.equal(path().material.color.getHex(), initialColor);
+    assert.deepEqual(edges(path()), fullPath);
+    assert.equal(passed(), undefined);
+  } finally {
+    disposeRouteLayer(layer);
+  }
+});
+
 test("stacked route draws after transparent slabs, with all path cues visible through upper floors", () => {
   const stairPaths = [
     {
