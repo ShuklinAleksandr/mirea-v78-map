@@ -1,6 +1,6 @@
 {
-  "version": "0.5.15",
-  "sourceCommit": "40b1380726fd35a3b1695ee7649a2a31a86f0ec2",
+  "version": "0.5.16",
+  "sourceCommit": "a00cb4c81880a79423605821f0457948f03a840b",
   "base": "/mirea-v78-map/",
-  "scope": "V78; desktop search sidebar, route planning, mouse and keyboard controls"
+  "scope": "V78; two-finger 3D tilt, separate manual route progress, previous-request audit"
 }
