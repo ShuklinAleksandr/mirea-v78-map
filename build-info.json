@@ -1,6 +1,6 @@
 {
-  "version": "0.5.14",
-  "sourceCommit": "7b4d09e4793ed27bca03f90992eeb125deae5e0f",
+  "version": "0.5.15",
+  "sourceCommit": "40b1380726fd35a3b1695ee7649a2a31a86f0ec2",
   "base": "/mirea-v78-map/",
-  "scope": "V78; smoother route following, GPS drift handling, checkpoints and progress"
+  "scope": "V78; desktop search sidebar, route planning, mouse and keyboard controls"
 }
