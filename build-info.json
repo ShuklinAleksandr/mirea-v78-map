@@ -1,6 +1,6 @@
 {
-  "version": "0.5.16",
-  "sourceCommit": "a00cb4c81880a79423605821f0457948f03a840b",
+  "version": "0.5.17",
+  "sourceCommit": "c73911e65531ad00dd0159d6438edeed8cb85e95",
   "base": "/mirea-v78-map/",
-  "scope": "V78; two-finger 3D tilt, separate manual route progress, previous-request audit"
+  "scope": "Stable mobile tilt intent and pinch/rotation jitter thresholds"
 }
