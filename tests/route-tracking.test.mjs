@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRouteTracker } from "../src/data/route-tracking.js";
+import { createRouteTrackingSurfaceGuard } from "../src/data/route-tracking-surface.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -666,4 +667,65 @@ test("real G103-1 to G209 replays each source section without automatically cros
       s < guide.sections.length - 1 ? "floor-change" : "arrived",
     );
   }
+});
+
+test("the А-209 to Г-213 corridor holds the line during the recorded kind of GPS drift", () => {
+  const graph = JSON.parse(
+    readFileSync(new URL("../public/data/routing/v-78.json", import.meta.url)),
+  );
+  const floor = JSON.parse(
+    readFileSync(
+      new URL("../public/data/campuses/v-78/v-78-floor2.json", import.meta.url),
+    ),
+  );
+  const route = findRoute(graph, "v-78--floor-2--a01", "v-78--floor-1--6ds");
+  assert.equal(route.ok, true);
+  assert.equal(
+    route.distanceMeters,
+    null,
+    "the destination is on another floor",
+  );
+  const guide = createRouteGuidance(route);
+  const tracker = createRouteTracker(route);
+  const allowPoint = createRouteTrackingSurfaceGuard(floor);
+  const sample = (distance) => sampleRouteGuidance(guide, 0, distance);
+  const replay = (tick, lateralDrift = 0) => {
+    const { position, heading } = sample(tick);
+    const point = [
+      position[0] - heading[1] * lateralDrift,
+      position[1] + heading[0] * lateralDrift,
+    ];
+    const accuracy = lateralDrift ? 10 : 8;
+    return observe(
+      tracker,
+      point,
+      tick,
+      { accuracyMeters: accuracy, accuracyRadiusMap: accuracy },
+      { floorId: floor.id, allowPoint, pauseOnReverse: true },
+    );
+  };
+  let confirmed;
+  for (let tick = 0; tick <= 24; tick++)
+    confirmed = replay(tick, tick >= 23 ? (tick - 22) * 1.5 : 0);
+  assert.equal(confirmed.status, "tracking");
+  for (let tick = 25; tick < 46; tick++) {
+    const update = replay(tick, tick === 25 ? 4.5 : 6);
+    assert.equal(update.status, "uncertain");
+    assert.equal(update.distance, confirmed.distance);
+    assert.equal(update.stepIndex, confirmed.stepIndex);
+    const expected = sample(tick === 25 ? 24 : tick).position;
+    assert.ok(
+      Math.hypot(
+        update.matchedPoint[0] - expected[0],
+        update.matchedPoint[1] - expected[1],
+      ) < 0.01,
+      `the marker stays on the corridor at second ${tick}`,
+    );
+  }
+  replay(46);
+  replay(47);
+  const recovered = replay(48);
+  assert.equal(recovered.status, "tracking");
+  assert.equal(recovered.sectionIndex, 0);
+  assert.ok(recovered.distance > confirmed.distance);
 });

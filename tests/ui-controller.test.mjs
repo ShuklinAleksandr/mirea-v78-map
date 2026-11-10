@@ -364,6 +364,7 @@ function routeHarness({
   const draws = [];
   const guidanceCalls = [];
   const guidanceOptions = [];
+  const routeProgressCalls = [];
   const sheetCalls = [];
   const navigationModes = [];
   const overviewCalls = [];
@@ -382,6 +383,9 @@ function routeHarness({
     setRouteGuidance(sample, options) {
       guidanceCalls.push(sample);
       guidanceOptions.push(options);
+    },
+    setLiveRouteProgress(sample) {
+      routeProgressCalls.push(sample);
     },
   };
   const api = h.bindRoutes({
@@ -447,6 +451,7 @@ function routeHarness({
     draws,
     guidanceCalls,
     guidanceOptions,
+    routeProgressCalls,
     sheetCalls,
     navigationModes,
     overviewCalls,
@@ -1781,7 +1786,7 @@ test("route heading is paused with map following and restored by recenter", asyn
   assert.equal(h.isFollowingHeading(), false);
 });
 
-test("Next tracking hides manual controls only for reliable GPS and surfaces a working refinement action", async () => {
+test("Next tracking keeps manual step controls and surfaces a working refinement action", async () => {
   let refinements = 0;
   const h = await liveRouteHarness({
     nextInterface: true,
@@ -1791,10 +1796,11 @@ test("Next tracking hides manual controls only for reliable GPS and surfaces a w
   });
   h.emitGps([0, 0]);
   h.emitGps([1, 0]);
-  assert.equal(h.element("#route-dock-next").hidden, true);
+  assert.equal(h.element("#route-dock-next").hidden, false);
   assert.equal(h.element("#route-dock-recenter").hidden, true);
   assert.equal(h.element("#route-dock-context").hidden, true);
-  assert.equal(h.element("#route-dock-previous").hidden, true);
+  assert.equal(h.element("#route-dock-previous").hidden, false);
+  assert.equal(h.element("#route-dock-previous").disabled, false);
   assert.match(h.element("#route-dock-distance").textContent, /м/);
   const instruction = h.element("#route-dock-instruction").textContent;
   h.emitGps([2, 0], { accuracyMeters: 40, accuracyRadiusMap: 40 });
@@ -1806,6 +1812,44 @@ test("Next tracking hides manual controls only for reliable GPS and surfaces a w
   h.element("#route-dock-context").dispatch("click");
   assert.equal(refinements, 1);
   assert.ok(h.getRoute());
+});
+
+test("ambiguous GPS holds dock and map progress, and step correction keeps keyboard focus without replaying the fix", async () => {
+  const h = await liveRouteHarness({ nextInterface: true });
+  h.state.routeSnapEnabled = true;
+  h.emitGps([0, 0]);
+  h.emitGps([3, 0]);
+  h.emitGps([5, 0]);
+  const progress = h.element("#route-dock-progress-bar");
+  assert.ok(progress.value > 0);
+  const confirmed = h.routeProgressCalls.at(-1);
+  assert.equal(confirmed.nextStepIndex, 2);
+  const percent = progress.value;
+  const instruction = h.element("#route-dock-instruction").textContent;
+  h.emitGps([6, 6], { accuracyMeters: 10, accuracyRadiusMap: 10 });
+  assert.equal(h.routeLocationMatch(h.state.userLocation)?.status, "uncertain");
+  assert.match(h.element("#route-dock-note").textContent, /Уточняем положение/);
+  assert.equal(h.element("#route-dock-distance").hidden, true);
+  assert.equal(h.element("#route-dock-instruction").textContent, instruction);
+  assert.equal(progress.value, percent);
+  assert.equal(h.routeProgressCalls.at(-1), confirmed);
+  assert.equal(h.element("#route-dock-previous").hidden, false);
+
+  const previous = h.element("#route-dock-previous");
+  previous.id = "route-dock-previous";
+  h.document.activeElement = previous;
+  h.element("#route-guidance-dock").contains = (node) => node === previous;
+  let restored = false;
+  previous.focus = () => (restored = true);
+  previous.dispatch("click");
+  h.locationChanged();
+  assert.equal(h.element("#route-dock-instruction").textContent, "По коридору");
+  assert.equal(restored, true);
+  assert.equal(progress.value, percent);
+  assert.equal(h.routeProgressCalls.at(-1), confirmed);
+  assert.deepEqual(h.state.userLocation.point, [6, 6]);
+  h.clear();
+  assert.equal(h.routeProgressCalls.at(-1), null);
 });
 
 test("live GPS advances to upcoming instructions and arrival without opening the sheet or creating a demonstration", async () => {

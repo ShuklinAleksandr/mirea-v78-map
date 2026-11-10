@@ -84,6 +84,7 @@ export function bindRoutes({
   let liveTracker = null,
     automatic = false,
     liveProgress = null,
+    acceptedProgress = null,
     liveExpiryTimer = null,
     resumeAfterTimestamp = -Infinity;
   const surfaceGuards = new WeakMap();
@@ -136,6 +137,7 @@ export function bindRoutes({
     pausePreview(false);
     automatic = false;
     liveTracker = liveProgress = null;
+    resetAcceptedProgress();
     resumeAfterTimestamp = -Infinity;
     if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
     revision++;
@@ -281,6 +283,28 @@ export function bindRoutes({
     }
     return guard(point, projectedPoint);
   }
+  function resetAcceptedProgress() {
+    acceptedProgress = null;
+    scene.setLiveRouteProgress?.(null);
+  }
+  function commitLiveProgress() {
+    if (
+      !liveProgress.matchedPoint ||
+      !["tracking", "floor-change", "arrived"].includes(liveProgress.status)
+    )
+      return;
+    const { sectionIndex, distance, stepIndex: nextStepIndex } = liveProgress;
+    if (
+      acceptedProgress?.sectionIndex === sectionIndex &&
+      acceptedProgress.distance === distance &&
+      acceptedProgress.nextStepIndex === nextStepIndex
+    )
+      return;
+    const sample = sampleRouteGuidance(guide, sectionIndex, distance);
+    if (!sample) return;
+    acceptedProgress = { ...sample, nextStepIndex };
+    scene.setLiveRouteProgress?.(acceptedProgress);
+  }
   function routeLocationMatch(location) {
     if (
       !state.routeSnapEnabled ||
@@ -291,9 +315,13 @@ export function bindRoutes({
       scene.locationPicking ||
       state.mode !== "floor" ||
       !liveProgress?.matchedPoint ||
-      !["tracking", "wrong-way", "floor-change", "arrived"].includes(
-        liveProgress.status,
-      ) ||
+      ![
+        "tracking",
+        "uncertain",
+        "wrong-way",
+        "floor-change",
+        "arrived",
+      ].includes(liveProgress.status) ||
       liveProgress.floorId !== state.floor?.id ||
       location !== state.userLocation ||
       (location?.trackingStatus &&
@@ -304,6 +332,7 @@ export function bindRoutes({
       return null;
     return {
       point: liveProgress.matchedPoint,
+      status: liveProgress.status,
       sourceSegmentIndex:
         guide.sections[liveProgress.sectionIndex]?.sourceSegmentIndex,
     };
@@ -327,7 +356,9 @@ export function bindRoutes({
       return;
     }
     if (state.userLocation?.timestamp <= resumeAfterTimestamp) {
-      liveProgress = { ...liveTracker.snapshot(), status: "stale" };
+      const last = liveTracker.snapshot();
+      liveProgress =
+        last.reason === "manual-step" ? last : { ...last, status: "stale" };
       updateDockReadout();
       if (refreshLocation && state.routeSnapEnabled)
         scene.refreshUserLocation?.();
@@ -345,6 +376,7 @@ export function bindRoutes({
     guideSection = liveProgress.sectionIndex;
     guideDistance = liveProgress.distance;
     stepIndex = liveProgress.stepIndex;
+    commitLiveProgress();
     // Context follows the same accepted point as the moving marker.
     // It must not override manual map browsing or a pending stair hand-off.
     if (
@@ -634,7 +666,7 @@ export function bindRoutes({
       $("#caption-title").textContent = title + " · маршрут";
     }
   }
-  function focusStep(index, { keepCamera = false } = {}) {
+  function focusStep(index, { keepCamera = false, correction = false } = {}) {
     if (!route?.steps?.length || index < 0 || index >= route.steps.length)
       return false;
     pausePreview(false);
@@ -663,6 +695,9 @@ export function bindRoutes({
       );
     } else if (automatic && liveTracker) {
       liveProgress = liveTracker.seekStep(index);
+      const timestamp = state.userLocation?.timestamp;
+      if (correction && Number.isFinite(timestamp))
+        resumeAfterTimestamp = Math.max(resumeAfterTimestamp, timestamp);
       updateLiveGuidance();
     }
     renderSteps();
@@ -718,7 +753,11 @@ export function bindRoutes({
     const target = nextSection
       ? route.segments[nextSection.sourceSegmentIndex]?.nodes?.[0]
       : null;
-    if (focusStep(index + 1, { keepCamera }) && automatic && targetFloorId) {
+    if (
+      focusStep(index + 1, { keepCamera, correction: true }) &&
+      automatic &&
+      targetFloorId
+    ) {
       // Pressing the stair action is the user's explicit floor confirmation.
       onConfirmFloor?.({
         campusId: route.campusId,
@@ -794,8 +833,34 @@ export function bindRoutes({
       return;
     }
     dock.classList.toggle("route-guidance-dock", true);
-    const finalStep = stepIndex === route.steps.length - 1;
-    dock.innerHTML = `${nextInterface ? '<button type="button" id="route-dock-open" class="route-dock-open" aria-label="Открыть маршрут и поиск" aria-controls="sheet-content">Маршрут и поиск</button>' : ""}<div class="route-dock-header"><small class="route-dock-meta" id="route-dock-meta"></small><button type="button" class="route-dock-close icon-button" id="route-dock-close" aria-label="Закрыть маршрут">${icon("close", 18)}</button></div>${nextInterface ? '<span class="next-route-symbol" id="route-dock-symbol" aria-hidden="true"></span>' : ""}<strong class="route-dock-instruction" id="route-dock-instruction" aria-live="polite"></strong>${nextInterface ? '<span class="next-route-distance" id="route-dock-distance" hidden></span>' : ""}<small class="route-dock-note" id="route-dock-note">${guiding ? "Переключайте шаги, когда дойдёте до указанного места" : "Путь по карте · расстояние и время приблизительные"}</small>${nextInterface ? '<button type="button" id="route-dock-context" class="route-dock-context primary-button" hidden></button>' : ""}<div class="route-dock-controls"><button type="button" class="route-dock-previous" id="route-dock-previous" aria-label="Предыдущий шаг" ${!guiding || stepIndex === 0 ? "hidden" : ""}>Назад</button><button type="button" class="route-dock-next primary-button" id="route-dock-next">${guiding ? (finalStep ? "Завершить" : "Далее") : "В путь"}${icon("arrow", 17)}</button></div><div class="route-dock-secondary"><button type="button" id="route-dock-recenter" class="route-dock-recenter" aria-label="Вернуться к текущему шагу" title="Вернуться к текущему шагу">${icon("route", 20)}<span>К шагу</span></button><button type="button" id="route-dock-details" class="route-dock-details">${icon("route", 16)}${guiding ? "Весь маршрут" : "Изменить"}</button></div>`;
+    const activeAction = dock.contains(document.activeElement)
+      ? document.activeElement.id
+      : null;
+    const nextElements = nextInterface
+      ? `<span class="next-route-distance" id="route-dock-distance" hidden></span>
+        <div class="route-dock-progress" id="route-dock-progress" hidden>
+          <progress id="route-dock-progress-bar" max="100" value="0" aria-label="Пройденная часть маршрута"></progress>
+          <div class="route-dock-progress-labels" aria-hidden="true">
+            <span id="route-dock-completed"></span><span id="route-dock-remaining"></span>
+          </div>
+        </div>`
+      : "";
+    dock.innerHTML = `
+      ${nextInterface ? '<button type="button" id="route-dock-open" class="route-dock-open" aria-label="Открыть маршрут и поиск" aria-controls="sheet-content">Маршрут и поиск</button>' : ""}
+      <div class="route-dock-header"><small class="route-dock-meta" id="route-dock-meta"></small><button type="button" class="route-dock-close icon-button" id="route-dock-close" aria-label="Закрыть маршрут">${icon("close", 18)}</button></div>
+      ${nextInterface ? '<span class="next-route-symbol" id="route-dock-symbol" aria-hidden="true"></span>' : ""}
+      <strong class="route-dock-instruction" id="route-dock-instruction" aria-live="polite"></strong>
+      ${nextElements}
+      <small class="route-dock-note" id="route-dock-note">Путь по карте · расстояние и время приблизительные</small>
+      ${nextInterface ? '<button type="button" id="route-dock-context" class="route-dock-context primary-button" hidden></button>' : ""}
+      <div class="route-dock-controls" role="group" aria-label="Шаги маршрута">
+        <button type="button" class="route-dock-previous" id="route-dock-previous" aria-label="Предыдущий шаг">Назад</button>
+        <button type="button" class="route-dock-next primary-button" id="route-dock-next"></button>
+      </div>
+      <div class="route-dock-secondary" role="group" aria-label="Управление маршрутом">
+        <button type="button" id="route-dock-recenter" class="route-dock-recenter" aria-label="Вернуться к текущему шагу" title="Вернуться к текущему шагу">${icon("route", 20)}<span>К шагу</span></button>
+        <button type="button" id="route-dock-details" class="route-dock-details">${icon("route", 16)}${guiding ? "Весь маршрут" : "Изменить"}</button>
+      </div>`;
     if (nextInterface) {
       const open = () => {
         pausePreview(false);
@@ -846,7 +911,7 @@ export function bindRoutes({
       else advanceStep(stepIndex);
     });
     $("#route-dock-previous")?.addEventListener("click", () =>
-      focusStep(stepIndex - 1),
+      focusStep(stepIndex - 1, { correction: true }),
     );
     $("#route-dock-recenter")?.addEventListener("click", () => {
       if (guiding && onLocate) {
@@ -874,6 +939,14 @@ export function bindRoutes({
     });
     $("#route-dock-close")?.addEventListener("click", () => clear());
     updateDockReadout();
+    if (activeAction) {
+      const active = $("#" + activeAction);
+      const action =
+        active && !active.disabled && !active.hidden
+          ? active
+          : $("#route-dock-next");
+      action?.focus({ preventScroll: true });
+    }
   }
   function updateDockReadout() {
     if (!route) return;
@@ -906,15 +979,14 @@ export function bindRoutes({
     if (note && guiding) {
       const notes = {
         waiting: "Ждём GPS. Пока можно переключать шаги вручную.",
-        acquiring: "Сверяем свежие координаты с маршрутом…",
+        acquiring: "Уточняем положение…",
+        uncertain: "Уточняем положение. Продолжайте по линии маршрута.",
         tracking: "По GPS · шаги меняются автоматически",
         "low-accuracy":
           "Точности GPS недостаточно для смены шагов. Уточните точку или идите по кнопке «Далее».",
         stale: "Нет свежего GPS. Автоматическое продвижение приостановлено.",
-        "off-route": state.routeSnapEnabled
-          ? "Вы отошли от маршрута. Подсказки возобновятся на его линии."
-          : "Позиция вне подтверждённого пути. Уточните точку; маршрут не перестраивается по догадке.",
-        "wrong-way": "Вы идёте назад по маршруту. Автосмена шагов на паузе.",
+        "off-route": "Уточняем положение. Продолжайте по линии маршрута.",
+        "wrong-way": "Продолжайте по линии в сторону назначения.",
         "floor-mismatch":
           "Проверьте свой этаж и уточните точку. GPS не определяет этаж.",
         "floor-change":
@@ -943,10 +1015,8 @@ export function bindRoutes({
     }
     const recenter = $("#route-dock-recenter");
     if (recenter && guiding && onLocate) {
-      recenter.setAttribute(
-        "aria-label",
-        "К моему местоположению — продолжить ведение",
-      );
+      recenter.setAttribute("aria-label", "К моему местоположению");
+      recenter.setAttribute("title", "К моему местоположению");
       recenter.innerHTML = `${icon("locate", 20)}<span>Ко мне</span>`;
     }
     if (nextInterface) {
@@ -973,19 +1043,31 @@ export function bindRoutes({
         following: state.locationTracking?.following,
         snapToRoute: state.routeSnapEnabled,
         transitionLevel,
+        guide,
+        acceptedProgress,
       });
       if (meta) meta.textContent = view.meta;
       if (note) note.textContent = view.note;
-      if (previous) previous.hidden = true;
+      if (previous) {
+        previous.hidden = !guiding;
+        previous.disabled = stepIndex === 0;
+      }
       if (next) {
         next.hidden = !view.showNext;
         next.innerHTML = `${escape(view.nextLabel)}${icon("arrow", 17)}`;
         next.classList.toggle("primary-button", !view.contextAction);
       }
-      if (recenter) {
-        recenter.hidden = !view.showRecenter;
-        if (guiding)
-          recenter.innerHTML = `${icon("locate", 18)}<span>Продолжить ведение</span>`;
+      if (recenter) recenter.hidden = !view.showRecenter;
+      const progress = $("#route-dock-progress");
+      if (progress) {
+        progress.hidden = !view.progress;
+        if (view.progress) {
+          const bar = $("#route-dock-progress-bar");
+          bar.value = view.progress.percent;
+          bar.setAttribute("aria-valuetext", view.progress.valueText);
+          $("#route-dock-completed").textContent = view.progress.completed;
+          $("#route-dock-remaining").textContent = view.progress.remaining;
+        }
       }
       const distance = $("#route-dock-distance");
       if (distance) {
@@ -1262,6 +1344,7 @@ export function bindRoutes({
       guide = createRouteGuidance(result);
       liveTracker = createRouteTracker(result);
       liveProgress = null;
+      resetAcceptedProgress();
       automatic = false;
       guideSection = guideDistance = 0;
       stepIndex = 0;

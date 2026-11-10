@@ -102,6 +102,9 @@ try {
         ? routes.getViewportPadding()
         : roomPadding(),
     shouldFollowHeading: () => routes?.isFollowingHeading(),
+    shouldFollowUserLocation: () =>
+      state.locationTracking?.enabled && state.locationTracking.following,
+    shouldFollowRouteLine: () => state.routeSnapEnabled,
     getRouteLocationMatch: (location) => routes?.routeLocationMatch(location),
     getResizePadding: () =>
       routes?.getRoute() ? routes.getViewportPadding() : roomPadding(),

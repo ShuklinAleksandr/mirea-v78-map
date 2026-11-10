@@ -20,6 +20,41 @@ export function partialRouteInfo(route) {
   };
 }
 
+function pathProgress(route, guide, sample) {
+  const sections = guide?.sections ?? [];
+  let length = 0;
+  let covered = 0;
+  for (const [index, section] of sections.entries()) {
+    length += section.length;
+    if (index < sample?.sectionIndex) covered += section.length;
+    else if (index === sample?.sectionIndex)
+      covered += Math.min(section.length, Math.max(0, sample.distance));
+  }
+  if (!(length > 0)) return null;
+  const percent = Math.round((100 * covered) / length);
+  const metres = sample && Number.isFinite(route.distanceMeters);
+  const walked = metres
+    ? Math.round((route.distanceMeters * covered) / length)
+    : 0;
+  const left = metres ? Math.round(route.distanceMeters) - walked : 0;
+  return {
+    percent,
+    completed: metres
+      ? `Пройдено ≈ ${walked} м`
+      : sample
+        ? `Пройдено ${percent}%`
+        : "Пройдено",
+    remaining: metres
+      ? `Осталось ≈ ${left} м`
+      : sample
+        ? `Осталось ${100 - percent}%`
+        : "Осталось",
+    valueText: sample
+      ? `Пройдено ${percent}% нанесённого пути`
+      : "Уточняем положение",
+  };
+}
+
 /** Compact navigation uses the same tracker evidence as the classic view.
  * This presentation never changes floors or supplies a synthetic position. */
 export function nextRouteReadout({
@@ -34,6 +69,8 @@ export function nextRouteReadout({
   following = false,
   snapToRoute = false,
   transitionLevel,
+  guide,
+  acceptedProgress,
 }) {
   const step = route?.steps?.[stepIndex];
   const partial = partialRouteInfo(route);
@@ -48,13 +85,12 @@ export function nextRouteReadout({
   const notes = {
     waiting: "Нет геопозиции · пока можно идти по шагам",
     acquiring: "Уточняем положение…",
+    uncertain: "Уточняем положение. Продолжайте по линии маршрута.",
     tracking: "Шаги меняются автоматически",
     "low-accuracy": "Положение неточное · автосмена шагов на паузе",
     stale: "Нет свежей геопозиции · автосмена шагов на паузе",
-    "off-route": snapToRoute
-      ? "Вы отошли от маршрута · вернитесь к линии"
-      : "Точка вне подтверждённого пути",
-    "wrong-way": "Вы идёте назад · автосмена шагов на паузе",
+    "off-route": "Уточняем положение. Продолжайте по линии маршрута.",
+    "wrong-way": "Продолжайте по линии в сторону назначения.",
     "floor-mismatch": "Проверьте этаж · GPS его не определяет",
     "floor-change": "Подтвердите переход по лестнице",
     arrived: "Проверьте номер помещения на месте",
@@ -99,6 +135,10 @@ export function nextRouteReadout({
     status,
     direction,
     distance,
+    progress:
+      guiding && automatic && !previewing
+        ? pathProgress(route, guide, acceptedProgress)
+        : null,
     meta: guiding
       ? `${partial ? `До ${partial.via}` : to?.label || "Назначение"} · шаг ${stepIndex + 1} из ${route.steps.length}`
       : `${route?.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route?.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}${partial ? ` · до ${partial.via}` : ""}`,
@@ -124,7 +164,7 @@ export function nextRouteReadout({
               : `Я на ${transitionLevel} этаже`
             : "Я на следующем этаже"
           : "Следующий шаг",
-    showNext: !guiding || !tracking || finalStep || transition,
+    showNext: Boolean(route?.steps?.length),
     contextAction,
     contextLabel: {
       refine: "Уточнить точку",
