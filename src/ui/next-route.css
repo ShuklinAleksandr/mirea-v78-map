@@ -63,13 +63,13 @@
   font-weight: 600;
 }
 .route-dock-progress {
-  --route-traveled: #8294ad;
+  --route-traveled: #74787f;
   --route-remaining: #246bfd;
   flex: 0 0 100%;
   width: 100%;
 }
 [data-theme="dark"] .route-dock-progress {
-  --route-traveled: #7f91ad;
+  --route-traveled: #9a9da4;
   --route-remaining: #75a8ff;
 }
 .route-dock-progress progress {

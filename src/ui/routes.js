@@ -291,6 +291,7 @@ export function bindRoutes({
   }
   function resetAcceptedProgress() {
     acceptedProgress = null;
+    scene.setRoutePreviewProgress?.(null);
     scene.setLiveRouteProgress?.(null);
   }
   function commitLiveProgress() {
@@ -1035,6 +1036,9 @@ export function bindRoutes({
         transitionLevel,
         guide,
         acceptedProgress,
+        manualProgress: automatic
+          ? null
+          : sampleRouteGuidance(guide, guideSection, guideDistance),
       });
       if (meta) meta.textContent = view.meta;
       if (note)
@@ -1224,6 +1228,7 @@ export function bindRoutes({
       route.segments[sample.sourceSegmentIndex]?.nodes || [],
     );
     if (automatic) {
+      scene.setRoutePreviewProgress?.(null);
       if (
         scene.setRouteGuidance?.(sample, {
           padding: padding(),
@@ -1244,6 +1249,7 @@ export function bindRoutes({
       }) === false
     )
       return null;
+    scene.setRoutePreviewProgress?.({ ...sample, nextStepIndex: stepIndex });
     updateProgressReadout();
     return sample;
   }

@@ -6,6 +6,7 @@
 
 - [Запуск на Mac/Windows/Linux и команды](../README.md)
 - [Открыть сайт карты](https://shuklinaleksandr.github.io/mirea-v78-map/)
+- [Наклон 3D на телефоне, серый пройденный путь и аудит пожеланий — v0.5.16](MOBILE_TILT_AUDIT_2026-11-10.md)
 - [Удобство на компьютере, мышь и клавиатура — v0.5.15](DESKTOP_UX_2026-11-10.md)
 - [Единый интерфейс, перенос избранного и публикация сайта](INTERFACE_COMPARISON.md)
 - [v0.5.5 в GitHub Releases](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.5)

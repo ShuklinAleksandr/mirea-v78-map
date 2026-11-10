@@ -379,6 +379,7 @@ function routeHarness({
   const guidanceCalls = [];
   const guidanceOptions = [];
   const routeProgressCalls = [];
+  const previewProgressCalls = [];
   const sheetCalls = [];
   const navigationModes = [];
   const overviewCalls = [];
@@ -400,6 +401,9 @@ function routeHarness({
     },
     setLiveRouteProgress(sample) {
       routeProgressCalls.push(sample);
+    },
+    setRoutePreviewProgress(sample) {
+      previewProgressCalls.push(sample);
     },
   };
   const api = h.bindRoutes({
@@ -466,6 +470,7 @@ function routeHarness({
     guidanceCalls,
     guidanceOptions,
     routeProgressCalls,
+    previewProgressCalls,
     sheetCalls,
     navigationModes,
     overviewCalls,
@@ -548,10 +553,17 @@ test("desktop planning between rooms opens manual steps without requesting GPS",
   assert.match(h.element("#route-dock-next").innerHTML, /Посмотреть шаги/);
   h.element("#route-dock-next").dispatch("click");
   assert.equal(h.document.body.dataset.routeNavigation, "true");
+  assert.equal(h.element("#route-dock-progress-bar").value, 0);
   h.element("#route-dock-next").dispatch("click");
   assert.match(h.element("#route-dock-meta").textContent, /шаг 2/);
+  assert.equal(h.previewProgressCalls.at(-1).distance, 20);
+  assert.equal(h.element("#route-dock-progress-bar").value, 100);
+  assert.match(h.element("#route-dock-completed").textContent, /По шагам/);
   h.element("#route-dock-previous").dispatch("click");
   assert.match(h.element("#route-dock-meta").textContent, /шаг 1/);
+  assert.equal(h.previewProgressCalls.at(-1).distance, 0);
+  assert.equal(h.element("#route-dock-progress-bar").value, 0);
+  assert.ok(h.routeProgressCalls.every((sample) => sample === null));
 });
 
 test("desktop collapse releases content focus and resizing back to mobile restores its normal sheet", () => {
@@ -976,9 +988,11 @@ test("manual guidance slider and map interaction pause preview, while cancellati
   slider.value = "500";
   slider.dispatch("input");
   assert.deepEqual(Array.from(h.guidanceCalls.at(-1).position), [10, 0]);
+  assert.equal(h.previewProgressCalls.at(-1).distance, 10);
   assert.equal(h.animationFrames.size, 0);
   h.element("#route-clear").onclick();
   assert.equal(h.guidanceCalls.at(-1), null);
+  assert.equal(h.previewProgressCalls.at(-1), null);
   assert.equal(h.getRoute(), null);
 });
 

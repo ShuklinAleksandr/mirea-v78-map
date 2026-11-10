@@ -1374,7 +1374,8 @@ export class AtlasScene {
   setRoute(route, { focus = true, padding, paddingBottom } = {}) {
     const hadRoute = Boolean(this.route);
     const next = route?.ok === false ? null : route;
-    if (this.route !== next) this.liveRouteProgress = null;
+    if (this.route !== next)
+      this.liveRouteProgress = this.routePreviewProgress = null;
     this.route = next;
     // A route uses an unclipped floor cutaway so inter-wing corridors remain
     // visible. Floor choice itself stays with the application controller.
@@ -1389,6 +1390,7 @@ export class AtlasScene {
     this.setRouteGuidance(null);
     this.route = null;
     this.liveRouteProgress = null;
+    this.routePreviewProgress = null;
     this.refreshRoute();
     if (hadRoute && rebuild && this.floor)
       this.setFloor(this.floor, this.building, { fit: false });
@@ -1397,11 +1399,19 @@ export class AtlasScene {
   setLiveRouteProgress(sample) {
     if (!this.route && sample) return;
     this.liveRouteProgress = sample || null;
+    this.refreshRouteProgress();
+  }
+  setRoutePreviewProgress(sample) {
+    if (!this.route && sample) return;
+    this.routePreviewProgress = sample || null;
+    this.refreshRouteProgress();
+  }
+  refreshRouteProgress() {
+    const displayed = this.routePreviewProgress || this.liveRouteProgress;
     const layers = this.routeOverview ? this.routeLayers : [this.routeLayer];
     let changed = false;
     for (const layer of layers || [])
-      changed =
-        Boolean(layer?.setProgress?.(this.liveRouteProgress)) || changed;
+      changed = Boolean(layer?.setProgress?.(displayed)) || changed;
     if (changed) this.invalidate();
   }
   setRouteGuidance(
@@ -1409,6 +1419,7 @@ export class AtlasScene {
     { padding, animate = false, showMarker = true, keepCamera = false } = {},
   ) {
     if (!sample) {
+      this.setRoutePreviewProgress(null);
       if (this.guidanceLayer) {
         cleanup(this.guidanceLayer);
         this.guidanceLayer.removeFromParent();
@@ -1581,8 +1592,9 @@ export class AtlasScene {
               !this.stackDisplay || !path.points.some((point) => point[1] < 0),
           ),
     });
-    if (this.liveRouteProgress)
-      this.routeLayer.setProgress(this.liveRouteProgress);
+    const displayedProgress =
+      this.routePreviewProgress || this.liveRouteProgress;
+    if (displayedProgress) this.routeLayer.setProgress(displayedProgress);
     this.scene.add(this.routeLayer.group);
     for (const [index, label] of this.routeLayer.labels.entries()) {
       const element = this.addLabel(

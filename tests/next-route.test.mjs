@@ -108,6 +108,29 @@ test("progress counts the accepted mapped path across sections without inventing
   );
 });
 
+test("manual steps and demonstration expose progress without claiming the user walked it", () => {
+  const guide = { sections: [{ length: 60 }, { length: 30 }] };
+  const manualProgress = { sectionIndex: 1, distance: 15 };
+  const manual = view({ guide, manualProgress, automatic: false });
+  assert.equal(manual.progress.percent, 83);
+  assert.equal(manual.progress.completed, "По шагам ≈ 75 м");
+  assert.equal(manual.progress.remaining, "Осталось ≈ 15 м");
+  assert.equal(
+    view({ guide, manualProgress, automatic: false, previewing: true }).progress
+      .completed,
+    "Просмотрено ≈ 75 м",
+  );
+  assert.equal(
+    view({
+      guide,
+      manualProgress,
+      acceptedProgress: { sectionIndex: 0, distance: 9 },
+    }).progress.percent,
+    10,
+    "returning to live navigation uses only accepted GPS progress",
+  );
+});
+
 test("Next staircase confirmation names only an established physical floor", () => {
   const known = view({ stepIndex: 1, transitionLevel: 3 });
   assert.equal(known.showNext, true);

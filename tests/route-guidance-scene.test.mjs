@@ -72,6 +72,26 @@ const guide = createRouteGuidance({
   steps: [],
 });
 
+test("preview path color is independent of accepted GPS progress and clears when returning to live guidance", () => {
+  const view = harness();
+  const displayed = [];
+  view.route = { ok: true };
+  view.routeLayer = { setProgress: (sample) => displayed.push(sample) };
+  const live = sampleRouteGuidance(guide, 0, 10);
+  const preview = sampleRouteGuidance(guide, 0, 70);
+  const newerLive = sampleRouteGuidance(guide, 0, 20);
+  view.setLiveRouteProgress(live);
+  view.setRoutePreviewProgress(preview);
+  assert.equal(displayed.at(-1), preview);
+  assert.equal(view.liveRouteProgress, live);
+  view.setLiveRouteProgress(newerLive);
+  assert.equal(displayed.at(-1), preview);
+  view.setRouteGuidance(null);
+  assert.equal(displayed.at(-1), newerLive);
+  view.setLiveRouteProgress(null);
+  assert.equal(displayed.at(-1), null);
+});
+
 for (const plan of [false, true]) {
   test(`route preview ${plan ? "2D" : "3D"}: local framing, camera follow and disposable preview marker`, () => {
     const view = harness(plan);
