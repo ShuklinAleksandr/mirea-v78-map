@@ -84,6 +84,7 @@ export function bindExperience({
   let sheetState = "peek",
     drag = null,
     suppressDragClick = false;
+  let desktopCollapsed = false;
   const landscape = () => isCompactLandscape(innerWidth, innerHeight);
   const mobile = () => innerWidth <= 700 || landscape();
   const clearDrag = () => {
@@ -146,6 +147,13 @@ export function bindExperience({
       restingHeight = Math.max(restingHeight, layoutHeight);
     }
     const editing = Boolean(editingInput) && mobile();
+    const collapsed = desktopCollapsed && !mobile();
+    sidebar.dataset.desktopCollapsed = String(collapsed);
+    if (!mobile()) {
+      content.inert = collapsed;
+      content.setAttribute("aria-hidden", String(collapsed));
+    }
+    $("#desktop-search").setAttribute("aria-expanded", String(!collapsed));
     sidebar.dataset.inputEditing = String(editing);
     sidebar.dataset.editingField = editing ? editingField : "";
     if (document.body.dataset.inputEditing !== String(editing))
@@ -190,6 +198,7 @@ export function bindExperience({
     );
   };
   const setSheetState = (next) => {
+    if (next !== "minimized") desktopCollapsed = false;
     sheetState = next;
     if (next !== "expanded") {
       clearEditingPointer();
@@ -222,6 +231,12 @@ export function bindExperience({
     // iOS only opens the keyboard if focus happens in the same tap handler.
     $("#search").focus({ preventScroll: true });
   }
+  $("#desktop-search").onclick = openSearch;
+  $("#desktop-collapse").onclick = () => {
+    desktopCollapsed = true;
+    updateVisibleBounds();
+    $("#desktop-search").focus({ preventScroll: true });
+  };
   function finishInputEditing({ focusHandle = true } = {}) {
     if (!editingInput || !mobile()) return false;
     const input = editingInput;

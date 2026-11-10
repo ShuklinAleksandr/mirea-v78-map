@@ -263,6 +263,7 @@ export function bindSearch({
     }
     if (event.key === "Escape") {
       close();
+      event.preventDefault();
     }
   });
   $("#results").onkeydown = (event) => {
@@ -280,6 +281,7 @@ export function bindSearch({
     if (event.key === "Escape") {
       $("#search").focus();
       close();
+      event.preventDefault();
     }
   };
   return {

@@ -1,0 +1,230 @@
+.desktop-sidebar-header,
+.desktop-map-help {
+  display: none;
+}
+
+@media (min-width: 701px) and (min-height: 521px), (min-width: 1101px) {
+  #app {
+    --desktop-panel-width: clamp(300px, 28vw, 360px);
+    --desktop-map-left: calc(var(--desktop-panel-width) + 40px);
+    display: grid;
+    grid-template-columns: var(--desktop-panel-width) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 12px;
+    height: 100dvh;
+    padding: 80px 20px 20px;
+    pointer-events: none;
+  }
+  #app > :not(.topbar) {
+    pointer-events: auto;
+  }
+  .sidebar {
+    position: relative;
+    grid-area: 1 / 1;
+    align-self: start;
+    top: auto;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    max-height: 100%;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+  }
+  .sidebar .sheet-handle,
+  .sidebar .address,
+  .sidebar #route-back-search {
+    display: none;
+  }
+  .desktop-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    min-height: 48px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  #desktop-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 0 8px;
+    font-weight: 650;
+    font-size: 14px;
+  }
+  #desktop-collapse {
+    width: 36px;
+    height: 36px;
+    color: var(--muted);
+  }
+  .sidebar-scroll {
+    padding: 16px;
+    scroll-padding-block: 12px;
+    overscroll-behavior: contain;
+  }
+  .sidebar :is(.search-results, .route-results) {
+    max-height: none;
+    overflow: visible;
+  }
+  #route-panel[data-complete="true"]
+    > :is(.route-inputs, #route-use-location, #route-build, .route-status) {
+    display: none;
+  }
+  #route-panel[data-complete="true"] .route-summary-head {
+    margin-top: 0;
+    padding-top: 10px;
+  }
+  #route-panel[data-complete="true"] .route-summary-head b {
+    font-size: 18px;
+  }
+  #route-panel[data-complete="true"] .route-estimate {
+    font-size: 11px;
+    line-height: 1.4;
+    margin-block: 6px;
+  }
+  #route-panel[data-complete="true"] .route-demo summary {
+    padding-block: 10px;
+  }
+  .sidebar[data-desktop-collapsed="true"] {
+    width: 48px;
+  }
+  .sidebar[data-desktop-collapsed="true"] .desktop-sidebar-header {
+    padding: 3px;
+    border: 0;
+  }
+  .sidebar[data-desktop-collapsed="true"]
+    :is(.sidebar-scroll, #desktop-search span, #desktop-collapse) {
+    display: none;
+  }
+  [data-interface="next"] .route-guidance-dock {
+    position: relative;
+    grid-area: 2 / 1;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    max-height: 52dvh;
+    overflow: auto;
+    padding: 14px;
+    gap: 8px;
+    border-radius: 18px;
+  }
+  [data-interface="next"] .route-dock-instruction {
+    font-size: 17px;
+  }
+  [data-interface="next"] :is(.route-dock-controls, .route-dock-secondary) {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  [data-route-navigation="true"]
+    .sidebar:not([data-desktop-collapsed="true"]):has(
+      #route-panel:not([hidden])
+    )
+    ~ .route-guidance-dock
+    .route-dock-details {
+    display: none;
+  }
+  [data-interface="next"]
+    .route-dock-secondary:not(
+      :has(button:not([hidden]):not(.route-dock-details))
+    ) {
+    flex-basis: auto;
+  }
+  [data-interface="next"] .route-dock-open::before {
+    display: none;
+  }
+  .topbar {
+    left: 20px;
+    right: 20px;
+  }
+  .map-top,
+  [data-interface="next"] [data-route-navigation="true"] .map-top {
+    display: flex;
+    left: var(--desktop-map-left);
+    right: 80px;
+    gap: 8px;
+  }
+  .map-top .view-segment {
+    margin-left: 0;
+  }
+  .map-top .mode-switch {
+    display: flex;
+  }
+  [data-interface="next"] #next-floor-open:not([hidden]) {
+    left: auto;
+    right: 20px;
+    top: 82px;
+    max-width: min(260px, calc(100vw - var(--desktop-map-left) - 40px));
+  }
+  .map-tools {
+    right: 20px;
+  }
+  [data-route-navigation="true"] .map-tools :is(#fit, .zoom-tools) {
+    display: flex;
+  }
+  #route-open {
+    right: 20px;
+    bottom: 20px;
+  }
+  .desktop-map-help {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    left: var(--desktop-map-left);
+    bottom: 20px;
+    min-height: 36px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--muted);
+    font-size: 12px;
+    box-shadow: var(--shadow);
+  }
+  [data-clean-map="true"] .desktop-map-help,
+  [data-location-picking="true"] .desktop-map-help {
+    display: none;
+  }
+  #viewport:focus-visible {
+    outline: 3px solid var(--green);
+    outline-offset: -3px;
+  }
+  @media (max-width: 900px) {
+    #app {
+      padding-inline: 12px;
+      --desktop-panel-width: 280px;
+      --desktop-map-left: 304px;
+    }
+    .topbar {
+      left: 12px;
+      right: 12px;
+    }
+    .map-top {
+      gap: 4px;
+    }
+  }
+}
+
+.desktop-help-content {
+  padding: 8px 24px 24px;
+}
+.desktop-help-content dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  margin-block: 16px;
+  font-size: 14px;
+}
+.desktop-help-content dt {
+  font-weight: 650;
+}
+.desktop-help-content dd {
+  margin: 0;
+  color: var(--muted);
+}
+.desktop-help-content p {
+  color: var(--muted);
+  font-size: 13px;
+}

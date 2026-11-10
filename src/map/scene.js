@@ -208,6 +208,29 @@ export class AtlasScene {
     this.controls.minDistance = 3;
     this.controls.maxDistance = 250;
     this.controls.screenSpacePanning = true;
+    this.controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    this.controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+    this.controls.listenToKeyEvents(host);
+    host.addEventListener(
+      "keydown",
+      (event) => {
+        if (
+          !event.defaultPrevented &&
+          ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
+            event.key,
+          )
+        )
+          this.beginMapInteraction();
+      },
+      true,
+    );
+    host.addEventListener("pointerdown", (event) => {
+      if (
+        event.pointerType === "mouse" &&
+        event.target === this.renderer.domElement
+      )
+        host.focus({ preventScroll: true });
+    });
     configureMapTouchControls(this.controls, this.plan);
     this.touchRotation = bindMapTouchRotation(this.controls);
     this.controls.addEventListener("start", () => this.beginMapInteraction());
@@ -456,10 +479,9 @@ export class AtlasScene {
     this.plan = plan;
     this.controls.object = this.camera;
     this.controls.enableRotate = !plan;
-    this.controls.mouseButtons.LEFT = plan
-      ? THREE.MOUSE.PAN
-      : THREE.MOUSE.ROTATE;
+    this.controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
     configureMapTouchControls(this.controls, plan);
+    this.controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
     if (this.locationPicking) this.configureLocationPickingControls();
     // Lock the plan even when switching during a damped drag. Disabling input
     // alone would leave OrbitControls' existing rotation momentum active.
@@ -1161,10 +1183,7 @@ export class AtlasScene {
     this.controls.enableRotate = !this.plan && !this.locationPicking;
     this.controls.enableTouchRotate = !this.locationPicking;
     if (this.controls.mouseButtons)
-      this.controls.mouseButtons.LEFT =
-        this.plan || this.locationPicking
-          ? THREE.MOUSE.PAN
-          : THREE.MOUSE.ROTATE;
+      this.controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
     if (this.controls.touches)
       configureMapTouchControls(this.controls, this.plan);
   }

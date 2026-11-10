@@ -95,3 +95,18 @@ export function landscapeMapPadding() {
   });
   return measuredLandscapePadding(innerWidth, innerHeight, rectangles);
 }
+
+export function desktopMapPadding() {
+  // Both navigation panels share the left column. They reserve width only;
+  // a long route card must not squeeze the map into a narrow horizontal strip.
+  const rectangles = visibleMapRectangles({
+    sidebar: ".sidebar",
+    dock: "#route-guidance-dock",
+    top: ".map-top",
+    floorPicker: "#next-floor-open",
+    tools: ".map-tools",
+    location: "#location-pick-banner",
+    route: "#route-open",
+  });
+  return measuredLandscapePadding(innerWidth, innerHeight, rectangles);
+}
