@@ -578,7 +578,8 @@ test("returning to 3D restores perspective and rotational controls at the plan s
   AtlasScene.prototype.setProjection.call(view, false);
   assert.equal(view.camera, view.perspectiveCamera);
   assert.equal(view.controls.enableRotate, true);
-  assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.ROTATE);
+  assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.PAN);
+  assert.equal(view.controls.mouseButtons.RIGHT, THREE.MOUSE.ROTATE);
   assert.equal(view.controls.touches.ONE, THREE.TOUCH.PAN);
   assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_PAN);
   assert.ok(

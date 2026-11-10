@@ -252,7 +252,7 @@ test("pin placement temporarily pans in 3D and restores ordinary map controls", 
   assert.equal(view.controls.enableRotate, false);
   assert.equal(view.controls.enableTouchRotate, false);
   view.setLocationPicking(false);
-  assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.ROTATE);
+  assert.equal(view.controls.mouseButtons.LEFT, THREE.MOUSE.PAN);
   assert.equal(view.controls.touches.TWO, THREE.TOUCH.DOLLY_PAN);
   assert.equal(view.controls.enableRotate, true);
   assert.equal(view.controls.enableTouchRotate, true);

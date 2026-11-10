@@ -234,6 +234,20 @@ function harness(file, exports, saved = {}, options = {}) {
           location: "#location-pick-banner",
         }),
       ),
+    desktopMapPadding: () =>
+      measuredLandscapePadding(
+        sandbox.innerWidth,
+        sandbox.innerHeight,
+        mapRectangles({
+          top: ".map-top",
+          floorPicker: "#next-floor-open",
+          tools: ".map-tools",
+          sidebar: ".sidebar",
+          dock: "#route-guidance-dock",
+          location: "#location-pick-banner",
+          route: "#route-open",
+        }),
+      ),
     location: { hash: "" },
     setTimeout(callback) {
       const id = ++nextTimer;
@@ -506,6 +520,55 @@ test("opening a new route shows destination suggestions with both fields availab
   assert.match(list.innerHTML, /Г-209/);
   assert.match(list.innerHTML, /Г-210/);
   assert.doesNotMatch(list.innerHTML, /data-current-origin/);
+});
+
+test("desktop route opening focuses the required field without changing the endpoints", () => {
+  const h = routeHarness();
+  h.clear();
+  h.setViewport(1280, 720);
+  let focused = 0;
+  h.element("#route-to").focus = () => focused++;
+  h.element("#route-open").onclick();
+  assert.equal(focused, 1);
+  assert.deepEqual({ ...h.getEndpoints() }, { from: null, to: null });
+});
+
+test("desktop planning between rooms opens manual steps without requesting GPS", async () => {
+  const h = routeHarness({
+    nextInterface: true,
+    onLocate: () => assert.fail("planning requested GPS"),
+  });
+  h.setViewport(1280, 720);
+  h.result.steps.push({
+    floorId: "a-floor1",
+    text: "Войдите в аудиторию",
+    position: [20, 0],
+  });
+  await buildPreview(h);
+  assert.match(h.element("#route-dock-next").innerHTML, /Посмотреть шаги/);
+  h.element("#route-dock-next").dispatch("click");
+  assert.equal(h.document.body.dataset.routeNavigation, "true");
+  h.element("#route-dock-next").dispatch("click");
+  assert.match(h.element("#route-dock-meta").textContent, /шаг 2/);
+  h.element("#route-dock-previous").dispatch("click");
+  assert.match(h.element("#route-dock-meta").textContent, /шаг 1/);
+});
+
+test("desktop collapse releases content focus and resizing back to mobile restores its normal sheet", () => {
+  const h = experienceHarness({}, null, { width: 1280, height: 720 });
+  const sidebar = h.element(".sidebar");
+  const content = h.element(".sidebar-scroll");
+  h.element("#desktop-collapse").onclick();
+  assert.equal(sidebar.dataset.desktopCollapsed, "true");
+  assert.equal(content.inert, true);
+  h.openSearch();
+  assert.equal(sidebar.dataset.desktopCollapsed, "false");
+  assert.equal(content.inert, false);
+  h.element("#desktop-collapse").onclick();
+  h.setViewport(390, 844);
+  h.window.dispatchEvent(new Event("resize"));
+  assert.equal(sidebar.dataset.desktopCollapsed, "false");
+  assert.equal(content.inert, false);
 });
 
 test("a tap retargeted to the mobile sheet after focus keeps the empty origin suggestions open", () => {
@@ -1469,7 +1532,7 @@ test("opening a route to a room keeps origin suggestions and editing a chosen en
   assert.equal(to.attributes["aria-expanded"], "true");
   assert.doesNotMatch(list.innerHTML, /data-current-origin/);
   assert.match(list.innerHTML, /Г-210/);
-  to.onkeydown({ key: "Escape" });
+  to.onkeydown({ key: "Escape", preventDefault() {} });
   assert.equal(list.hidden, true);
   assert.equal(h.getEndpoints().to, destination);
   to.value = "";

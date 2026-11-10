@@ -7,6 +7,7 @@ export const layout = `
 <button type="button" id="campus-overview" title="Все корпуса" aria-label="Показать все корпуса кампуса" hidden>${icon("arrow", 18)}<span>Все корпуса</span></button>
 <button class="icon-button" id="settings-open" aria-label="Настройки">${icon("settings")}</button></header>
 <aside class="sidebar" aria-label="Поиск и навигация"><button class="sheet-handle" id="sheet-toggle" aria-controls="sheet-content" aria-label="Развернуть панель" aria-expanded="false"><span class="sheet-grip"></span><span class="sheet-finish-label" aria-hidden="true">Готово</span><span class="sheet-search-icon" aria-hidden="true">${icon("search")}</span><span class="sheet-collapsed-title">Аудитория или нужное место</span></button>
+  <div class="desktop-sidebar-header"><button id="desktop-search" type="button" aria-label="Открыть поиск" aria-controls="sheet-content" aria-expanded="true" title="Поиск · Ctrl K / ⌘ K">${icon("search", 18)}<span>Поиск по карте</span></button><button id="desktop-collapse" class="icon-button" type="button" aria-label="Свернуть панель" title="Свернуть панель">${icon("close", 18)}</button></div>
   <div class="sidebar-scroll" id="sheet-content">
     <div class="campus-heading">${icon("pin", 20)}<b>Вернадского, 78</b><span>РТУ МИРЭА</span></div>
     <div class="address" id="address">Загрузка данных…</div>
@@ -27,7 +28,7 @@ export const layout = `
 </section></div>
 </aside>
 <main class="map-shell">
-  <div id="viewport"><div id="location-crosshair" class="location-crosshair" aria-hidden="true" hidden><span></span></div></div>
+  <div id="viewport" tabindex="0" role="region" aria-label="Карта. Стрелки перемещают карту, плюс и минус меняют масштаб"><div id="location-crosshair" class="location-crosshair" aria-hidden="true" hidden><span></span></div></div>
   <div class="map-top">
     <div class="breadcrumb" id="breadcrumb">Вернадского, 78 <span>/</span> Общий вид</div>
     <div class="mode-switch">
@@ -45,6 +46,7 @@ export const layout = `
   <div class="map-tools"><button id="locate-open" title="Моё местоположение" aria-label="Моё местоположение">${icon("locate")}</button><button id="fit" title="Показать целиком" aria-label="Показать целиком">${icon("expand")}</button><div class="zoom-tools"><button id="zoom-in" aria-label="Приблизить">+</button><button id="zoom-out" aria-label="Отдалить">−</button></div></div>
   <button id="route-open" type="button" aria-label="Маршрут" title="Маршрут" aria-controls="route-panel">${icon("route", 20)}<span>Маршрут</span></button>
   <div id="location-pick-banner" class="location-pick-banner" hidden><div><b id="location-pick-banner-text">Передвиньте карту под меткой</b><small id="location-pick-validity" role="status"></small></div><div class="location-pick-actions"><button id="location-pick-cancel">Отмена</button><button id="location-pick-confirm" class="primary-button" disabled>Я здесь</button></div></div>
+  <button id="desktop-help-open" class="desktop-map-help" type="button" aria-haspopup="dialog" aria-controls="desktop-help-dialog">${icon("info", 16)}Управление</button>
   <div class="orientation"><span class="axis-arrow">↗</span><small>Оси плана</small></div>
   <div class="hover-tip" id="hover-tip" hidden></div>
   <div class="map-bottom"><div class="map-caption"><span class="caption-icon">${icon("layers", 23)}</span><div><b id="caption-title">Планы → пространство</b><small id="caption-subtitle">Загрузка…</small></div><span class="approx-badge" id="metric-badge">Высоты ≈</span></div><div class="legend"><span><i class="legend-room"></i>Помещения</span><span><i class="legend-stairs"></i>Лестницы</span><span><i class="legend-unknown"></i>Не уточнено</span></div></div>
@@ -52,6 +54,7 @@ export const layout = `
   <div class="loading" id="loading"><span class="loader"></span><b>Собираем пространство</b><small id="load-message">Читаем планы кампуса</small></div>
   <div class="error-state" id="error" hidden></div>
 </main>
+<dialog id="desktop-help-dialog" aria-labelledby="desktop-help-title"><div class="dialog-heading"><h2 id="desktop-help-title">Управление на компьютере</h2><button id="desktop-help-close" class="icon-button" type="button" aria-label="Закрыть подсказки">${icon("close")}</button></div><div class="desktop-help-content"><dl><dt>Перемещение</dt><dd>Зажмите левую кнопку мыши и двигайте карту.</dd><dt>Поворот и наклон 3D</dt><dd>Зажмите правую кнопку мыши или Shift и левую кнопку.</dd><dt>Масштаб</dt><dd>Колесо мыши, прокрутка трекпада или клавиши + и −.</dd><dt>Быстрый поиск</dt><dd>Ctrl K на Windows, ⌘ K на Mac или /.</dd><dt>Выбор подсказки</dt><dd>Стрелки ↑ ↓ и Enter.</dd><dt>Перемещение с клавиатуры</dt><dd>Нажмите на карту, затем используйте стрелки.</dd><dt>Показать целиком</dt><dd>Клавиша 0.</dd><dt>Закрыть окно или подсказки</dt><dd>Escape.</dd></dl><p>При вводе текста клавиши работают в поле. Кнопки маршрута «Назад» и «Далее» находятся в левой колонке.</p></div></dialog>
 <button id="clean-map-exit" type="button" hidden>Вернуть интерфейс</button>
 <button id="map-hud-reveal" type="button" class="sr-only" hidden>Показать кнопки карты</button>
 <section id="route-guidance-dock" class="route-guidance-dock" hidden aria-label="Навигация по маршруту" aria-live="polite"></section>

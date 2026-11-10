@@ -206,6 +206,35 @@ function harness(
 
 const close = (a, b, message, epsilon = 1e-6) =>
   assert.ok(Math.abs(a - b) < epsilon, `${message}: ${a} vs ${b}`);
+
+test("mouse pan and rotation retain their roles after switching 2D and 3D", () => {
+  const h = harness();
+  try {
+    h.view.setProjection(true);
+    h.view.setProjection(false);
+    const target = h.controls.target.clone();
+    const offset = h.camera.position.clone().sub(target);
+    const mouse = { pointerType: "mouse" };
+    h.pointer("pointerdown", 1, 120, 400, mouse);
+    h.pointer("pointermove", 1, 170, 420, mouse);
+    h.pointer("pointerup", 1, 170, 420, mouse);
+    assert.ok(h.controls.target.distanceTo(target) > 1);
+    assert.ok(
+      h.camera.position.clone().sub(h.controls.target).distanceTo(offset) <
+        1e-6,
+    );
+    const panned = h.controls.target.clone();
+    const right = { pointerType: "mouse", button: 2, buttons: 2 };
+    h.pointer("pointerdown", 2, 120, 400, right);
+    h.pointer("pointermove", 2, 170, 420, right);
+    h.pointer("pointerup", 2, 170, 420, { ...right, buttons: 0 });
+    assert.ok(h.controls.target.distanceTo(panned) < 1e-6);
+    assert.ok(h.camera.position.clone().sub(panned).distanceTo(offset) > 1);
+    assert.equal(h.picks, 0);
+  } finally {
+    h.dispose();
+  }
+});
 const offset = (h) => h.camera.position.clone().sub(h.controls.target);
 const pair = (x, y, radius = 50, angle = 0) => {
   const a = (angle * Math.PI) / 180;

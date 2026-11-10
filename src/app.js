@@ -26,6 +26,8 @@ import { bindRoutes } from "./ui/routes.js";
 import { bindLocation } from "./ui/location.js";
 import { bindCleanMap } from "./ui/clean-map.js";
 import { bindMapHud } from "./ui/map-hud.js";
+import { bindDesktopNavigation } from "./ui/desktop.js";
+import { isCurrentUserLocation } from "./data/user-location.js";
 import { resolveRoom, geometryEvidence } from "./data/utils.js";
 import {
   placeDescription,
@@ -49,6 +51,7 @@ import {
   isCompactLandscape,
   landscapeMapPadding,
   portraitMapPadding,
+  desktopMapPadding,
 } from "./ui/map-viewport.js";
 
 const state = {
@@ -187,6 +190,7 @@ if (scene) {
         },
       }),
   });
+  bindDesktopNavigation({ experience, dismissRoom });
   userPosition = bindLocation({
     surveyStorage: getInterfaceStorage(),
     state,
@@ -486,7 +490,7 @@ function updateUI() {
     ? "Один палец — перемещение · щипок — масштаб · разворот двух пальцев — поворот"
     : scene.plan
       ? "Перетаскивание — перемещение · колесо — масштаб"
-      : "Перетаскивание — вращение · ПКМ — перемещение · колесо — масштаб";
+      : "Перетаскивание — перемещение · ПКМ или Shift — поворот 3D · колесо — масштаб";
   renderFloors();
   renderFocusedFloorStatus();
   routes?.syncView();
@@ -688,13 +692,7 @@ function roomPadding() {
     return { top: 64, bottom: 16, left: 16, right: 16 };
   if (isCompactLandscape(innerWidth, innerHeight)) return landscapeMapPadding();
   if (innerWidth <= 700) return portraitMapPadding();
-  const panel = $(".sidebar").getBoundingClientRect();
-  return {
-    top: 110,
-    bottom: 90,
-    left: Math.max(390, panel.right + 24),
-    right: 90,
-  };
+  return desktopMapPadding();
 }
 const kindNames = {
   room: "Аудитория",
@@ -891,7 +889,12 @@ function selectRoom(room, focus = true) {
       };
     if (!displayOnly)
       $("#room-to").onclick = () => {
-        if (!routes.getEndpoints().from)
+        if (
+          !routes.getEndpoints().from &&
+          (innerWidth <= 700 ||
+            isCompactLandscape(innerWidth, innerHeight) ||
+            isCurrentUserLocation(state.userLocation))
+        )
           routes.useCurrentLocation?.({ open: false, quiet: true });
         const hasOrigin = Boolean(routes.getEndpoints().from);
         routes.setEndpoint("to", indexed, { open: !hasOrigin });
@@ -1014,23 +1017,11 @@ new ResizeObserver(() => {
 document.addEventListener("click", (e) => {
   if (
     !e.target.closest(
-      ".search-wrap, #place-categories, #sheet-toggle, #route-back-search",
+      ".search-wrap, #place-categories, #sheet-toggle, #route-back-search, #desktop-search",
     )
   ) {
     searchUI.close();
   }
-});
-document.addEventListener("keydown", (e) => {
-  if (document.body.dataset.cleanMap === "true") return;
-  if (
-    e.key === "/" &&
-    !["INPUT", "SELECT"].includes(document.activeElement.tagName) &&
-    !$("dialog[open]")
-  ) {
-    e.preventDefault();
-    experience?.openSearch();
-  }
-  if (e.key === "Escape" && !$("dialog[open]")) dismissRoom();
 });
 
 function restoreInitialCamera(view) {

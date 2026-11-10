@@ -5,6 +5,7 @@ import {
   isCompactLandscape,
   landscapeMapPadding,
   portraitMapPadding,
+  desktopMapPadding,
 } from "./map-viewport.js";
 import { makeCurrentRouteEndpoint } from "../data/current-route-origin.js";
 import { isCurrentUserLocation } from "../data/user-location.js";
@@ -127,7 +128,12 @@ export function bindRoutes({
   $("#route-open").onclick = () => {
     panel(true);
     experience.expand(!route);
-    if (!route && (!from || !to)) candidates(to ? "from" : "to");
+    if (!route && (!from || !to)) {
+      const key = to ? "from" : "to";
+      if (innerWidth > 700 && !isCompactLandscape(innerWidth, innerHeight))
+        focusEndpoint(key);
+      else candidates(key);
+    }
   };
   function status(text, error = false) {
     $("#route-status").textContent = text;
@@ -524,7 +530,10 @@ export function bindRoutes({
         $("#route-results button")?.focus();
         e.preventDefault();
       }
-      if (e.key === "Escape") closeResults();
+      if (e.key === "Escape") {
+        closeResults();
+        e.preventDefault();
+      }
       if (e.key === "Enter" && !$("#route-results").hidden) {
         const selected = key === "from" ? from : to;
         if (selected?.label === input.value) {
@@ -551,6 +560,7 @@ export function bindRoutes({
     }
     if (e.key === "Escape") {
       closeResults();
+      e.preventDefault();
       $("#route-" + activeInput).focus();
       closeResults();
     }
@@ -569,36 +579,7 @@ export function bindRoutes({
     if (isCompactLandscape(innerWidth, innerHeight))
       return landscapeMapPadding();
     if (innerWidth <= 700) return portraitMapPadding();
-    const mobile = innerWidth <= 700;
-    const padding = mobile
-      ? nextInterface && guiding
-        ? { top: 124, bottom: 0, left: 16, right: 64 }
-        : { top: 164, bottom: 0, left: 64, right: 64 }
-      : { top: 100, bottom: 110, left: 390, right: 80 };
-    if (
-      mobile &&
-      !(nextInterface && route && $(".sidebar").classList.contains("minimized"))
-    ) {
-      const panel = $(".sidebar").getBoundingClientRect();
-      padding.bottom = Math.max(
-        0,
-        (Number.isFinite(panel.top) ? innerHeight - panel.top : panel.height) +
-          16,
-      );
-    }
-    const dock = $("#route-guidance-dock");
-    if (dock && !dock.hidden) {
-      const box = dock.getBoundingClientRect();
-      if (Number.isFinite(box.top) && Number.isFinite(box.bottom)) {
-        // The compact navigation card can be placed above or below the map by
-        // the responsive layout. Frame the route in the remaining clear area.
-        if (box.top < innerHeight / 2)
-          padding.top = Math.max(padding.top, box.bottom + 12);
-        else
-          padding.bottom = Math.max(padding.bottom, innerHeight - box.top + 12);
-      }
-    }
-    return padding;
+    return desktopMapPadding();
   };
   function minimizePanel() {
     if (experience.minimize) experience.minimize();
@@ -906,8 +887,17 @@ export function bindRoutes({
     }
     $("#route-dock-next")?.addEventListener("click", () => {
       if (!route) return;
-      if (!guiding) startGuidance();
-      else if (stepIndex === route.steps.length - 1) clear({ completed: true });
+      if (!guiding) {
+        if (
+          innerWidth > 700 &&
+          !isCompactLandscape(innerWidth, innerHeight) &&
+          from?.kind !== "user-location"
+        ) {
+          automatic = false;
+          focusStep(0);
+        } else startGuidance();
+      } else if (stepIndex === route.steps.length - 1)
+        clear({ completed: true });
       else advanceStep(stepIndex);
     });
     $("#route-dock-previous")?.addEventListener("click", () =>
@@ -1047,14 +1037,29 @@ export function bindRoutes({
         acceptedProgress,
       });
       if (meta) meta.textContent = view.meta;
-      if (note) note.textContent = view.note;
+      if (note)
+        note.textContent =
+          guiding &&
+          !automatic &&
+          !previewing &&
+          innerWidth > 700 &&
+          !isCompactLandscape(innerWidth, innerHeight)
+            ? "Просмотр маршрута · переключайте шаги кнопками"
+            : view.note;
       if (previous) {
         previous.hidden = !guiding;
         previous.disabled = stepIndex === 0;
       }
       if (next) {
         next.hidden = !view.showNext;
-        next.innerHTML = `${escape(view.nextLabel)}${icon("arrow", 17)}`;
+        const label =
+          !guiding &&
+          innerWidth > 700 &&
+          !isCompactLandscape(innerWidth, innerHeight) &&
+          from?.kind !== "user-location"
+            ? "Посмотреть шаги"
+            : view.nextLabel;
+        next.innerHTML = `${escape(label)}${icon("arrow", 17)}`;
         next.classList.toggle("primary-button", !view.contextAction);
       }
       if (recenter) recenter.hidden = !view.showRecenter;
@@ -1453,6 +1458,9 @@ export function bindRoutes({
       if (state.routeSnapEnabled) scene.refreshUserLocation?.();
       updateDockReadout();
     }
+  });
+  window.addEventListener("resize", () => {
+    if (route) updateDockReadout();
   });
   if (typeof ResizeObserver === "function") {
     const observer = new ResizeObserver(() => {
