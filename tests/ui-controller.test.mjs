@@ -9,6 +9,7 @@ import {
   ROUTE_TRACKING_MAX_AGE_MS,
 } from "../src/data/route-tracking.js";
 import { createRouteTrackingSurfaceGuard } from "../src/data/route-tracking-surface.js";
+import { createRouteLocationDisplay } from "../src/data/route-location-display.js";
 import { findNextPlaces } from "../src/data/next-place-search.js";
 import {
   placeLocation,
@@ -170,6 +171,7 @@ function harness(file, exports, saved = {}, options = {}) {
     createRouteTracker,
     ROUTE_TRACKING_MAX_AGE_MS,
     createRouteTrackingSurfaceGuard,
+    createRouteLocationDisplay,
     findNextPlaces,
     placeLocation,
     presentPlaceIdentity,
@@ -1927,6 +1929,75 @@ test("ambiguous GPS holds dock and map progress, and step correction keeps keybo
   assert.deepEqual(h.state.userLocation.point, [6, 6]);
   h.clear();
   assert.equal(h.routeProgressCalls.at(-1), null);
+});
+
+test("one rejected GPS fix retains only a labelled historical point and does not advance the route", async () => {
+  const h = await liveRouteHarness({ nextInterface: true });
+  h.state.routeSnapEnabled = true;
+  h.emitGps([0, 0]);
+  h.emitGps([2, 0]);
+  h.emitGps([3, 0]);
+  const confirmedPoint = h.routeLocationMatch(h.state.userLocation).point;
+  const confirmedProgress = h.routeProgressCalls.at(-1);
+  const percent = h.element("#route-dock-progress-bar").value;
+  h.emitGps([22, 23]);
+  const held = h.routeLocationMatch(h.state.userLocation);
+  assert.equal(held.held, true);
+  assert.deepEqual(held.point, confirmedPoint);
+  assert.deepEqual(h.state.userLocation.point, [22, 23]);
+  assert.equal(h.routeProgressCalls.at(-1), confirmedProgress);
+  assert.equal(h.element("#route-dock-progress-bar").value, percent);
+  assert.match(
+    h.element("#route-dock-note").textContent,
+    /последняя подтверждённая точка/,
+  );
+  h.locationChanged();
+  assert.equal(
+    h.routeLocationMatch(h.state.userLocation).expiresAt,
+    held.expiresAt,
+  );
+  h.emitGps([4, 0]);
+  assert.equal(
+    h.routeLocationMatch(h.state.userLocation).held,
+    true,
+    "one returning fix still needs confirmation",
+  );
+  h.emitGps([5, 0]);
+  assert.equal(h.routeLocationMatch(h.state.userLocation).held, false);
+  assert.match(h.element("#route-dock-note").textContent, /автоматически/);
+});
+
+test("a held GPS point expires without another GPS update and cannot survive floor browsing", async () => {
+  const h = await liveRouteHarness({ nextInterface: true });
+  h.state.routeSnapEnabled = true;
+  h.emitGps([0, 0]);
+  h.emitGps([2, 0]);
+  h.emitGps([22, 23]);
+  const held = h.routeLocationMatch(h.state.userLocation);
+  assert.equal(held.held, true);
+  h.setNow(held.expiresAt + 1);
+  h.flushTimers();
+  assert.equal(h.routeLocationMatch(h.state.userLocation), null);
+  assert.doesNotMatch(
+    h.element("#route-dock-note").textContent,
+    /показана последняя подтверждённая/,
+  );
+  assert.deepEqual(h.state.userLocation.point, [22, 23]);
+
+  const other = await liveRouteHarness({ nextInterface: true });
+  other.state.routeSnapEnabled = true;
+  other.emitGps([0, 0]);
+  other.emitGps([2, 0]);
+  other.emitGps([22, 23]);
+  assert.equal(other.routeLocationMatch(other.state.userLocation).held, true);
+  other.state.floor = { id: "another-floor" };
+  assert.equal(other.routeLocationMatch(other.state.userLocation), null);
+  other.state.floor = { id: "a-floor1" };
+  assert.equal(
+    other.routeLocationMatch(other.state.userLocation),
+    null,
+    "returning to the old floor cannot resurrect held evidence",
+  );
 });
 
 test("live GPS advances to upcoming instructions and arrival without opening the sheet or creating a demonstration", async () => {

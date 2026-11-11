@@ -614,6 +614,7 @@ export class AtlasScene {
       !this.headingFollowEnabled ||
       this.mode !== "floor" ||
       this.locationPicking ||
+      this.userLocationLayer?.userData.presentation?.routeHeld ||
       !this.callbacks.shouldFollowHeading?.()
     ) {
       this.lastHeadingFrame = null;
@@ -674,7 +675,7 @@ export class AtlasScene {
   }
   routeLocationBearing() {
     const fix = this.routeLocationFix;
-    if (fix?.status !== "tracking") return null;
+    if (fix?.status !== "tracking" || fix.held) return null;
     const distance = this.routeLocationMotion?.distance ?? fix.distance;
     const [x, z] = routeLinePointAtDistance(fix.path.points, distance - 0.7);
     const [nextX, nextZ] = routeLinePointAtDistance(
@@ -782,6 +783,7 @@ export class AtlasScene {
       return;
     }
     const previous = this.routeLocationFix;
+    const held = match.held === true;
     const timestamp = this.userLocation.timestamp;
     const floorId = this.floor?.id;
     const samePath =
@@ -791,7 +793,10 @@ export class AtlasScene {
     const elapsed = timestamp - previous?.timestamp;
     const from = this.routeLocationMotion?.distance ?? previous?.distance;
     const delta = Math.abs(routePosition.distance - from);
-    if (this.reducedMotion || !samePath) this.routeLocationMotion = null;
+    // A held route point is old evidence, not another live GPS fix. Stop any
+    // pending movement immediately and never animate across the uncertain gap.
+    if (held || previous?.held || this.reducedMotion || !samePath)
+      this.routeLocationMotion = null;
     else if (elapsed > 0) {
       // Move only between successive nearby fixes on the same visible line.
       this.routeLocationMotion =
@@ -817,9 +822,20 @@ export class AtlasScene {
       timestamp,
       distance: routePosition.distance,
       status: match.status,
+      held,
+      confirmedAt: match.confirmedAt,
+      expiresAt: match.expiresAt,
     };
+    if (held) this.userLocationFollowPath = false;
     this.refreshLocationMarker(
-      { ...this.userLocation, point: routePosition.point, routeMatched: true },
+      {
+        ...this.userLocation,
+        point: routePosition.point,
+        routeMatched: true,
+        routeHeld: held,
+        routeConfirmedAt: match.confirmedAt,
+        routeHoldExpiresAt: match.expiresAt,
+      },
       this.routeLocationMotion
         ? routeLinePointAtDistance(
             path.points,
@@ -842,7 +858,7 @@ export class AtlasScene {
       this.refreshUserLocation();
       return false;
     }
-    if (!layer?.visible) {
+    if (!layer?.visible || layer.userData.presentation?.routeHeld) {
       this.routeLocationMotion = null;
       return false;
     }
@@ -1016,6 +1032,7 @@ export class AtlasScene {
       overlay.dataset.floorState = presentation.floorState;
       overlay.dataset.projection = String(presentation.projection);
       overlay.dataset.stale = String(presentation.stale);
+      overlay.dataset.routeHeld = String(presentation.routeHeld);
       overlay.dataset.heading = String(hasHeading);
       overlay.style.opacity = presentation.stale ? "0.65" : "1";
       overlay.style.transform = `translate(${x}px,${y}px)`;
@@ -1077,6 +1094,7 @@ export class AtlasScene {
     const [leadX, leadZ] = navigationLookAhead({
       enabled:
         this.navigationMode &&
+        !marker.userData.presentation?.routeHeld &&
         this.headingFollowEnabled &&
         this.callbacks?.shouldFollowHeading?.(),
       bearing: this.navigationBearing,
@@ -1097,7 +1115,9 @@ export class AtlasScene {
     );
     this.userLocationFollowAnchor = new THREE.Vector3(x, y, z);
     this.userLocationFollowContext = this.locationFollowContextKey();
-    this.userLocationFollowPath = Boolean(this.routeLocationFix);
+    this.userLocationFollowPath = Boolean(
+      this.routeLocationFix && !this.routeLocationFix.held,
+    );
     return true;
   }
   locationFollowContextKey() {

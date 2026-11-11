@@ -187,26 +187,30 @@ export function presentLocationOnMap(
   const manualUnrefreshed =
     !gps &&
     ["needs-refinement", "signal-lost"].includes(location.trackingStatus);
+  const routeHeld = gps && location.routeMatched && location.routeHeld === true;
   const stale = Boolean(
-    manualUnrefreshed ||
+    routeHeld ||
+      manualUnrefreshed ||
       (gps &&
         (expired ||
           correctionExpired ||
           (location.trackingStatus && location.trackingStatus !== "live"))),
   );
   const label = [
-    manualUnrefreshed
-      ? "Указано вручную · нет обновления"
-      : stale
-        ? "Последняя позиция"
-        : gps
-          ? location.correction?.type === "manual-offset"
-            ? "GPS с поправкой"
-            : "GPS"
-          : "Я здесь",
-    location.routeMatched ? "по маршруту" : null,
+    routeHeld
+      ? "Последняя подтверждённая точка · Уточняем положение"
+      : manualUnrefreshed
+        ? "Указано вручную · нет обновления"
+        : stale
+          ? "Последняя позиция"
+          : gps
+            ? location.correction?.type === "manual-offset"
+              ? "GPS с поправкой"
+              : "GPS"
+            : "Я здесь",
+    location.routeMatched && !routeHeld ? "по маршруту" : null,
     floorLabel,
-    gps && Number.isFinite(location.accuracyMeters)
+    gps && !routeHeld && Number.isFinite(location.accuracyMeters)
       ? `±${Math.round(location.accuracyMeters)} м`
       : null,
   ]
@@ -225,5 +229,6 @@ export function presentLocationOnMap(
       (!sameFloor && mode === "floor") ||
       (stacked && !matchingStage),
     stale,
+    routeHeld: Boolean(routeHeld),
   };
 }

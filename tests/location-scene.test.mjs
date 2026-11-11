@@ -229,6 +229,208 @@ test("successive GPS fixes move around the visible route corner and cancel when 
   assert.deepEqual(layer.position.toArray(), [5, 0.4, 3]);
 });
 
+function routeHoldHarness(t) {
+  const view = harness();
+  withLabelDocument(t, view);
+  t.after(() => view.setUserLocation(null));
+  const now = Date.now();
+  view.controls = { target: new THREE.Vector3() };
+  view.routeLayer = {
+    paths: [
+      {
+        sourceSegmentIndex: 0,
+        points: [
+          [0, 0],
+          [4, 0],
+          [4, 12],
+        ],
+      },
+    ],
+  };
+  let match = { point: [2, 0], sourceSegmentIndex: 0, status: "tracking" };
+  view.callbacks.getRouteLocationMatch = (location) => location && match;
+  const gps = (point, timestamp = now) => ({
+    source: "gps",
+    campusId: "v-78",
+    point,
+    timestamp,
+    trackingStatus: "live",
+    accuracyMeters: 9,
+    accuracyRadiusMap: 10,
+    floorId: "f2",
+    floorEvidence: "manual",
+    physicalLevel: 2,
+    correction: {
+      type: "manual-offset",
+      offset: [1, 2],
+      expiresAt: now + 20_000,
+    },
+  });
+  return { view, now, gps, setMatch: (value) => (match = value) };
+}
+
+test("held route evidence cancels movement and shows a gray last-confirmed point without changing GPS", (t) => {
+  const { view, now, gps, setMatch } = routeHoldHarness(t);
+  view.setUserLocation(gps([2, 1], now - 1000));
+  setMatch({ point: [4, 2], sourceSegmentIndex: 0, status: "tracking" });
+  view.setUserLocation(gps([5, 2], now));
+  const motion = view.routeLocationMotion;
+  view.updateRouteLocationMotion(motion.start + motion.duration * 0.1);
+  assert.ok(view.userLocationLayer.position.x < 4);
+  setMatch({
+    point: [4, 2],
+    sourceSegmentIndex: 0,
+    status: "uncertain",
+    held: true,
+    confirmedAt: now,
+    expiresAt: now + 12_000,
+  });
+  const raw = gps([12, -6], now + 1000);
+  const snapshot = structuredClone(raw);
+  view.setUserLocation(raw);
+  const layer = view.userLocationLayer;
+  assert.equal(view.routeLocationMotion, null);
+  assert.deepEqual(layer.position.toArray(), [4, 0.4, 2]);
+  assert.equal(view.updateRouteLocationMotion(motion.start + 5000), false);
+  assert.deepEqual(layer.position.toArray(), [4, 0.4, 2]);
+  assert.equal(
+    layer.userData.dot.children[1].material.color.getHex(),
+    0x8997a7,
+  );
+  assert.equal(layer.userData.presentation.stale, true);
+  assert.equal(view.userLocationOverlay.dataset.routeHeld, "true");
+  assert.equal(
+    view.userLocationCaption.textContent,
+    "Последняя подтверждённая точка · Уточняем положение · 2 этаж",
+  );
+  assert.equal(layer.userData.location.routeConfirmedAt, now);
+  assert.equal(layer.userData.location.routeHoldExpiresAt, now + 12_000);
+  const circle = layer.userData.accuracyCircle;
+  assert.deepEqual(
+    [
+      layer.position.x + circle.position.x,
+      layer.position.z + circle.position.z,
+    ],
+    raw.point,
+  );
+  assert.equal(circle.geometry.parameters.radius, raw.accuracyRadiusMap);
+  assert.equal(view.userLocation, raw);
+  assert.deepEqual(raw, snapshot);
+  assert.equal(raw.routeHeld, undefined);
+});
+
+test("held evidence stops automatic camera movement but explicit recenter targets the confirmed point", (t) => {
+  const { view, now, gps, setMatch } = routeHoldHarness(t);
+  setMatch({
+    point: [4, 2],
+    sourceSegmentIndex: 0,
+    status: "tracking",
+    held: true,
+    confirmedAt: now,
+    expiresAt: now + 12_000,
+  });
+  view.setUserLocation(gps([15, 8]));
+  const camera = view.camera.position.clone();
+  const target = view.controls.target.clone();
+  view.headingFollowEnabled = true;
+  view.callbacks.shouldFollowHeading = () => true;
+  view.callbacks.shouldFollowRouteLine = () => true;
+  assert.equal(view.routeLocationBearing(), null);
+  assert.equal(view.followUserLocation(), false);
+  assert.equal(view.updateNavigationHeading(performance.now()), undefined);
+  assert.ok(view.camera.position.equals(camera));
+  assert.ok(view.controls.target.equals(target));
+  view.navigationMode = true;
+  view.navigationBearing = 0;
+  view.userHeading = { timestamp: now };
+  let request;
+  view.fit = (...args) => (request = args);
+  assert.equal(view.focusUserLocation(), true);
+  assert.deepEqual(request[0], [-8, -10, 16, 14]);
+  assert.deepEqual(view.userLocationFollowAnchor.toArray(), [4, 0.4, 2]);
+  assert.equal(view.userLocationFollowPath, false);
+
+  view.setUserLocation(gps([18, 9], now + 1000));
+  assert.equal(view.followUserLocation(), false);
+  assert.deepEqual(view.userLocationLayer.position.toArray(), [4, 0.4, 2]);
+  assert.equal(view.routeLocationMotion, null);
+  assert.ok(view.camera.position.equals(camera));
+});
+
+test("recovery starts at new confirmed evidence without animating across the held gap", (t) => {
+  const { view, now, gps, setMatch } = routeHoldHarness(t);
+  setMatch({
+    point: [4, 2],
+    sourceSegmentIndex: 0,
+    status: "uncertain",
+    held: true,
+    confirmedAt: now - 1000,
+    expiresAt: now + 11_000,
+  });
+  view.setUserLocation(gps([15, 8], now));
+  setMatch({ point: [4, 6], sourceSegmentIndex: 0, status: "tracking" });
+  view.setUserLocation(gps([5, 6], now + 1000));
+  assert.equal(view.routeLocationMotion, null);
+  assert.deepEqual(view.userLocationLayer.position.toArray(), [4, 0.4, 6]);
+  assert.equal(view.userLocationLayer.userData.presentation.stale, false);
+  assert.equal(view.userLocationOverlay.dataset.routeHeld, "false");
+  assert.equal(
+    view.userLocationLayer.userData.dot.children[1].material.color.getHex(),
+    0x2585ff,
+  );
+  assert.equal(
+    view.userLocationCaption.textContent,
+    "GPS с поправкой · по маршруту · 2 этаж · ±9 м",
+  );
+  setMatch({ point: [4, 8], sourceSegmentIndex: 0, status: "tracking" });
+  view.setUserLocation(gps([5, 8], now + 2000));
+  assert.ok(view.routeLocationMotion, "later fresh fixes interpolate normally");
+  view.updateRouteLocationMotion(
+    view.routeLocationMotion.start + view.routeLocationMotion.duration,
+  );
+  assert.deepEqual(view.userLocationLayer.position.toArray(), [4, 0.4, 8]);
+});
+
+test("scene never retains a held match after controller expiry or outside its floor route", (t) => {
+  const { view, now, gps, setMatch } = routeHoldHarness(t);
+  const held = {
+    point: [4, 2],
+    sourceSegmentIndex: 0,
+    status: "uncertain",
+    held: true,
+    confirmedAt: now,
+    expiresAt: now + 12_000,
+  };
+  const raw = gps([15, 8]);
+  setMatch(held);
+  view.setUserLocation(raw);
+  setMatch(null);
+  view.refreshUserLocation();
+  assert.equal(view.routeLocationFix, null);
+  assert.deepEqual(view.userLocationLayer.position.toArray(), [15, 0.4, 8]);
+  assert.equal(view.userLocationLayer.userData.presentation.routeHeld, false);
+
+  setMatch(held);
+  view.refreshUserLocation();
+  view.floor = { id: "f3" };
+  view.routeLayer = { paths: [] };
+  view.refreshUserLocation();
+  assert.equal(view.routeLocationFix, null);
+  assert.deepEqual(view.userLocationLayer.position.toArray(), [15, 0.4, 8]);
+  assert.equal(
+    view.userLocationLayer.userData.presentation.floorState,
+    "other-floor",
+  );
+  assert.equal(view.userLocation.floorId, "f2");
+  assert.equal(view.userLocation.timestamp, now);
+
+  view.floor = { id: "f2" };
+  view.mode = "overview";
+  view.refreshUserLocation();
+  assert.equal(view.routeLocationFix, null);
+  assert.equal(view.userLocationLayer.userData.presentation.routeHeld, false);
+});
+
 test("manual map picking returns the existing room identity and rejects map gaps", () => {
   const view = harness();
   assert.equal(view.setLocationPicking(true), true);

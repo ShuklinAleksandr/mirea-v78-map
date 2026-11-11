@@ -71,11 +71,32 @@ test("Next never hides the manual fallback or claims distance after GPS uncertai
     snapToRoute: true,
     liveProgress: { status: "off-route" },
   });
-  assert.equal(offRoute.contextAction, null);
-  assert.match(offRoute.note, /Уточняем положение.*по линии маршрута/);
+  assert.equal(offRoute.contextAction, "refine");
+  assert.match(offRoute.note, /не совпадает с маршрутом/);
   assert.match(
     view({ liveProgress: { status: "wrong-way" } }).note,
     /по линии в сторону назначения/,
+  );
+});
+
+test("a held route point is clearly historical and never supplies live progress or distance", () => {
+  const held = view({
+    snapToRoute: true,
+    locationHeld: true,
+    liveProgress: { status: "off-route", distanceToNextMeters: 17 },
+    guide: { sections: [{ length: 20 }] },
+    acceptedProgress: { sectionIndex: 0, distance: 4 },
+  });
+  assert.match(held.note, /последняя подтверждённая точка/);
+  assert.equal(held.distance, "");
+  assert.equal(held.progress.percent, 20);
+  assert.equal(held.contextAction, null);
+  assert.equal(held.showNext, true);
+  assert.equal(
+    view({ snapToRoute: true, liveProgress: { status: "off-route" } })
+      .contextAction,
+    "refine",
+    "after the short hold, offer a real way to refine the raw location",
   );
 });
 
