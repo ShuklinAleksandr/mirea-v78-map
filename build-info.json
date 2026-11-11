@@ -1,6 +1,6 @@
 {
-  "version": "0.5.18",
-  "sourceCommit": "e7a0ad80fe725e0e9b19ea6243b39ab9520ad06d",
+  "version": "0.5.19",
+  "sourceCommit": "7f90e03ce3533de250959b61ee55208e69f2ca55",
   "base": "/mirea-v78-map/",
-  "scope": "Android-only GPS measurements; route camera follow and passed-path contrast; GPS permission timing"
+  "scope": "Bounded labelled historical route position during GPS loss; local measurement analysis; no registration shift"
 }
