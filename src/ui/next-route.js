@@ -74,6 +74,7 @@ export function nextRouteReadout({
   userLocation,
   following = false,
   snapToRoute = false,
+  locationHeld = false,
   transitionLevel,
   guide,
   acceptedProgress,
@@ -96,7 +97,7 @@ export function nextRouteReadout({
     tracking: "Шаги меняются автоматически",
     "low-accuracy": "Положение неточное · автосмена шагов на паузе",
     stale: "Нет свежей геопозиции · автосмена шагов на паузе",
-    "off-route": "Уточняем положение. Продолжайте по линии маршрута.",
+    "off-route": "Положение не совпадает с маршрутом · можно уточнить точку",
     "wrong-way": "Продолжайте по линии в сторону назначения.",
     "floor-mismatch": "Проверьте этаж · GPS его не определяет",
     "floor-change": "Подтвердите переход по лестнице",
@@ -105,7 +106,7 @@ export function nextRouteReadout({
   };
   let contextAction = null;
   if (guiding && automatic && !previewing && !manualOnly) {
-    if (status === "low-accuracy" || (status === "off-route" && !snapToRoute))
+    if (status === "low-accuracy" || (status === "off-route" && !locationHeld))
       contextAction = "refine";
     else if (status === "floor-mismatch") {
       // Changing the viewed floor cannot repair a previously confirmed
@@ -163,7 +164,9 @@ export function nextRouteReadout({
           ? liveProgress?.arrived && automatic
             ? `По GPS — у входа в ${partial.via}. ${partial.note}`
             : partial.note
-          : notes[status] || notes.waiting
+          : locationHeld
+            ? "Уточняем положение · показана последняя подтверждённая точка"
+            : notes[status] || notes.waiting
       : partial?.note || "Путь по карте · расстояние и время приблизительные",
     nextLabel: !guiding
       ? "В путь"

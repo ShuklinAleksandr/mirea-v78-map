@@ -14,6 +14,7 @@ import {
   ROUTE_TRACKING_MAX_AGE_MS,
 } from "../data/route-tracking.js";
 import { createRouteTrackingSurfaceGuard } from "../data/route-tracking-surface.js";
+import { createRouteLocationDisplay } from "../data/route-location-display.js";
 import { findNextPlaces } from "../data/next-place-search.js";
 import { placeLocation, presentPlaceIdentity } from "../data/place-location.js";
 import placeLandmarks from "../data/place-landmarks.json" with { type: "json" };
@@ -89,6 +90,8 @@ export function bindRoutes({
     liveExpiryTimer = null,
     resumeAfterTimestamp = -Infinity;
   const surfaceGuards = new WeakMap();
+  const routeDisplay = createRouteLocationDisplay();
+  let displayExpiryTimer = null;
   const pending = new Map();
   function calculate(a, b, id) {
     if (!worker) {
@@ -290,9 +293,56 @@ export function bindRoutes({
     return guard(point, projectedPoint);
   }
   function resetAcceptedProgress() {
+    resetRouteDisplay();
     acceptedProgress = null;
     scene.setRoutePreviewProgress?.(null);
     scene.setLiveRouteProgress?.(null);
+  }
+  function resetRouteDisplay() {
+    routeDisplay.reset();
+    if (typeof clearTimeout === "function") clearTimeout(displayExpiryTimer);
+    displayExpiryTimer = null;
+  }
+  function displayEnabled(location = state.userLocation) {
+    return Boolean(
+      state.routeSnapEnabled &&
+        guiding &&
+        automatic &&
+        !previewing &&
+        !document.hidden &&
+        document.documentElement?.dataset?.appActive !== "false" &&
+        !scene.locationPicking &&
+        state.mode === "floor" &&
+        state.locationTracking?.enabled !== false &&
+        location === state.userLocation &&
+        state.campus?.id === route?.campusId &&
+        liveProgress?.floorId === state.floor?.id &&
+        location?.source === "gps",
+    );
+  }
+  function syncRouteDisplay() {
+    if (typeof clearTimeout === "function") clearTimeout(displayExpiryTimer);
+    displayExpiryTimer = null;
+    const match = routeDisplay.update({
+      progress: liveProgress,
+      location: state.userLocation,
+      sourceSegmentIndex:
+        guide.sections[liveProgress?.sectionIndex]?.sourceSegmentIndex,
+      enabled: displayEnabled(),
+      now: Date.now(),
+    });
+    if (match?.held && typeof setTimeout === "function") {
+      displayExpiryTimer = setTimeout(
+        () => {
+          displayExpiryTimer = null;
+          // Expiry only changes the displayed position, never route progress.
+          routeDisplay.read(Date.now());
+          scene.refreshUserLocation?.();
+          updateDockReadout();
+        },
+        Math.max(1, match.expiresAt - Date.now() + 1),
+      );
+    }
   }
   function commitLiveProgress() {
     if (
@@ -313,36 +363,11 @@ export function bindRoutes({
     scene.setLiveRouteProgress?.(acceptedProgress);
   }
   function routeLocationMatch(location) {
-    if (
-      !state.routeSnapEnabled ||
-      !guiding ||
-      !automatic ||
-      previewing ||
-      document.hidden ||
-      scene.locationPicking ||
-      state.mode !== "floor" ||
-      !liveProgress?.matchedPoint ||
-      ![
-        "tracking",
-        "uncertain",
-        "wrong-way",
-        "floor-change",
-        "arrived",
-      ].includes(liveProgress.status) ||
-      liveProgress.floorId !== state.floor?.id ||
-      location !== state.userLocation ||
-      (location?.trackingStatus &&
-        !["live", "tracking"].includes(location.trackingStatus)) ||
-      location?.timestamp !== liveProgress.locationTimestamp ||
-      Date.now() - location.timestamp > ROUTE_TRACKING_MAX_AGE_MS
-    )
+    if (!displayEnabled(location)) {
+      resetRouteDisplay();
       return null;
-    return {
-      point: liveProgress.matchedPoint,
-      status: liveProgress.status,
-      sourceSegmentIndex:
-        guide.sections[liveProgress.sectionIndex]?.sourceSegmentIndex,
-    };
+    }
+    return routeDisplay.read(Date.now());
   }
   function updateLiveGuidance(refreshLocation = true) {
     if (!route || !guiding || !automatic || previewing || !liveTracker) return;
@@ -352,6 +377,7 @@ export function bindRoutes({
       scene.locationPicking ||
       state.campus?.id !== route.campusId
     ) {
+      resetRouteDisplay();
       liveProgress = {
         ...liveTracker.snapshot(),
         status: "stale",
@@ -363,6 +389,7 @@ export function bindRoutes({
       return;
     }
     if (state.userLocation?.timestamp <= resumeAfterTimestamp) {
+      resetRouteDisplay();
       const last = liveTracker.snapshot();
       liveProgress =
         last.reason === "manual-step" ? last : { ...last, status: "stale" };
@@ -384,6 +411,7 @@ export function bindRoutes({
     guideDistance = liveProgress.distance;
     stepIndex = liveProgress.stepIndex;
     commitLiveProgress();
+    syncRouteDisplay();
     // Context follows the same accepted point as the moving marker.
     // It must not override manual map browsing or a pending stair hand-off.
     if (
@@ -676,6 +704,7 @@ export function bindRoutes({
         "Не удалось открыть этаж этого шага. Выберите другой шаг или измените маршрут.",
       );
     } else if (automatic && liveTracker) {
+      resetRouteDisplay();
       liveProgress = liveTracker.seekStep(index);
       const timestamp = state.userLocation?.timestamp;
       if (correction && Number.isFinite(timestamp))
@@ -976,7 +1005,8 @@ export function bindRoutes({
         "low-accuracy":
           "Точности GPS недостаточно для смены шагов. Уточните точку или идите по кнопке «Далее».",
         stale: "Нет свежего GPS. Автоматическое продвижение приостановлено.",
-        "off-route": "Уточняем положение. Продолжайте по линии маршрута.",
+        "off-route":
+          "Положение не совпадает с маршрутом. Можно уточнить точку.",
         "wrong-way": "Продолжайте по линии в сторону назначения.",
         "floor-mismatch":
           "Проверьте свой этаж и уточните точку. GPS не определяет этаж.",
@@ -985,7 +1015,9 @@ export function bindRoutes({
         arrived: "Вы у назначения по данным GPS. Проверьте указатель на месте.",
       };
       note.textContent = automatic
-        ? notes[liveProgress?.status] || notes.waiting
+        ? routeDisplay.read(Date.now())?.held
+          ? "Уточняем положение · показана последняя подтверждённая точка"
+          : notes[liveProgress?.status] || notes.waiting
         : previewing
           ? "Демонстрация маршрута · это не ваше движение"
           : "Переключайте шаги, когда дойдёте до указанного места";
@@ -1033,6 +1065,7 @@ export function bindRoutes({
         userLocation: state.userLocation,
         following: state.locationTracking?.following,
         snapToRoute: state.routeSnapEnabled,
+        locationHeld: Boolean(routeDisplay.read(Date.now())?.held),
         transitionLevel,
         guide,
         acceptedProgress,
@@ -1265,6 +1298,7 @@ export function bindRoutes({
     if (guideDistance >= section.length) guideDistance = 0;
     if (!applyGuidance({ animate: true })) return;
     previewing = true;
+    resetRouteDisplay();
     const activePreview = previewRevision;
     const navigationRevision = state.loading;
     renderProgress();
@@ -1440,13 +1474,17 @@ export function bindRoutes({
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
+      resetRouteDisplay();
       pausePreview();
       resumeAfterTimestamp = Date.now();
     }
     updateLiveGuidance();
   });
   window.addEventListener("atlas:app-state", (event) => {
-    if (event.detail?.isActive === false) pausePreview();
+    if (event.detail?.isActive === false) {
+      resetRouteDisplay();
+      pausePreview();
+    }
     if (automatic && event.detail?.isActive === false) {
       resumeAfterTimestamp = Date.now();
       if (typeof clearTimeout === "function") clearTimeout(liveExpiryTimer);
@@ -1456,6 +1494,7 @@ export function bindRoutes({
     } else updateLiveGuidance();
   });
   window.addEventListener("pagehide", () => {
+    resetRouteDisplay();
     pausePreview();
     resumeAfterTimestamp = Date.now();
     if (automatic) {
@@ -1503,6 +1542,7 @@ export function bindRoutes({
         startGuidance(stepIndex);
       else {
         if (!state.routeSnapEnabled && automatic) {
+          resetRouteDisplay();
           automatic = false;
           liveProgress = null;
           clearTimeout(liveExpiryTimer);
