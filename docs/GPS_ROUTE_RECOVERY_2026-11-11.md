@@ -42,11 +42,12 @@ node scripts/analyze-gps-measurements.mjs OLD.json COMBINED.json --output .nativ
 - Готовый APK: **0.5.19**, `versionCode=12`, `ru.mirea.spatialatlas`. Проверены скомпилированные manifest/DEX и подпись. Все **93 файла dist** совпали с встроенными `assets/public/` по SHA-256; только два ожидаемых пустых служебных файла Capacitor, неожиданных нет.
 - APK: **50 786 384 байта**, SHA-256 `2c61f7758b5e5b598b94c62f3fb254ca6453baa4db4818623085b06d24f619c6`.
 - Проверенная веб-сборка подготовлена с базовым адресом `/mirea-v78-map/` для существующего сайта.
+- Эмулятор `mirea-v78-api36`, `sdk_gphone64_arm64`, Android 16 / API 36, WebView 133.0.6943.137: обновление APK без очистки данных, холодный запуск, отрисовка карты, возврат кнопок касанием, настройки и раздел GPS прошли. Сохранились 4 прежние синтетические записи замеров. Ошибок падения приложения и необработанных ошибок в журнале не найдено. Движение с GPS и восстановление маршрута в этом коротком испытании не воспроизводились; эти состояния проверены автоматическими тестами.
 - Существующее предупреждение сборщика о разных формах импорта `gps-registration.json` осталось; сборку оно не прерывает.
 
 Файлы тестового выпуска: [v0.5.19](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.19) · [APK](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.5.19/MIREA-V78.apk) · [контрольная сумма](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/download/v0.5.19/SHA256SUMS.txt).
 
-Новые локальные журналы: `.native-build/gps-route-recovery-2026-11-11/`: `check.log`, `doctor.log`, `android-build.log`, `mobile-check.log`, `apk-verification.json`, `apk-signature.log`, `web.log`. APK: `android/app/build/outputs/apk/debug/app-debug.apk`. Приватный разбор: `.native-build/gps-analysis/field-comparison-20261111.json`.
+Новые локальные журналы: `.native-build/gps-route-recovery-2026-11-11/`: `check.log`, `doctor.log`, `android-build.log`, `mobile-check.log`, `apk-verification.json`, `apk-signature.log`, `web.log`, `android-smoke.json`; снимки `android-start.png`, `android-settings.png`, `android-gps-records.png`. APK: `android/app/build/outputs/apk/debug/app-debug.apk`. Приватный разбор: `.native-build/gps-analysis/field-comparison-20261111.json`.
 
 ## Что остаётся проверить
 
