@@ -1,3 +1,5 @@
+import { getEntranceLayout } from "./entrance-layout.js";
+
 // Display corrections for the user-confirmed open transverse partitions in
 // building A's main corridor. Endpoints are exact shared boundaries of the
 // two listed unnamed circulation regions, not a general corridor/door filter.
@@ -226,17 +228,20 @@ export function getIndoorDisplayGeometry(floor) {
       ),
   );
   const hall = getConfirmedHallDisplay(floor);
-  if (!applicable.length && !hall.buffets.length && !hall.passage)
+  const entrance = getEntranceLayout(floor);
+  if (!applicable.length && !hall.buffets.length && !hall.passage && !entrance)
     return {
       walls: floor.walls || [],
       doors: floor.doors || [],
       appliedOverrides: [],
       openDoors: [],
       doorGroup: null,
+      entrance: null,
     };
   const hallSegments = [
     ...hall.buffets.flatMap((entry) => entry.openSegments),
     ...(hall.passage ? boundarySegments(hall.passage.points) : []),
+    ...(entrance?.openSegments || []),
   ];
   let walls = floor.walls || [];
   for (const opening of [...applicable, ...hallSegments])
@@ -252,6 +257,7 @@ export function getIndoorDisplayGeometry(floor) {
       ...applicable.map((opening) => opening.id),
       ...hall.buffets.map((entry) => entry.id),
       ...(hall.passage ? [hall.passage.id] : []),
+      ...(entrance ? [entrance.id] : []),
     ],
     // Retain the source opening as evidence; it is not the rendered module count.
     openDoors: hall.passage
@@ -267,5 +273,6 @@ export function getIndoorDisplayGeometry(floor) {
           points: hall.passage.points,
         }
       : null,
+    entrance,
   };
 }

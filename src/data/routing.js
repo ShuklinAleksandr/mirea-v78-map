@@ -2,6 +2,7 @@ import { getJSON } from "./client.js";
 import { attachCurrentRouteEndpoint } from "./current-route-origin.js";
 import { getSurveyBlockedEdges } from "./survey-routing.js";
 import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
+import { withAIOutdoorInstructions } from "./outdoor-passage.js";
 
 import {
   stairEndpointCandidates,
@@ -421,14 +422,16 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
     },
   ];
   for (const segment of segments) {
+    const segmentSteps = [];
     if (segment.points.length > 1)
-      steps.push({
+      segmentSteps.push({
         kind: "walk",
         text: `Следуйте по выделенному пути · ${floorName(segment.nodes[0])}`,
         floorId: segment.floorId,
         position: segment.points[0],
       });
-    steps.push(...turnsForSegment(segment));
+    segmentSteps.push(...turnsForSegment(segment));
+    steps.push(...withAIOutdoorInstructions(graph, segment, segmentSteps));
     const transition = transitions.find(
       (t) =>
         t.fromFloorId === segment.floorId &&

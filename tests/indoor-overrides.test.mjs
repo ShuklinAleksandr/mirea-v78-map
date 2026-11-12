@@ -10,6 +10,7 @@ import {
   OPEN_HALL_PASSAGE,
 } from "../src/map/indoor-overrides.js";
 import { createIndoorHallDetails } from "../src/map/hall.js";
+import { getEntranceLayout } from "../src/map/entrance-layout.js";
 
 const floors = [1, 2, 3, 4].map((level) =>
   JSON.parse(
@@ -573,6 +574,7 @@ test("hall overrides require their exact source cells, contours and known door; 
     ...OPEN_HALL_PASSAGE.points
       .slice(0, -1)
       .map((a, i) => ({ a, b: OPEN_HALL_PASSAGE.points[i + 1] })),
+    ...getEntranceLayout(floor).openSegments,
   ];
   const display = getIndoorDisplayGeometry(floor);
   for (const wall of floor.walls)
@@ -588,6 +590,8 @@ test("hall overrides require their exact source cells, contours and known door; 
     "v-78-floor2-door-90",
     "v-78-floor2-door-30",
     "v-78-floor2-door-33",
+    "v-78-floor2-door-422",
+    "v-78-floor2-door-93",
   ]);
   assert.deepEqual(
     display.doors,

@@ -1,6 +1,8 @@
 import registry from "../../public/data/stair-layouts.json" with { type: "json" };
 
 import { entranceStairPortals } from "./entrance-stair-portals.js";
+import { photographedStairCounterparts } from "./stair-counterparts.js";
+import { iMainStairReferences } from "./i-main-stair.js";
 
 const references = new WeakMap();
 const keyOf = (room) =>
@@ -19,12 +21,26 @@ function prepare(graph) {
   const layouts = [
     ...registry.layouts.filter((layout) => layout.campusId === graph.campusId),
     ...(graph.campusId === "v-78"
-      ? entranceStairPortals.map((portal) => ({
-          id: portal.layoutId,
-          floorId: portal.floorId,
-          sourceMarkerIds: [portal.sourceEdgeId],
-          routingPortal: portal,
-          label: "Лестница главного холла",
+      ? [...entranceStairPortals, ...photographedStairCounterparts].map(
+          (portal) => ({
+            id: portal.layoutId,
+            floorId: portal.floorId,
+            sourceMarkerIds: [portal.sourceEdgeId],
+            routingPortal: portal,
+            label: portal.label
+              ? `${portal.label}${portal.building ? ` · корпус ${portal.building}` : ""}`
+              : "Лестница главного холла",
+          }),
+        )
+      : []),
+    ...(graph.campusId === "v-78"
+      ? iMainStairReferences.map((ref) => ({
+          id: ref.layoutId,
+          floorId: ref.floorId,
+          sourceMarkerIds: ref.portals.map((p) => p.sourceEdgeId),
+          routingPortals: ref.portals,
+          strictSourceMarkerMatch: true,
+          label: "Главная лестница · корпус И",
         }))
       : []),
   ];
@@ -38,6 +54,17 @@ function prepare(graph) {
               node.position[0] - layout.routingPortal.position[0],
               node.position[1] - layout.routingPortal.position[1],
             ) <= 0.001)) &&
+        (!layout.routingPortals ||
+          layout.routingPortals.some(
+            (portal) =>
+              edge.id === portal.sourceEdgeId &&
+              edge.sourceId === portal.sourceTransitionId &&
+              node.floorId === portal.floorId &&
+              Math.hypot(
+                node.position[0] - portal.position[0],
+                node.position[1] - portal.position[1],
+              ) <= 0.001,
+          )) &&
         (!layout.building || node.building === layout.building) &&
         (layout.sourceMarkerIds?.includes(edge.id) ||
           (!layout.strictSourceMarkerMatch &&

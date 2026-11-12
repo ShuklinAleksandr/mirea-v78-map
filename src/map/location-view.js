@@ -101,11 +101,12 @@ export function pickLocationSurface(
   );
   if (room)
     return {
-      building: room.building || building,
+      building: room.kind === "outdoor" ? null : room.building || building,
       kind: room.kind || "room",
       room,
       roomId:
         room.kind === "unclassified" ||
+        room.kind === "outdoor" ||
         room.kind === "circulation" ||
         room.kind === "corridor"
           ? null

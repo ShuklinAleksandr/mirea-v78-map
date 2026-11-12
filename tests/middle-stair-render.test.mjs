@@ -43,6 +43,7 @@ const inRing = (p, ring) => {
 test("middle-floor sections show an up-flight and a down-flight while stacks retain the complete original ascent", () => {
   let count = 0;
   const dMiddleViews = [];
+  const iMiddleViews = [];
   for (const level of [1, 2, 3]) {
     const floor = readFloor(level),
       original = structuredClone(floor);
@@ -50,6 +51,12 @@ test("middle-floor sections show an up-flight and a down-flight while stacks ret
       const layout = stairLayoutFor(marker, floor);
       if (!layout?.incomingDisplay) continue;
       count++;
+      if (layout.building === "И")
+        iMiddleViews.push({
+          floorId: floor.id,
+          physicalFloor: layout.physicalFloor,
+          layoutId: layout.id,
+        });
       if (layout.building === "Д")
         dMiddleViews.push({
           floorId: floor.id,
@@ -100,7 +107,14 @@ test("middle-floor sections show an up-flight and a down-flight while stacks ret
     }
     assert.deepEqual(floor, original);
   }
-  assert.equal(count, 18);
+  assert.equal(count, 19);
+  assert.deepEqual(iMiddleViews, [
+    {
+      floorId: "v-78-floor2",
+      physicalFloor: 2,
+      layoutId: "v78-И-2-user-main-stair",
+    },
+  ]);
   assert.deepEqual(dMiddleViews, [
     {
       floorId: "v-78-floor1",

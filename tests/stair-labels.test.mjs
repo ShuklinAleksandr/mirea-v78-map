@@ -64,7 +64,7 @@ test("confirmed stairs can be found by library text and campus slang without cha
   const original = structuredClone(source);
   const floors = [floor(1), floor(2)];
   const shown = withConfirmedStairSearch(source, floors);
-  assert.equal(shown.length, source.length + 10);
+  assert.equal(shown.length, source.length + 12);
   const additions = shown.slice(source.length);
   assert.deepEqual(
     additions.map((marker) => marker.layoutId).sort(),
@@ -79,9 +79,11 @@ test("confirmed stairs can be found by library text and campus slang without cha
       "v-78-floor1-user-stair-entrance-right",
       "v78-Д-scan-v-78-floor1",
       "v78-Д-scan-v-78-floor2",
+      "v78-И-1-user-main-stair",
+      "v78-И-2-user-main-stair",
     ].sort(),
   );
-  assert.equal(new Set(additions.map((marker) => marker.id)).size, 10);
+  assert.equal(new Set(additions.map((marker) => marker.id)).size, 12);
   assert.ok(
     additions.every(
       (marker) => !source.some((place) => place.id === marker.id),
@@ -210,7 +212,22 @@ test("confirmed lower schemes state their user evidence while preserving the acc
       marker.shapeReviewStatus === "user-confirmed-schematic" &&
       marker.layoutId !== "v-78-floor2-user-stair-library",
   );
-  assert.equal(confirmed.length, 9);
+  assert.equal(confirmed.length, 12);
+  const iMain = confirmed.filter(
+    (marker) =>
+      marker.geometryEvidence === "user-confirmed-I-main-stair-2026-11-12",
+  );
+  assert.deepEqual(
+    iMain.map((marker) => marker.layoutId).sort(),
+    [1, 2, 3].map((n) => `v78-И-${n}-user-main-stair`),
+  );
+  for (const marker of iMain) {
+    assert.equal(marker.label, "Главная лестница · корпус И");
+    assert.equal(marker.building, "И");
+    assert.equal(marker.source, "user-confirmed-location");
+    assert.equal(marker.dimensionsStatus, "model-assumptions-not-measured");
+    assert.deepEqual(marker.shapeSourcePhotoIds, []);
+  }
   const described = confirmed.filter(
     (marker) => marker.geometryEvidence === "user-description-and-sketch",
   );

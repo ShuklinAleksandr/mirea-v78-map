@@ -3,6 +3,8 @@ import polygonClipping from "polygon-clipping";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { getFloorMarkers } from "../data/utils.js";
 import { libraryStairLayoutsForFloor } from "./library-stair.js";
+import { photoCounterpartStairLayoutsForFloor } from "./stair-counterparts.js";
+import { iMainStairLayoutsForFloor } from "./i-main-stair.js";
 import { middleStairArrival } from "./stair-arrivals.js";
 import { structuralStairOpenings } from "./stair-structural-openings.js";
 import { stairFlightSolid } from "./stair-solid.js";
@@ -351,6 +353,8 @@ function displayLayoutsForFloor(floor, cache = stairCacheFor(floor)) {
         : layout;
     }),
     ...libraryStairLayoutsForFloor(floor),
+    ...photoCounterpartStairLayoutsForFloor(floor),
+    ...iMainStairLayoutsForFloor(floor),
     ...scanBackedStairLayoutsForFloor(floor),
   ]));
 }
@@ -675,8 +679,19 @@ function matchStairLayout(marker, floor, layouts) {
       return false;
     if (
       layout.strictSourceMarkerMatch &&
-      Math.hypot(anchor[0] - layout.center[0], anchor[1] - layout.center[1]) >
-        0.0001
+      !(layout.sourcePortals?.length
+        ? layout.sourcePortals.some(
+            (portal) =>
+              sourceIds.includes(portal.sourceEdgeId) &&
+              Math.hypot(
+                anchor[0] - portal.position[0],
+                anchor[1] - portal.position[1],
+              ) <= 0.0001,
+          )
+        : Math.hypot(
+            anchor[0] - layout.center[0],
+            anchor[1] - layout.center[1],
+          ) <= 0.0001)
     )
       return false;
     // One graph edge may have several source endpoints on the same level.
@@ -869,33 +884,40 @@ function pointSymbol(marker, anchor, areaId) {
     note: "Положение есть в источнике; форма маршей не подтверждена, поэтому объёмная лестница не придумана.",
   };
   const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(defaults.unknownMarkerRadius, 20),
-    new THREE.MeshBasicMaterial({ color: 0x76958a }),
+    new THREE.CircleGeometry(Math.max(defaults.unknownMarkerRadius, 0.95), 20),
+    new THREE.MeshBasicMaterial({ color: 0x5475a5 }),
   );
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = 0.16;
   disc.userData = { room: marker, geometryStatus: "source-marker-only" };
   group.add(disc);
-  const geometry = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(-0.2, 0.18, 0.34),
-    new THREE.Vector3(-0.2, 0.18, -0.34),
-    new THREE.Vector3(-0.2, 0.18, -0.34),
-    new THREE.Vector3(-0.38, 0.18, -0.12),
-    new THREE.Vector3(-0.2, 0.18, -0.34),
-    new THREE.Vector3(-0.02, 0.18, -0.12),
-    new THREE.Vector3(0.2, 0.18, -0.34),
-    new THREE.Vector3(0.2, 0.18, 0.34),
-    new THREE.Vector3(0.2, 0.18, 0.34),
-    new THREE.Vector3(0.38, 0.18, 0.12),
-    new THREE.Vector3(0.2, 0.18, 0.34),
-    new THREE.Vector3(0.02, 0.18, 0.12),
-  ]);
-  group.add(
-    new THREE.LineSegments(
-      geometry,
-      new THREE.LineBasicMaterial({ color: 0xf2f7ef }),
-    ),
+  // Scene batching retains meshes, not LineSegments. The old white arrows
+  // disappeared in the actual map, leaving a tiny, ambiguous coloured dot.
+  // Keep this explicitly flat symbol: it is not an invented flight profile.
+  const arrow = [
+    [-0.09, -0.57],
+    [0.09, -0.57],
+    [0.09, 0.22],
+    [0.27, 0.22],
+    [0, 0.56],
+    [-0.27, 0.22],
+    [-0.09, 0.22],
+  ];
+  const shapes = [-1, 1].map(
+    (direction) =>
+      new THREE.Shape(
+        arrow.map(
+          ([x, z]) => new THREE.Vector2(x + direction * 0.32, z * direction),
+        ),
+      ),
   );
+  const glyph = new THREE.Mesh(
+    new THREE.ShapeGeometry(shapes).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xf2f7ef }),
+  );
+  glyph.position.y = 0.18;
+  glyph.userData = { room: marker, geometryStatus: "source-marker-only" };
+  group.add(glyph);
   return group;
 }
 

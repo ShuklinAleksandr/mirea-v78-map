@@ -5,6 +5,7 @@ import { getMainEntranceApproach } from "../data/navigation.js";
 import { createExterior } from "./exterior.js";
 import { nearbyRoadPolygons } from "./nearby-roads.js";
 import { createEntranceHall, createIndoorHallDetails } from "./hall.js";
+import { createEntranceDetails } from "./entrance-details.js";
 import { presentPlaceIdentity } from "../data/place-location.js";
 import { roomLabelAnchor, detailLabelVisibleAtScale } from "./room-labels.js";
 import { placeCategory, PLACE_CATEGORY_COLORS } from "../data/place-search.js";
@@ -16,6 +17,12 @@ import {
   USER_HEADING_MAX_AGE_MS,
 } from "./location-view.js";
 import { getHallAdjacencyView } from "./hall-adjacency.js";
+import {
+  outdoorPassageFloorView,
+  outdoorPassageExteriorView,
+  withOutdoorPassageDisplay,
+  withOutdoorPassageRoads,
+} from "./outdoor-passage.js";
 import { getStairPartitionView } from "./stair-partitions.js";
 import { createStairOpeningPlan } from "./stair-opening-view.js";
 import hallAdjacency from "../data/hall-adjacency.json" with { type: "json" };
@@ -66,6 +73,7 @@ const COLORS = {
   unclassified: 0xe8e5df,
   circulation: 0xf5f3ec,
   hall: 0xf5f3ec,
+  outdoor: 0xa9b4bf,
 };
 const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
@@ -2116,14 +2124,21 @@ export class AtlasScene {
     this.floor = null;
     if (this.ground) this.ground.position.y = -0.28;
     this.building = building;
-    const exteriorData = this.exteriorData?.[this.campus.id];
+    const passageFloor = this.floors.find(
+      (floor) => floor.id === "v-78-floor1",
+    );
+    const exteriorData = outdoorPassageExteriorView(
+      this.exteriorData?.[this.campus.id],
+      passageFloor,
+    );
     let exteriorReady = this.plan;
     if (this.plan) {
       let footprints = exteriorData?.footprints;
       if (!footprints?.length) {
-        const source = this.floors.flatMap(
-          (floor) => floor.exteriorFootprints || floor.footprints || [],
-        );
+        const source = this.floors.flatMap((floor) => {
+          const view = outdoorPassageFloorView(floor);
+          return view.exteriorFootprints || view.footprints || [];
+        });
         // Several floors can cover the same area. Draw the fallback silhouette once.
         footprints = source.length
           ? polygonClipping
@@ -2142,7 +2157,7 @@ export class AtlasScene {
           this.campus.id === this.entranceHall?.campusId
             ? this.entranceHall
             : null;
-        const exterior = createExterior(this.exteriorData[this.campus.id], {
+        const exterior = createExterior(exteriorData, {
           photoDetail:
             this.campus.id === "v-78" &&
             this.facadesOn !== false &&
@@ -2173,7 +2188,8 @@ export class AtlasScene {
     }
     if (!exteriorReady) {
       this.floors.forEach((f, i) => {
-        const gs = (f.exteriorFootprints || f.footprints || [])
+        const view = outdoorPassageFloorView(f);
+        const gs = (view.exteriorFootprints || view.footprints || [])
           .map((p) =>
             solidGeometry(p, this.floorHeight - 0.12, i * this.floorHeight),
           )
@@ -2202,6 +2218,7 @@ export class AtlasScene {
         this.model.add(edges);
       });
     }
+    let roadShapes = [];
     if (
       this.campus.id === "v-78" &&
       exteriorData?.footprints?.length &&
@@ -2216,18 +2233,17 @@ export class AtlasScene {
         const detachedSportsFootprint = exteriorData.footprints.find((p) =>
           pointInLocationPolygon(sportsHall?.center, p),
         );
-        this.addNearbyRoads(
-          nearbyRoadPolygons(
-            this.exteriorRoads,
-            exteriorData.footprints,
-            detachedSportsFootprint,
-          ),
+        roadShapes = nearbyRoadPolygons(
+          this.exteriorRoads,
+          exteriorData.footprints,
+          detachedSportsFootprint,
         );
       } catch {
         // Optional roads cannot stop the building view from opening.
         this.exteriorRoads = [];
       }
     }
+    this.addNearbyRoads(withOutdoorPassageRoads(roadShapes, passageFloor));
     for (const [b, p] of Object.entries(this.buildingCenters))
       this.addLabel(
         `Корпус ${b}`,
@@ -2260,7 +2276,7 @@ export class AtlasScene {
     return true;
   }
   prepareFloorDisplay(floor, scopedBuilding) {
-    const hallFloor = getHallAdjacencyView(floor);
+    const hallFloor = outdoorPassageFloorView(getHallAdjacencyView(floor));
     const components = scopedBuilding
       ? getBuildingFloorComponentScopes(hallFloor, scopedBuilding)
       : [];
@@ -2288,6 +2304,11 @@ export class AtlasScene {
     let renderFloor = scopedBuilding
       ? getBuildingFloorView(hallFloor, scopedBuilding)
       : hallFloor;
+    renderFloor = withOutdoorPassageDisplay(
+      renderFloor,
+      hallFloor,
+      scopedBuilding,
+    );
     const bounds = scopedBuilding
       ? this.boundsForBuilding(scopedBuilding, floor)
       : null;
@@ -2455,6 +2476,22 @@ export class AtlasScene {
     this.locationFloor = { ...renderFloor, walls: stairPartitions.walls };
     this.stairPartitions = stairPartitions.partitions;
     this.addWalls(stairPartitions.walls);
+    if (display.entrance) {
+      // Entrance controls are navigation landmarks, visible in both map modes
+      // and at low detail. They do not create routing obstacles or new POIs.
+      this.model.add(createEntranceDetails(renderFloor, { plan: this.plan }));
+      const guard = display.entrance.guard;
+      this.addLabel(
+        guard.label,
+        guard.center,
+        this.plan ? 0.2 : 1.05,
+        "room",
+        null,
+        "main-entrance-security-landmark",
+        0.9,
+        { interactive: false },
+      );
+    }
     if (!this.plan) {
       this.hallDetails = createIndoorHallDetails(renderFloor, display);
       this.hallDetails.visible = this.qualityProfile?.detail !== false;
@@ -3296,12 +3333,17 @@ export class AtlasScene {
     }
     return null;
   }
-  addLabel(text, p, y, kind, onclick, id, roomRadius) {
-    const el = document.createElement("button");
+  addLabel(text, p, y, kind, onclick, id, roomRadius, options = {}) {
+    const interactive = options.interactive !== false;
+    const el = document.createElement(interactive ? "button" : "span");
     el.className = `map-label ${kind}`;
     el.textContent = text;
-    el.tabIndex = -1;
-    el.onclick = onclick;
+    if (interactive) {
+      el.tabIndex = -1;
+      el.onclick = onclick;
+    } else {
+      el.style.pointerEvents = "none";
+    }
     el.dataset.id = id;
     this.labelLayer.append(el);
     this.roomLabels.push({
