@@ -985,8 +985,8 @@ export function bindRoutes({
         : "";
     if (meta)
       meta.textContent = guiding
-        ? `${partial ? `До ${partial.via} · ` : ""}Шаг ${stepIndex + 1} из ${route.steps.length}${nextDistance}`
-        : `${route.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}${partial ? ` · до ${partial.via}` : ""}`;
+        ? `${partial && !partial.nearby ? `До ${partial.via} · ` : ""}Шаг ${stepIndex + 1} из ${route.steps.length}${nextDistance}`
+        : `${route.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}${partial && !partial.nearby ? ` · до ${partial.via}` : ""}`;
     const instruction = $("#route-dock-instruction");
     if (instruction)
       instruction.textContent = guiding
@@ -1025,9 +1025,11 @@ export function bindRoutes({
     if (note && partial && (!guiding || manualEntry))
       note.textContent = previewing
         ? `Демонстрация до ${partial.via} · это не ваше движение`
-        : guiding && automatic && liveProgress?.arrived
-          ? `По GPS — у входа в ${partial.via}. ${partial.note}`
-          : partial.note;
+        : partial.nearby
+          ? ""
+          : guiding && automatic && liveProgress?.arrived
+            ? `По GPS — у входа в ${partial.via}. ${partial.note}`
+            : partial.note;
     const previous = $("#route-dock-previous");
     if (previous) previous.hidden = !guiding || stepIndex === 0;
     const next = $("#route-dock-next");
@@ -1403,7 +1405,7 @@ export function bindRoutes({
           ? '<p class="route-estimate">Начало привязано к проходу на открытом плане. GPS не определяет этаж.</p>'
           : "";
       $("#route-summary").innerHTML =
-        `<div class="route-summary-head">${icon("route", 30)}<div><b>${result.durationMinutes != null ? `≈ ${result.durationMinutes} мин` : "Путь найден"}</b><small>${escape(a.label)} → ${escape(partial?.via || b.label)}${result.distanceMeters != null ? ` · ≈ ${Math.round(result.distanceMeters)} м` : ""}</small></div></div>${partial ? `<p class="route-estimate">${escape(partial.summary)} ${escape(partial.note)}</p>` : ""}${originFloorNote}<p class="route-estimate">${escape(result.durationModel || "Время и расстояние оценочные.")}</p><div id="route-floor-chips" class="route-floor-chips" aria-label="Этажи маршрута"></div><div id="route-progress" class="route-progress"></div>`;
+        `<div class="route-summary-head">${icon("route", 30)}<div><b>${result.durationMinutes != null ? `≈ ${result.durationMinutes} мин` : "Путь найден"}</b><small>${escape(a.label)} → ${escape(partial?.nearby ? b.label : partial?.via || b.label)}${result.distanceMeters != null ? ` · ≈ ${Math.round(result.distanceMeters)} м` : ""}</small></div></div>${partial && !partial.nearby ? `<p class="route-estimate">${escape(partial.summary)} ${escape(partial.note)}</p>` : ""}${originFloorNote}<p class="route-estimate">${escape(result.durationModel || "Время и расстояние оценочные.")}</p><div id="route-floor-chips" class="route-floor-chips" aria-label="Этажи маршрута"></div><div id="route-progress" class="route-progress"></div>`;
       for (const key of ["route-summary", "route-steps", "route-actions"])
         $("#" + key).hidden = false;
       status(

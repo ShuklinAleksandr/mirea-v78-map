@@ -7,6 +7,7 @@ const isPoint = (point) =>
   point.slice(0, 2).every(Number.isFinite);
 const distance = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const cameraSections = new WeakMap();
 
 function pointAt(section, requested) {
   const value = clamp(
@@ -26,6 +27,36 @@ function pointAt(section, requested) {
     };
   }
   return { position: [...section.points.at(-1)], heading: [1, 0] };
+}
+
+// Camera-only anticipation on one accepted horizontal path. The marker still
+// follows the exact route line; this chord never becomes a walking shortcut.
+export function sampleRouteCamera(points, requested, direction = 1) {
+  if (!Array.isArray(points) || !Number.isFinite(requested)) return null;
+  let section = cameraSections.get(points);
+  if (!section) {
+    if (points.length < 2 || !points.every(isPoint)) return null;
+    const distances = [0];
+    for (let i = 1; i < points.length; i++)
+      distances.push(distances.at(-1) + distance(points[i - 1], points[i]));
+    section = { points, distances, length: distances.at(-1) };
+    cameraSections.set(points, section);
+  }
+  if (section.length < EPSILON) return null;
+  const travelled = clamp(requested, 0, section.length);
+  const sign = direction < 0 ? -1 : 1;
+  let behind = pointAt(section, travelled - sign * 0.75).position;
+  let ahead = pointAt(section, travelled + sign * 3).position;
+  if (distance(behind, ahead) < 0.05) {
+    // A tight hairpin can cancel the wider look-ahead chord.
+    behind = pointAt(section, travelled - sign * 0.05).position;
+    ahead = pointAt(section, travelled + sign * 0.05).position;
+  }
+  if (distance(behind, ahead) < EPSILON) return null;
+  return {
+    bearing: Math.atan2(behind[0] - ahead[0], behind[1] - ahead[1]),
+    direction: sign,
+  };
 }
 
 function nearestAnchor(section, point) {

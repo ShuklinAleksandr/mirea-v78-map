@@ -6,7 +6,7 @@ import { createExterior } from "./exterior.js";
 import { nearbyRoadPolygons } from "./nearby-roads.js";
 import { createEntranceHall, createIndoorHallDetails } from "./hall.js";
 import { presentPlaceIdentity } from "../data/place-location.js";
-import { roomLabelAnchor } from "./room-labels.js";
+import { roomLabelAnchor, detailLabelVisibleAtScale } from "./room-labels.js";
 import { placeCategory, PLACE_CATEGORY_COLORS } from "../data/place-search.js";
 import { GPS_MAX_AGE_MS, pointInLocationPolygon } from "../location.js";
 import {
@@ -47,6 +47,7 @@ import {
 } from "./navigation-view.js";
 import { bindMapTouchRotation, configureMapTouchControls } from "./gestures.js";
 import { bindMapTapActions } from "./pointer-actions.js";
+import { sampleRouteCamera } from "./route-guidance.js";
 import {
   createRouteLayer,
   nearestRouteLinePosition,
@@ -69,6 +70,7 @@ const COLORS = {
 const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
 const HEADING_DEADBAND = (2 * Math.PI) / 180;
+const ROUTE_CAMERA_POLAR_ANGLE = (55 * Math.PI) / 180;
 const LABEL_OBSTACLES =
   ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit,#next-floor-open,#route-open";
 const shapes = (polygon) => {
@@ -402,6 +404,7 @@ export class AtlasScene {
   }
   beginMapInteraction() {
     this.manualCamera = true;
+    this.routeCameraPaused = true;
     this.transition = null;
     this.userLocationFollowPath = false;
     this.callbacks?.onMapInteraction?.();
@@ -610,25 +613,37 @@ export class AtlasScene {
     this.invalidate();
   }
   updateNavigationHeading(time) {
+    const routeCamera = Boolean(this.callbacks.shouldFollowRouteCamera?.());
     if (
-      !this.headingFollowEnabled ||
+      this.routeCameraPaused ||
+      (!routeCamera && !this.headingFollowEnabled) ||
       this.mode !== "floor" ||
+      this.stackDisplay ||
       this.locationPicking ||
+      this.routePreviewProgress ||
+      this.userLocationLayer?.userData.presentation?.stale ||
       this.userLocationLayer?.userData.presentation?.routeHeld ||
-      !this.callbacks.shouldFollowHeading?.()
+      (!routeCamera && !this.callbacks.shouldFollowHeading?.())
     ) {
       this.lastHeadingFrame = null;
       return;
     }
-    const bearing = this.callbacks.shouldFollowRouteLine?.()
-      ? this.routeLocationBearing()
-      : Date.now() - this.userHeading?.timestamp <= USER_HEADING_MAX_AGE_MS
-        ? this.navigationBearing
-        : null;
+    const bearing =
+      routeCamera || this.callbacks.shouldFollowRouteLine?.()
+        ? this.routeLocationBearing()
+        : Date.now() - this.userHeading?.timestamp <= USER_HEADING_MAX_AGE_MS
+          ? this.navigationBearing
+          : null;
     if (bearing == null) {
       this.lastHeadingFrame = null;
       return;
     }
+    if (
+      routeCamera &&
+      this.userLocationLayer?.visible &&
+      this.routeCameraFollowContext !== this.locationFollowContextKey()
+    )
+      this.focusUserLocation();
 
     const target = this.controls.target;
     const current = this.plan
@@ -649,9 +664,13 @@ export class AtlasScene {
       this.lastHeadingFrame = null;
       return;
     }
-    const turn = this.reducedMotion
+    let turn = this.reducedMotion
       ? shortest
-      : shortest * -Math.expm1(-elapsed / 190);
+      : shortest * -Math.expm1(-elapsed / (routeCamera ? 350 : 190));
+    if (routeCamera && !this.reducedMotion) {
+      const maxTurn = (elapsed * Math.PI * 2) / 3000;
+      turn = THREE.MathUtils.clamp(turn, -maxTurn, maxTurn);
+    }
     const marker = this.userLocationLayer;
     // Rotate around the visible position, so the marker stays in the same part
     // of the screen even when the route dock shifts the camera framing.
@@ -675,16 +694,13 @@ export class AtlasScene {
   }
   routeLocationBearing() {
     const fix = this.routeLocationFix;
-    if (fix?.status !== "tracking" || fix.held) return null;
+    if (!["tracking", "wrong-way"].includes(fix?.status) || fix.held)
+      return null;
     const distance = this.routeLocationMotion?.distance ?? fix.distance;
-    const [x, z] = routeLinePointAtDistance(fix.path.points, distance - 0.7);
-    const [nextX, nextZ] = routeLinePointAtDistance(
-      fix.path.points,
-      distance + 1.1,
+    return (
+      sampleRouteCamera(fix.path.points, distance, fix.travelDirection)
+        ?.bearing ?? null
     );
-    return Math.hypot(nextX - x, nextZ - z) > 0.05
-      ? Math.atan2(x - nextX, z - nextZ)
-      : null;
   }
   updateUserHeading() {
     const layer = this.userLocationLayer;
@@ -777,6 +793,10 @@ export class AtlasScene {
       ? nearestRouteLinePosition(path.points, match.point)
       : null;
     if (!routePosition) {
+      if (this.routeLocationFix && this.callbacks.shouldFollowRouteCamera?.()) {
+        this.transition = null;
+        this.lastHeadingFrame = null;
+      }
       this.routeLocationFix = this.routeLocationMotion = null;
       this.userLocationFollowPath = false;
       this.refreshLocationMarker(this.userLocation);
@@ -784,6 +804,10 @@ export class AtlasScene {
     }
     const previous = this.routeLocationFix;
     const held = match.held === true;
+    if (held && this.callbacks.shouldFollowRouteCamera?.()) {
+      this.transition = null;
+      this.lastHeadingFrame = null;
+    }
     const timestamp = this.userLocation.timestamp;
     const floorId = this.floor?.id;
     const samePath =
@@ -793,6 +817,16 @@ export class AtlasScene {
     const elapsed = timestamp - previous?.timestamp;
     const from = this.routeLocationMotion?.distance ?? previous?.distance;
     const delta = Math.abs(routePosition.distance - from);
+    // The tracker confirms reverse walking against stable progress and its
+    // accuracy-aware deadband. A displayed point may wobble several metres
+    // while standing still, so its local extrema cannot establish direction.
+    const travelDirection = held
+      ? (previous?.travelDirection ?? 1)
+      : match.status === "wrong-way"
+        ? -1
+        : match.status === "tracking"
+          ? 1
+          : (previous?.travelDirection ?? 1);
     // A held route point is old evidence, not another live GPS fix. Stop any
     // pending movement immediately and never animate across the uncertain gap.
     if (held || previous?.held || this.reducedMotion || !samePath)
@@ -823,6 +857,7 @@ export class AtlasScene {
       distance: routePosition.distance,
       status: match.status,
       held,
+      travelDirection,
       confirmedAt: match.confirmedAt,
       expiresAt: match.expiresAt,
     };
@@ -878,6 +913,8 @@ export class AtlasScene {
     layer.position.z = z;
     if (
       this.userLocationFollowPath &&
+      !this.routeCameraPaused &&
+      !this.routePreviewProgress &&
       this.callbacks?.shouldFollowUserLocation?.() !== false &&
       this.userLocationFollowContext === this.locationFollowContextKey()
     )
@@ -1085,23 +1122,45 @@ export class AtlasScene {
   focusUserLocation({ padding } = {}) {
     this.refreshUserLocation();
     if (!this.userLocationLayer?.visible) return false;
+    this.routeCameraPaused = false;
     const marker = this.userLocationLayer;
     const { y } = marker.position;
     const [x, z] = this.routeLocationFix
       ? [marker.position.x, marker.position.z]
       : marker.userData.location.point;
     const radius = 12;
-    const [leadX, leadZ] = navigationLookAhead({
-      enabled:
-        this.navigationMode &&
-        !marker.userData.presentation?.routeHeld &&
-        this.headingFollowEnabled &&
-        this.callbacks?.shouldFollowHeading?.(),
-      bearing: this.navigationBearing,
-      headingTimestamp: this.userHeading?.timestamp,
-      now: Date.now(),
-      maxAge: USER_HEADING_MAX_AGE_MS,
-    });
+    const routeCamera = Boolean(
+      this.callbacks.shouldFollowRouteCamera?.() &&
+        !this.routePreviewProgress &&
+        !marker.userData.presentation?.stale &&
+        this.routeLocationBearing() != null,
+    );
+    const currentBearing = !routeCamera
+      ? 0
+      : this.plan
+        ? Math.atan2(-this.camera.up.x, -this.camera.up.z)
+        : Math.atan2(
+            this.camera.position.x - this.controls.target.x,
+            this.camera.position.z - this.controls.target.z,
+          );
+    const [leadX, leadZ] = routeCamera
+      ? [-Math.sin(currentBearing) * 3, -Math.cos(currentBearing) * 3]
+      : navigationLookAhead({
+          enabled:
+            !this.callbacks.shouldFollowRouteCamera?.() &&
+            this.navigationMode &&
+            !marker.userData.presentation?.routeHeld &&
+            this.headingFollowEnabled &&
+            this.callbacks?.shouldFollowHeading?.(),
+          bearing: this.navigationBearing,
+          headingTimestamp: this.userHeading?.timestamp,
+          now: Date.now(),
+          maxAge: USER_HEADING_MAX_AGE_MS,
+        });
+    const viewDistance =
+      routeCamera && this.routeCameraFollowContext
+        ? this.cameraViewDistance()
+        : null;
     this.fit(
       [
         x + leadX - radius,
@@ -1111,8 +1170,23 @@ export class AtlasScene {
       ],
       true,
       padding || this.callbacks.getViewportPadding?.(),
-      { targetY: y, verticalBounds: [y - 1, y + 2] },
+      {
+        targetY: y,
+        verticalBounds: [y - 1, y + 2],
+        ...(routeCamera
+          ? {
+              direction: [
+                Math.sin(currentBearing) * Math.sin(ROUTE_CAMERA_POLAR_ANGLE),
+                Math.cos(ROUTE_CAMERA_POLAR_ANGLE),
+                Math.cos(currentBearing) * Math.sin(ROUTE_CAMERA_POLAR_ANGLE),
+              ],
+              viewDistance,
+            }
+          : {}),
+      },
     );
+    if (routeCamera)
+      this.routeCameraFollowContext = this.locationFollowContextKey();
     this.userLocationFollowAnchor = new THREE.Vector3(x, y, z);
     this.userLocationFollowContext = this.locationFollowContextKey();
     this.userLocationFollowPath = Boolean(
@@ -1131,6 +1205,8 @@ export class AtlasScene {
   }
   followUserLocation() {
     if (
+      this.routeCameraPaused ||
+      this.routePreviewProgress ||
       !this.userLocationLayer?.visible ||
       this.userLocationLayer.userData.presentation?.stale ||
       this.locationPicking
@@ -1394,8 +1470,10 @@ export class AtlasScene {
   setRoute(route, { focus = true, padding, paddingBottom } = {}) {
     const hadRoute = Boolean(this.route);
     const next = route?.ok === false ? null : route;
-    if (this.route !== next)
+    if (this.route !== next) {
       this.liveRouteProgress = this.routePreviewProgress = null;
+      this.routeCameraFollowContext = null;
+    }
     this.route = next;
     // A route uses an unclipped floor cutaway so inter-wing corridors remain
     // visible. Floor choice itself stays with the application controller.
@@ -1405,6 +1483,7 @@ export class AtlasScene {
     if (focus) this.focusRoute({ padding, paddingBottom });
   }
   clearRoute({ rebuild = true } = {}) {
+    this.routeCameraFollowContext = null;
     this.setNavigationMode(false);
     const hadRoute = Boolean(this.route);
     this.setRouteGuidance(null);
@@ -2872,7 +2951,8 @@ export class AtlasScene {
         .normalize();
       const up = new THREE.Vector3().crossVectors(direction, right);
       const halfY = this.plan
-        ? (this.planCamera.top - this.planCamera.bottom) / 2
+        ? (this.planCamera.top - this.planCamera.bottom) /
+          (2 * this.planCamera.zoom)
         : position.distanceTo(target) * this.cameraHalfFovTangent();
       const shift = right
         .multiplyScalar(-offsetX * halfY * aspect)
@@ -2880,6 +2960,8 @@ export class AtlasScene {
       this.moveCamera(position.add(shift), target.clone().add(shift), animate);
     };
     let position;
+    const preserveDistance =
+      Number.isFinite(options?.viewDistance) && options.viewDistance > 0;
     if (this.plan) {
       const up = this.planCamera.up.clone().setY(0).normalize();
       const right = new THREE.Vector3().crossVectors(up, UP_AXIS);
@@ -2889,12 +2971,14 @@ export class AtlasScene {
       const height =
         Math.max(visibleWidth / (aspect * usableX), visibleDepth / usableY) *
         1.2;
-      this.planCamera.top = height / 2;
-      this.planCamera.bottom = -height / 2;
-      this.planCamera.left = (-height * aspect) / 2;
-      this.planCamera.right = (height * aspect) / 2;
-      this.planCamera.zoom = 1;
-      this.planCamera.updateProjectionMatrix();
+      if (!preserveDistance) {
+        this.planCamera.top = height / 2;
+        this.planCamera.bottom = -height / 2;
+        this.planCamera.left = (-height * aspect) / 2;
+        this.planCamera.right = (height * aspect) / 2;
+        this.planCamera.zoom = 1;
+        this.planCamera.updateProjectionMatrix();
+      }
       this.fittedZoomDistance = this.cameraViewDistance();
       position = target.clone().add(new THREE.Vector3(0, 1500, 0));
     } else {
@@ -2933,7 +3017,9 @@ export class AtlasScene {
           );
         if (!best || d < best.distance) best = { direction, distance: d };
       }
-      const dist = best.distance * 1.18;
+      const dist = preserveDistance
+        ? options.viewDistance
+        : best.distance * 1.18;
       this.fittedZoomDistance = dist;
       this.camera.near = this.mode === "overview" ? 0.8 : 0.2;
       this.camera.far = Math.max(2500, dist * 5);
@@ -3384,12 +3470,40 @@ export class AtlasScene {
     }
     let contextCount = 0;
     const p = new THREE.Vector3();
+    const forward = this.camera.getWorldDirection(new THREE.Vector3());
+    const cameraToLabel = new THREE.Vector3();
+    const orthographicScale = this.camera.isOrthographicCamera
+      ? (this.camera.top - this.camera.bottom) / (this.camera.zoom * height)
+      : null;
+    const perspectiveScale =
+      orthographicScale == null
+        ? (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) /
+          (this.camera.zoom * height)
+        : null;
     for (const label of this.labelOrder.labels) {
       const stairAction = label.kind === "stair-action";
       const stairName = label.kind === "stairs";
       const routeLabel = label.kind === "route" || stairAction;
       const selected = label.id != null && label.id === this.selectedId;
       const roomLabel = Boolean(label.roomRadius);
+      const detailLabel = label.kind === "room" || stairName;
+      if (detailLabel) {
+        const unitsPerPixel =
+          orthographicScale ??
+          cameraToLabel
+            .copy(label.position)
+            .sub(this.camera.position)
+            .dot(forward) * perspectiveScale;
+        label.detailVisible = detailLabelVisibleAtScale(
+          label.detailVisible,
+          unitsPerPixel,
+          label.kind,
+        );
+        if (!selected && !label.detailVisible) {
+          label.el.style.display = "none";
+          continue;
+        }
+      }
       const showSelectedRoom =
         placeLabelsEnabled &&
         selected &&
@@ -3450,7 +3564,11 @@ export class AtlasScene {
             Math.abs(cy - r.y) < (h + r.h) / 2 + labelGapY,
         );
       if ((levelLabel || stairName || stairAction) && p.z > -1 && p.z < 1) {
-        const horizontal = levelLabel ? [0] : [0, -w * 0.65, w * 0.65];
+        const horizontal = levelLabel
+          ? [0]
+          : stairName
+            ? [0, -24, 24]
+            : [0, -w * 0.65, w * 0.65];
         const vertical = levelLabel
           ? [0, -40, 40, -80, 80, -120, 120]
           : stairName
@@ -3459,20 +3577,29 @@ export class AtlasScene {
         const baseX = x;
         const baseY = y;
         x = THREE.MathUtils.clamp(baseX, w / 2 + 10, width - w / 2 - 10);
+        let placed = false;
         placement: for (const dx of horizontal) {
           const cx = THREE.MathUtils.clamp(
             baseX + dx,
             w / 2 + 10,
             width - w / 2 - 10,
           );
+          // Do not detach a long stair name from its actual stair to fit it
+          // around another label or the viewport edge. Hide it instead.
+          if (stairName && Math.abs(cx - baseX) > 24) continue;
           for (const dy of vertical) {
             const cy = baseY + dy;
             if (cy <= inset || cy >= height - inset || collides(cx, cy))
               continue;
             x = cx;
             y = cy;
+            placed = true;
             break placement;
           }
+        }
+        if (stairName && !placed) {
+          label.el.style.display = "none";
+          continue;
         }
       }
       let visible =
@@ -3483,7 +3610,7 @@ export class AtlasScene {
         y > inset &&
         y < height - inset;
       if (
-        !roomLabel &&
+        !detailLabel &&
         label.kind !== "building" &&
         !routeLabel &&
         !selected &&

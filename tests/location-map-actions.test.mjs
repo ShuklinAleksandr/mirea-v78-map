@@ -447,7 +447,7 @@ test("confirmed route tangent turns without a compass and pauses during uncertai
         [4, 8],
       ],
     },
-    distance: 2,
+    distance: 0.5,
     status: "tracking",
   };
   assert.equal(view.updateNavigationHeading(16), true);
@@ -455,7 +455,7 @@ test("confirmed route tangent turns without a compass and pauses during uncertai
   view.routeLocationFix.distance = 8;
   assert.equal(view.updateNavigationHeading(32), true);
   assert.ok(view.camera.up.angleTo(new THREE.Vector3(0, 0, 1)) < 0.01);
-  for (const status of ["uncertain", "wrong-way", "floor-change"]) {
+  for (const status of ["uncertain", "arrived", "floor-change"]) {
     view.routeLocationFix.distance = 2;
     view.routeLocationFix.status = status;
     assert.equal(view.updateNavigationHeading(48), undefined);

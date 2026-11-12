@@ -5,8 +5,46 @@ import {
   createRouteGuidance,
   sampleRouteGuidance,
   guidanceAnchorForStep,
+  sampleRouteCamera,
 } from "../src/map/route-guidance.js";
 import { findRoute } from "../src/data/routing.js";
+
+test("camera anticipates a turn continuously in the accepted travel direction", () => {
+  const points = [
+    [0, 0],
+    [10, 0],
+    [10, 10],
+  ];
+  const snapshot = structuredClone(points);
+  assert.equal(sampleRouteCamera(points, 5).bearing, -Math.PI / 2);
+  const before = sampleRouteCamera(points, 8).bearing;
+  assert.ok(
+    before < -Math.PI / 2 && before > -Math.PI,
+    "camera begins looking around the bend before the marker reaches it",
+  );
+  const left = sampleRouteCamera(points, 9.99).bearing;
+  const right = sampleRouteCamera(points, 10.01).bearing;
+  assert.ok(Math.abs(left - right) < 0.02, "no corner heading discontinuity");
+  assert.equal(sampleRouteCamera(points, 5, -1).bearing, Math.PI / 2);
+  assert.equal(sampleRouteCamera(points, 20).bearing, Math.PI);
+  assert.equal(sampleRouteCamera(points, 0, -1).bearing, Math.PI / 2);
+  assert.equal(
+    sampleRouteCamera(
+      [
+        [1, 2],
+        [1, 2],
+      ],
+      0,
+    ),
+    null,
+  );
+  assert.equal(sampleRouteCamera(points, NaN), null);
+  assert.deepEqual(
+    points,
+    snapshot,
+    "camera anticipation never edits the route",
+  );
+});
 
 test("preview sampling retains every original turn and never cuts across its camera window", () => {
   const route = {

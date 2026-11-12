@@ -57,3 +57,18 @@ export function roomLabelAnchor(center, polygon, triangles) {
   }
   return anchor;
 }
+
+// CSS-sized badges need enough screen detail to identify their map feature.
+// Separate show/hide thresholds keep a settled zoom from flickering.
+export function detailLabelVisibleAtScale(
+  previouslyVisible,
+  unitsPerPixel,
+  kind = "room",
+) {
+  if (!Number.isFinite(unitsPerPixel) || unitsPerPixel <= 0) return false;
+  const showBelow = kind === "stairs" ? 0.14 : 0.32;
+  const hideAbove = kind === "stairs" ? 0.18 : 0.4;
+  return previouslyVisible === true
+    ? unitsPerPixel < hideAbove
+    : unitsPerPixel <= showBelow;
+}

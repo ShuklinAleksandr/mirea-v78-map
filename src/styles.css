@@ -1435,7 +1435,7 @@ dialog::backdrop {
   .search-wrap {
     margin-bottom: 0;
   }
-  .sidebar:not(.expanded) #saved-places {
+  .sidebar:not(.expanded) :is(#place-categories, #saved-places) {
     display: none;
   }
   .sidebar:not(.expanded) #route-steps {
@@ -2353,6 +2353,9 @@ dialog::backdrop {
     padding: 0 10px 10px;
     flex: 1;
     overscroll-behavior: contain;
+  }
+  .sidebar:not(.expanded) #place-categories {
+    display: none;
   }
   .sidebar:not(.expanded) #saved-places,
   .sidebar:not(.expanded) .route-inputs {

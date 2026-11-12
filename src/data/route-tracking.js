@@ -199,10 +199,15 @@ function project(
         section.distances[i + 1],
       );
       if (min > max + EPSILON || length < EPSILON) continue;
-      const t = clamp(
+      const unboundedT = clamp(
         ((point[0] - a[0]) * (b[0] - a[0]) +
           (point[1] - a[1]) * (b[1] - a[1])) /
           length ** 2,
+        0,
+        1,
+      );
+      const t = clamp(
+        unboundedT,
         Math.max(0, (min - section.distances[i]) / length),
         Math.min(1, (max - section.distances[i]) / length),
       );
@@ -216,6 +221,7 @@ function project(
       if (!best || score < best.score - EPSILON)
         best = {
           distance: along,
+          unboundedDistance: section.distances[i] + unboundedT * length,
           error,
           point: projected,
           edgeIndex: i,
@@ -409,7 +415,29 @@ export function createRouteTracker(route) {
       budget,
       pauseOnReverse,
     );
-    const crossTrackLimit = routeTrackingMatchRadius(location);
+    // Line following uses the already verified route, including its doors
+    // and corners. GPS may drift sideways into a room or outside its slab;
+    // that observation is not a new walking connection through that wall.
+    const lineFollowing =
+      pauseOnReverse && metricPlan && typeof allowPoint === "function";
+    const progressDeadband = lineFollowing
+      ? Math.min(
+          2,
+          Math.max(
+            1,
+            (location.accuracyRadiusMap || location.accuracyMeters) * 0.2,
+          ),
+        )
+      : 0;
+    const crossTrackLimit = lineFollowing
+      ? Math.min(
+          8,
+          Math.max(
+            1.5,
+            (location.accuracyRadiusMap || location.accuracyMeters) * 0.85,
+          ),
+        )
+      : routeTrackingMatchRadius(location);
     const allowedContext = (match) =>
       matchesManualContext(
         location,
@@ -436,12 +464,20 @@ export function createRouteTracker(route) {
     const progressJump =
       candidate &&
       priorFix &&
-      Math.abs(candidate.distance - priorFix.distance) > budget + EPSILON;
+      Math.abs(
+        (lineFollowing ? candidate.unboundedDistance : candidate.distance) -
+          priorFix.distance,
+      ) >
+        budget + EPSILON;
     const safeMatch =
       closeMatch &&
-      !rawJump &&
+      (!rawJump || lineFollowing) &&
       !progressJump &&
-      connectorClear(location.point, candidate.point, candidate);
+      connectorClear(
+        lineFollowing ? candidate.point : location.point,
+        candidate.point,
+        candidate,
+      );
     if (!safeMatch) {
       // A GPS accuracy disc can still cover the same corridor even when its
       // reported centre drifts across a wall. This permits only a tentative
@@ -508,13 +544,14 @@ export function createRouteTracker(route) {
           }
         }
       }
-      const reason = rawJump
-        ? "position-jump"
-        : progressJump
-          ? "route-progress-jump"
-          : closeMatch
-            ? "unverified-map-connector"
-            : "away-from-current-path";
+      const reason =
+        rawJump && !lineFollowing
+          ? "position-jump"
+          : progressJump
+            ? "route-progress-jump"
+            : closeMatch
+              ? "unverified-map-connector"
+              : "away-from-current-path";
       return hold("off-route", reason);
     }
 
@@ -542,7 +579,11 @@ export function createRouteTracker(route) {
         (state.status === "wrong-way" && delta <= 0.5) ||
         (recoveringFromReverse && delta < -0.5) ||
         (reverse?.count >= 2 &&
-          reverse.distance >= Math.max(3, crossTrackLimit))
+          reverse.distance >= Math.max(3, routeTrackingMatchRadius(location)) &&
+          // A noisy peak followed by a noisy trough is not a confirmed
+          // retreat while both remain around the stable progress anchor.
+          (!lineFollowing ||
+            candidate.distance < state.distance - progressDeadband - EPSILON))
       ) {
         recoveringFromReverse = true;
         return hold(
@@ -580,13 +621,21 @@ export function createRouteTracker(route) {
       matchedPoint = candidate.point;
     const confirmedDistance = Math.min(previous.distance, candidate.distance);
     const resumeBehind = pauseOnReverse && recoveringFromReverse;
+    const advancing =
+      confirmedDistance > state.distance + progressDeadband + EPSILON ||
+      (nearEnd && endCount >= 2);
     state = {
       ...state,
       status: "tracking",
       reason: null,
       distance: resumeBehind
-        ? confirmedDistance
-        : Math.max(state.distance, confirmedDistance),
+        ? Math.abs(confirmedDistance - state.distance) >
+          progressDeadband + EPSILON
+          ? confirmedDistance
+          : state.distance
+        : advancing
+          ? Math.max(state.distance, confirmedDistance)
+          : state.distance,
       locationTimestamp: location.timestamp,
       atEnd: resumeBehind ? false : state.atEnd,
     };

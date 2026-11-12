@@ -669,7 +669,7 @@ test("real G103-1 to G209 replays each source section without automatically cros
   }
 });
 
-test("the А-209 to Г-213 corridor holds the line during the recorded kind of GPS drift", () => {
+test("the А-209 to Г-213 corridor continues along its line during bounded lateral GPS drift", () => {
   const graph = JSON.parse(
     readFileSync(new URL("../public/data/routing/v-78.json", import.meta.url)),
   );
@@ -710,10 +710,9 @@ test("the А-209 to Г-213 corridor holds the line during the recorded kind of G
   assert.equal(confirmed.status, "tracking");
   for (let tick = 25; tick < 46; tick++) {
     const update = replay(tick, tick === 25 ? 4.5 : 6);
-    assert.equal(update.status, "uncertain");
-    assert.equal(update.distance, confirmed.distance);
-    assert.equal(update.stepIndex, confirmed.stepIndex);
-    const expected = sample(tick === 25 ? 24 : tick).position;
+    assert.equal(update.status, "tracking");
+    assert.ok(update.distance >= confirmed.distance);
+    const expected = sample(tick).position;
     assert.ok(
       Math.hypot(
         update.matchedPoint[0] - expected[0],
@@ -728,4 +727,186 @@ test("the А-209 to Г-213 corridor holds the line during the recorded kind of G
   assert.equal(recovered.status, "tracking");
   assert.equal(recovered.sectionIndex, 0);
   assert.ok(recovered.distance > confirmed.distance);
+});
+
+function guardedLineFixture(
+  points = [
+    [0, 0],
+    [40, 0],
+  ],
+) {
+  const rect = (x0, y0, x1, y1) => [
+    [x0, y0],
+    [x1, y0],
+    [x1, y1],
+    [x0, y1],
+  ];
+  const floor = {
+    id: "f1",
+    polygons: [
+      { id: "corridor", kind: "corridor", points: rect(-2, -2, 42, 2) },
+      { id: "closed-room", kind: "room", points: rect(-2, 2, 42, 10) },
+    ],
+    footprints: [{ points: rect(-2, -2, 42, 10) }],
+    walls: [{ a: [-2, 2], b: [42, 2], width: 0.2 }],
+    doors: [],
+  };
+  return {
+    tracker: createRouteTracker(fixture(points)),
+    options: {
+      allowPoint: createRouteTrackingSurfaceGuard(floor),
+      pauseOnReverse: true,
+    },
+    accuracy: { accuracyMeters: 10, accuracyRadiusMap: 10 },
+  };
+}
+
+test("line following absorbs bounded sideways noise through a room wall or outside the slab without changing GPS", () => {
+  const { tracker, options, accuracy } = guardedLineFixture();
+  const points = [
+    [0, 0],
+    [2, 0],
+    [4, 6],
+    [6, -6],
+    [8, 6],
+    [10, 6],
+  ];
+  const before = JSON.stringify(points);
+  for (const [index, point] of points.entries()) {
+    const result = observe(tracker, point, index, accuracy, options);
+    assert.equal(result.status, index ? "tracking" : "acquiring");
+    if (index) assert.deepEqual(result.matchedPoint, [point[0], 0]);
+  }
+  assert.ok(tracker.snapshot().distance >= 6);
+  assert.equal(JSON.stringify(points), before);
+  const normal = guardedLineFixture();
+  assert.equal(
+    observe(normal.tracker, [4, 3], 0, accuracy, {
+      ...normal.options,
+      pauseOnReverse: false,
+    }).reason,
+    "unverified-map-connector",
+  );
+});
+
+test("stationary two-metre jitter cannot accumulate route progress or instructions", () => {
+  const { tracker, options, accuracy } = guardedLineFixture();
+  observe(tracker, [10, 0], 0, accuracy, options);
+  const before = observe(tracker, [10, 0], 1, accuracy, options);
+  // Include a two-fix reversal and reacquisition inside the same noise band:
+  // recovery must not ratchet confirmed distance backward and then forward.
+  const jitter = [12, 12, 10, 10, 8, 8, 9, 9, 10, 10, 12, 12];
+  for (let index = 2; index < 42; index++) {
+    const x = jitter[(index - 2) % jitter.length];
+    const result = observe(
+      tracker,
+      [x, index % 2 ? 4 : -4],
+      index,
+      accuracy,
+      options,
+    );
+    assert.equal(result.distance, before.distance);
+    assert.equal(result.stepIndex, before.stepIndex);
+    assert.equal(result.arrived, false);
+    assert.notEqual(
+      result.status,
+      "wrong-way",
+      "a noisy peak/trough inside the stable band cannot confirm a turn around",
+    );
+  }
+});
+
+test("a nearby parallel return across a wall is not a shortcut to later route progress", () => {
+  const { tracker, options, accuracy } = guardedLineFixture([
+    [0, 0],
+    [40, 0],
+    [40, 6],
+    [0, 6],
+  ]);
+  observe(tracker, [0, 0], 0, accuracy, options);
+  observe(tracker, [2, 0], 1, accuracy, options);
+  for (let index = 2; index < 10; index++) {
+    const result = observe(tracker, [index * 2, 6], index, accuracy, options);
+    assert.equal(result.status, "tracking");
+    assert.deepEqual(result.matchedPoint, [index * 2, 0]);
+    assert.ok(result.distance < 40);
+    assert.equal(result.stepIndex, 2);
+  }
+});
+
+test("longitudinal jumps and sustained departures release the line instead of spending the lateral tolerance", () => {
+  const { tracker, options, accuracy } = guardedLineFixture();
+  observe(tracker, [0, 0], 0, accuracy, options);
+  const before = observe(tracker, [2, 0], 1, accuracy, options);
+  const jump = observe(tracker, [14, 0], 2, accuracy, options);
+  assert.equal(jump.status, "off-route");
+  assert.equal(jump.reason, "route-progress-jump");
+  for (let index = 3; index < 20; index++) {
+    const result = observe(tracker, [4, 25], index, accuracy, options);
+    assert.equal(result.status, "off-route");
+    assert.equal(result.matchedPoint, null);
+    assert.equal(result.distance, before.distance);
+  }
+  assert.equal(
+    observe(tracker, [4, 0], 20, accuracy, options).status,
+    "acquiring",
+  );
+  assert.equal(
+    observe(tracker, [6, 0], 21, accuracy, options).status,
+    "tracking",
+  );
+  const progress = tracker.snapshot().distance;
+  for (let index = 22; index < 30; index++) {
+    const result = observe(
+      tracker,
+      [index, 0],
+      index,
+      { accuracyMeters: 50, accuracyRadiusMap: 50 },
+      options,
+    );
+    assert.equal(result.status, "low-accuracy");
+    assert.equal(result.distance, progress);
+  }
+});
+
+test("verified line following retains a genuine reverse walk through a corner and then resumes forward progress", () => {
+  const tracker = createRouteTracker(fixture());
+  const floor = {
+    id: "f1",
+    polygons: [
+      {
+        id: "hall",
+        kind: "hall",
+        points: [
+          [-5, -5],
+          [45, -5],
+          [45, 25],
+          [-5, 25],
+        ],
+      },
+    ],
+    walls: [],
+    doors: [],
+  };
+  const options = {
+    pauseOnReverse: true,
+    allowPoint: createRouteTrackingSurfaceGuard(floor),
+  };
+  const fix = (point, index) => observe(tracker, point, index, {}, options);
+  for (let index = 0; index <= 10; index++) fix([index * 2, 0], index);
+  for (let index = 1; index <= 4; index++) fix([20, index * 2], index + 10);
+  assert.equal(tracker.snapshot().stepIndex, 3);
+  fix([20, 6], 15);
+  assert.equal(fix([20, 4], 16).status, "wrong-way");
+  fix([20, 2], 17);
+  const beforeTurn = fix([18, 0], 18);
+  assert.equal(beforeTurn.status, "wrong-way");
+  assert.deepEqual(beforeTurn.matchedPoint, [18, 0]);
+  fix([16, 0], 19);
+  fix([16, 0], 20);
+  assert.equal(fix([17, 0], 21).status, "acquiring");
+  const resumed = fix([18, 0], 22);
+  assert.equal(resumed.status, "tracking");
+  assert.equal(resumed.stepIndex, 2);
+  assert.equal(resumed.distance, 17);
 });

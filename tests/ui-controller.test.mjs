@@ -1905,7 +1905,7 @@ test("ambiguous GPS holds dock and map progress, and step correction keeps keybo
   assert.equal(confirmed.nextStepIndex, 2);
   const percent = progress.value;
   const instruction = h.element("#route-dock-instruction").textContent;
-  h.emitGps([6, 6], { accuracyMeters: 10, accuracyRadiusMap: 10 });
+  h.emitGps([6, 9], { accuracyMeters: 10, accuracyRadiusMap: 10 });
   assert.equal(h.routeLocationMatch(h.state.userLocation)?.status, "uncertain");
   assert.match(h.element("#route-dock-note").textContent, /Уточняем положение/);
   assert.equal(h.element("#route-dock-distance").hidden, true);
@@ -1926,9 +1926,38 @@ test("ambiguous GPS holds dock and map progress, and step correction keeps keybo
   assert.equal(restored, true);
   assert.equal(progress.value, percent);
   assert.equal(h.routeProgressCalls.at(-1), confirmed);
-  assert.deepEqual(h.state.userLocation.point, [6, 6]);
+  assert.deepEqual(h.state.userLocation.point, [6, 9]);
   h.clear();
   assert.equal(h.routeProgressCalls.at(-1), null);
+});
+
+test("line following keeps bounded lateral GPS drift on the route and advances without a manual refinement", async () => {
+  const h = await liveRouteHarness({ nextInterface: true });
+  h.state.routeSnapEnabled = true;
+  h.emitGps([0, 0]);
+  h.emitGps([3, 0]);
+  h.emitGps([5, 0]);
+  const initial = h.element("#route-dock-progress-bar").value;
+  for (const point of [
+    [7, 6],
+    [9, -6],
+    [11, 6],
+  ]) {
+    h.emitGps(point, { accuracyMeters: 10, accuracyRadiusMap: 10 });
+    assert.equal(
+      h.routeLocationMatch(h.state.userLocation)?.status,
+      "tracking",
+    );
+    assert.deepEqual(h.routeLocationMatch(h.state.userLocation)?.point, [
+      point[0],
+      0,
+    ]);
+    assert.deepEqual(h.state.userLocation.point, point);
+    assert.equal(h.element("#route-dock-context").hidden, true);
+    assert.equal(h.element("#route-dock-distance").hidden, false);
+  }
+  assert.ok(h.element("#route-dock-progress-bar").value > initial);
+  h.clear();
 });
 
 test("one rejected GPS fix retains only a labelled historical point and does not advance the route", async () => {

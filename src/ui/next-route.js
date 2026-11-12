@@ -1,15 +1,25 @@
-/** The drawn route ends at the parent entrance, not at the requested room. */
+/** The drawn route ends at the recorded entrance, not an unknown target door. */
 export function partialRouteInfo(route) {
   const leg = route?.lastLeg;
   if (
     !route?.partial ||
-    leg?.kind !== "inside-parent" ||
+    !["inside-parent", "nearby-room"].includes(leg?.kind) ||
     leg.geometryAvailable !== false
   )
     return null;
   const via = leg.viaLabel || route.end?.label;
   const destination = route.requestedDestination?.label || leg.label;
   if (!via || !destination) return null;
+  if (leg.kind === "nearby-room")
+    return {
+      via,
+      destination,
+      nearby: true,
+      summary: `${route.start?.label || "Начало"} → ${destination}`,
+      instruction: `Рядом с ${destination}`,
+      note: "",
+      completion: `Рядом с ${destination}`,
+    };
   return {
     via,
     destination,
@@ -155,15 +165,17 @@ export function nextRouteReadout({
             )
           : null,
     meta: guiding
-      ? `${partial ? `До ${partial.via}` : to?.label || "Назначение"} · шаг ${stepIndex + 1} из ${route.steps.length}`
-      : `${route?.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route?.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}${partial ? ` · до ${partial.via}` : ""}`,
+      ? `${partial && !partial.nearby ? `До ${partial.via}` : to?.label || "Назначение"} · шаг ${stepIndex + 1} из ${route.steps.length}`
+      : `${route?.durationMinutes != null ? `≈ ${route.durationMinutes} мин · ` : ""}${route?.distanceMeters != null ? `≈ ${Math.round(route.distanceMeters)} м` : "Маршрут готов"}${partial && !partial.nearby ? ` · до ${partial.via}` : ""}`,
     note: guiding
       ? previewing
         ? `${partial ? `Демонстрация до ${partial.via}` : "Демонстрация"} · это не ваше движение`
         : manualEntry
-          ? liveProgress?.arrived && automatic
-            ? `По GPS — у входа в ${partial.via}. ${partial.note}`
-            : partial.note
+          ? partial.nearby
+            ? ""
+            : liveProgress?.arrived && automatic
+              ? `По GPS — у входа в ${partial.via}. ${partial.note}`
+              : partial.note
           : locationHeld
             ? "Уточняем положение · показана последняя подтверждённая точка"
             : notes[status] || notes.waiting
