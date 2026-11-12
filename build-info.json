@@ -1,6 +1,6 @@
 {
-  "version": "0.5.23",
-  "commit": "454581aae8771a595bc3d64a6941918571f8a698",
+  "version": "0.5.24",
+  "sourceCommit": "16b14b2349a5ecdbba6c2e9e8610fc044b827ba7",
   "base": "/mirea-v78-map/",
-  "scope": "Vernadskogo 78; public bug fixes only; no private GPS experiments"
+  "scope": "V78 only; entrance, outdoor A-I passage and stair views; no private GPS experiments"
 }
