@@ -1,6 +1,6 @@
 {
-  "version": "0.5.19",
-  "sourceCommit": "7f90e03ce3533de250959b61ee55208e69f2ca55",
+  "version": "0.5.22",
+  "sourceCommit": "25fa12abf0e83724d62736ffff30ef5044038f94",
   "base": "/mirea-v78-map/",
-  "scope": "Bounded labelled historical route position during GPS loss; local measurement analysis; no registration shift"
+  "scope": "Compact search, detail labels, stable route following and verified adjacent-room endpoints; no local GPS experiments"
 }
