@@ -1,6 +1,6 @@
 {
-  "version": "0.5.22",
-  "sourceCommit": "25fa12abf0e83724d62736ffff30ef5044038f94",
+  "version": "0.5.23",
+  "commit": "454581aae8771a595bc3d64a6941918571f8a698",
   "base": "/mirea-v78-map/",
-  "scope": "Compact search, detail labels, stable route following and verified adjacent-room endpoints; no local GPS experiments"
+  "scope": "Vernadskogo 78; public bug fixes only; no private GPS experiments"
 }
