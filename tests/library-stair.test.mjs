@@ -4,7 +4,16 @@ import { readFileSync } from "node:fs";
 import polygonClipping from "polygon-clipping";
 import { libraryStairLayoutsForFloor } from "../src/map/library-stair.js";
 import { getHallAdjacencyView } from "../src/map/hall-adjacency.js";
-import { createStaircase } from "../src/map/stairs.js";
+import {
+  createStaircase,
+  getMapStairMarkers,
+  resolveStairTarget,
+  stairLayoutFor,
+  presentStairIdentity,
+  getStairDisplayCutouts,
+} from "../src/map/stairs.js";
+import { getFloorMarkers } from "../src/data/utils.js";
+import { entranceStairPortals } from "../src/data/entrance-stair-portals.js";
 
 const readFloor = (level = 2) =>
   JSON.parse(
@@ -29,7 +38,7 @@ test("library descent preserves its source start, heads toward the entrance wall
   const floor = readFloor();
   const original = structuredClone(floor);
   const layouts = libraryStairLayoutsForFloor(floor);
-  assert.equal(layouts.length, 1);
+  assert.equal(layouts.length, 2);
   const layout = layouts[0];
   assert.equal(layout.flights.length, 2);
   const [outward, returning] = layout.flights;
@@ -81,8 +90,8 @@ test("library descent preserves its source start, heads toward the entrance wall
   assert.deepEqual(layout.sourcePhotoIds, []);
   assert.deepEqual(layout.shapeSourcePhotoIds, []);
   assert.equal(layout.routingStatus, "display-only-no-source-flight-path");
-  assert.match(layout.note, /физический этаж коридора|физический этаж/i);
-  assert.match(layout.note, /не установлены/);
+  assert.match(layout.note, /Нижний вид показан отдельно/);
+  assert.match(layout.note, /совмещение.*не установлено/);
   assert.deepEqual(floor, original);
 });
 
@@ -111,7 +120,7 @@ test("the entire library schematic and its local shaft opening stay within the k
     !near(world(layout, layout.flights[1].to), [40.407, 22.8264]),
     "the model does not stretch toward the lower graph portal",
   );
-  assert.deepEqual(libraryStairLayoutsForFloor(readFloor(1)), []);
+  assert.equal(libraryStairLayoutsForFloor(readFloor(1)).length, 2);
 });
 
 test("library shaft has four below-floor walls, a receiving platform and a bounded local bottom without a new lower level", () => {
@@ -184,7 +193,7 @@ test("library shaft has four below-floor walls, a receiving platform and a bound
     });
   }
   assert.deepEqual(floor, before);
-  assert.deepEqual(libraryStairLayoutsForFloor(readFloor(1)), []);
+  assert.equal(libraryStairLayoutsForFloor(readFloor(1)).length, 2);
 });
 
 test("the documented hall adjacency view retains the guarded library module while unknown display changes do not", () => {
@@ -192,7 +201,7 @@ test("the documented hall adjacency view retains the guarded library module whil
   const view = getHallAdjacencyView(source);
   const before = structuredClone(view);
   assert.equal(view.userConfirmedDisplayAdjacency.applied, true);
-  assert.equal(libraryStairLayoutsForFloor(view).length, 1);
+  assert.equal(libraryStairLayoutsForFloor(view).length, 2);
   assert.deepEqual(view, before);
   for (const mutate of [
     (floor) => {
@@ -218,7 +227,12 @@ test("the documented hall adjacency view retains the guarded library module whil
   ]) {
     const changed = structuredClone(view);
     mutate(changed);
-    assert.deepEqual(libraryStairLayoutsForFloor(changed), []);
+    assert.equal(
+      libraryStairLayoutsForFloor(changed).some(
+        (layout) => layout.id === "v-78-floor2-user-stair-library",
+      ),
+      false,
+    );
   }
 });
 
@@ -279,7 +293,12 @@ test("library schematic refuses changed source identity, geometry and graph endp
     const floor = readFloor();
     mutate(floor);
     const before = structuredClone(floor);
-    assert.deepEqual(libraryStairLayoutsForFloor(floor), []);
+    assert.equal(
+      libraryStairLayoutsForFloor(floor).some(
+        (layout) => layout.id === "v-78-floor2-user-stair-library",
+      ),
+      false,
+    );
     assert.deepEqual(floor, before);
   }
   assert.deepEqual(libraryStairLayoutsForFloor(null), []);
@@ -290,4 +309,169 @@ test("library schematic refuses changed source identity, geometry and graph endp
     3.6,
     "results do not share mutable model state",
   );
+});
+
+test("all four entrance stair views retain exact original portal targets without geometric pairing", () => {
+  const floors = [readFloor(1), readFloor(2)];
+  const before = JSON.stringify(floors);
+  for (const reference of entranceStairPortals) {
+    const floor = floors.find((item) => item.id === reference.floorId);
+    const marker = getMapStairMarkers(floor).find(
+      (item) => item.layoutId === reference.layoutId,
+    );
+    assert.ok(marker, reference.layoutId);
+    const layout = stairLayoutFor(marker, floor);
+    assert.equal(layout.pairedLayoutId, undefined);
+    assert.deepEqual(marker.center, reference.position);
+    assert.deepEqual(marker.sourceIds, [reference.sourceEdgeId]);
+    assert.equal(marker.targets.length, 1);
+    const raw = getFloorMarkers(floor).find((item) =>
+      item.sourceIds.includes(reference.sourceEdgeId),
+    );
+    assert.equal(presentStairIdentity(raw, floor).layoutId, reference.layoutId);
+    assert.deepEqual(marker.targets, raw.targets);
+    const target = marker.targets[0];
+    const targetFloor = floors.find((item) => item.id === target.floorId);
+    const other = entranceStairPortals.find(
+      (item) =>
+        item.sourceEdgeId === reference.sourceEdgeId &&
+        item.floorId === target.floorId,
+    );
+    const resolved = resolveStairTarget(marker, floor, targetFloor, target);
+    assert.equal(resolved.layoutId, other.layoutId);
+    assert.deepEqual(resolved.center, target.center);
+    assert.deepEqual(resolved.targets[0].center, reference.position);
+  }
+  assert.equal(JSON.stringify(floors), before);
+});
+
+test("new local stair footprints fit known source areas without changing toilets or creating lower cutouts", () => {
+  for (const level of [1, 2]) {
+    const floor = readFloor(level),
+      before = JSON.stringify(floor);
+    for (const layout of libraryStairLayoutsForFloor(floor)) {
+      const points = layout.footprint.map((p) => world(layout, p));
+      const area = floor.polygons.find((p) => p.id === layout.fitAreaId);
+      assert.deepEqual(
+        polygonClipping.difference([points], [area.points, ...area.holes]),
+        [],
+        layout.id,
+      );
+      for (const toilet of floor.polygons.filter((p) => p.kind === "toilet"))
+        assert.deepEqual(
+          polygonClipping.intersection(
+            [points],
+            [toilet.points, ...toilet.holes],
+          ),
+          [],
+          layout.id,
+        );
+      assert.ok(near(world(layout, layout.flights[0].from), layout.center));
+      assert.equal(layout.routingStatus, "display-only-no-source-flight-path");
+      if (level === 1) {
+        assert.equal(
+          layout.physicalFloor,
+          undefined,
+          "source plan1 does not establish the lower corridor physical level",
+        );
+        assert.equal(layout.displayCutout, false);
+        assert.equal(
+          getStairDisplayCutouts(floor).some(
+            (cutout) => cutout.layoutId === layout.id,
+          ),
+          false,
+        );
+        assert.deepEqual(
+          layout.flights.map((f) => [f.baseFraction, f.topFraction]),
+          [
+            [0, 0.5],
+            [0.5, 1],
+          ],
+        );
+        assert.ok(
+          layout.frame.axisV[1] < 0,
+          "lower model extends into its retained source corridor",
+        );
+      }
+    }
+    assert.equal(JSON.stringify(floor), before);
+  }
+  const right = libraryStairLayoutsForFloor(readFloor(2)).find((layout) =>
+    layout.id.endsWith("entrance-right"),
+  );
+  assert.deepEqual(right.frame.size, [3.6, 4.9]);
+  assert.ok(right.frame.axisU[0] < 0 && right.frame.axisV[1] > 0);
+  assert.match(right.note, /Длина модели уменьшена/);
+});
+
+test("lower views render ascending solid flights, walls, receiving platforms and a floor rather than a point symbol", () => {
+  const floor = readFloor(1);
+  for (const layout of libraryStairLayoutsForFloor(floor)) {
+    const marker = getMapStairMarkers(floor).find(
+      (item) => item.layoutId === layout.id,
+    );
+    const group = createStaircase(marker, floor);
+    try {
+      const enclosure = group.children.find((mesh) =>
+        mesh.name.endsWith(" · enclosure"),
+      );
+      const platforms = group.children.find((mesh) =>
+        mesh.name.endsWith(" · landing"),
+      );
+      assert.ok(enclosure && platforms);
+      enclosure.geometry.computeBoundingBox();
+      platforms.geometry.computeBoundingBox();
+      assert.ok(enclosure.geometry.boundingBox.max.y > 3.5);
+      assert.ok(platforms.geometry.boundingBox.min.y < 0.05);
+      assert.ok(platforms.geometry.boundingBox.max.y > 3.5);
+      assert.deepEqual(
+        layout.enclosureWalls[0].to,
+        [0.46, 0.04],
+        "entrance into the lower landing remains open",
+      );
+      assert.equal(
+        layout.landings.find(
+          (item) => item.role === "shaft-bottom-display-only",
+        ).elevationFraction,
+        -0.05,
+      );
+    } finally {
+      group.traverse((object) => {
+        object.geometry?.dispose();
+        for (const material of [].concat(object.material || []))
+          material.dispose();
+      });
+    }
+  }
+});
+
+test("companion models refuse changed source portals and corridor geometry independently", () => {
+  for (const reference of entranceStairPortals.filter(
+    (item) => item.layoutId !== "v-78-floor2-user-stair-library",
+  )) {
+    const level = reference.floorId.endsWith("floor1") ? 1 : 2;
+    for (const kind of ["marker", "transition", "area"]) {
+      const floor = readFloor(level);
+      const layout = libraryStairLayoutsForFloor(floor).find(
+        (item) => item.id === reference.layoutId,
+      );
+      if (kind === "area")
+        floor.polygons.find(
+          (item) => item.id === layout.fitAreaId,
+        ).points[0][0] += 0.1;
+      else
+        floor[kind === "marker" ? "markers" : "transitions"].find(
+          (item) => item.id === reference.sourceEdgeId,
+        ).position[0] += 0.1;
+      const before = JSON.stringify(floor);
+      assert.equal(
+        libraryStairLayoutsForFloor(floor).some(
+          (item) => item.id === reference.layoutId,
+        ),
+        false,
+        `${reference.layoutId}: ${kind}`,
+      );
+      assert.equal(JSON.stringify(floor), before);
+    }
+  }
 });

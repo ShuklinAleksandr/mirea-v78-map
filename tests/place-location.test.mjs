@@ -374,3 +374,36 @@ test("category search rows expose facility location and a separate numbered land
     "only the two confirmed stair-side buffets receive physical floor 2",
   );
 });
+
+test("the right entrance descent shares the confirmed hall level without borrowing a building or lower physical level", () => {
+  const upper = read("../public/data/campuses/v-78/v-78-floor2.json");
+  const lower = read("../public/data/campuses/v-78/v-78-floor1.json");
+  const marker = getFloorMarkers(upper).find((item) =>
+    item.sourceIds.includes("v-78:edge:20735"),
+  );
+  const before = JSON.stringify(marker);
+  const display = presentPlaceIdentity(marker, upper);
+  assert.equal(display.label, "Спуск справа от главного входа");
+  assert.equal(display.building, null);
+  assert.equal(placeLocation(display, upper).physicalLevel, 2);
+  assert.equal(
+    placeLocation(display, upper).summary,
+    "Корпус уточняется · 2 этаж",
+  );
+  assert.deepEqual(display.placeEvidence, {
+    type: "user-confirmed",
+    date: "2026-11-12",
+    physicalLevel: 2,
+  });
+  for (const changed of [
+    { ...marker, center: [0, 0], position: [0, 0] },
+    { ...marker, id: "unrelated", sourceIds: [] },
+    { ...marker, kind: "room" },
+  ])
+    assert.equal(presentPlaceIdentity(changed, upper), changed);
+  const lowerMarker = getFloorMarkers(lower).find((item) =>
+    item.sourceIds.includes("v-78:edge:20735"),
+  );
+  assert.equal(placeLocation(lowerMarker, lower).physicalLevel, null);
+  assert.equal(JSON.stringify(marker), before);
+});

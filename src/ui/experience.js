@@ -87,6 +87,10 @@ export function bindExperience({
   let desktopCollapsed = false;
   const landscape = () => isCompactLandscape(innerWidth, innerHeight);
   const mobile = () => innerWidth <= 700 || landscape();
+  const searchOnly = () =>
+    !$("#explore-panel").hidden &&
+    $("#route-panel").hidden &&
+    $("#room-card").hidden;
   const clearDrag = () => {
     sidebar.classList.toggle("dragging", false);
     sidebar.style.removeProperty("--sheet-drag");
@@ -198,6 +202,9 @@ export function bindExperience({
     );
   };
   const setSheetState = (next) => {
+    // Search has a compact entry and a full editor. The middle position is
+    // reserved for a place card or route, which have useful content to show.
+    if (next === "peek" && mobile() && searchOnly()) next = "minimized";
     if (next !== "minimized") desktopCollapsed = false;
     sheetState = next;
     if (next !== "expanded") {
@@ -224,6 +231,19 @@ export function bindExperience({
     );
     updateVisibleBounds();
   };
+  // Closing a place card can reveal search without requesting a new sheet
+  // position. Normalize that transition as well, after the DOM update settles.
+  if (typeof MutationObserver === "function") {
+    const contentObserver = new MutationObserver(() => {
+      if (sheetState === "peek" && mobile() && searchOnly())
+        setSheetState("minimized");
+    });
+    for (const selector of ["#explore-panel", "#route-panel", "#room-card"])
+      contentObserver.observe($(selector), {
+        attributes: true,
+        attributeFilter: ["hidden"],
+      });
+  }
   const expand = (value) => setSheetState(value ? "expanded" : "peek");
   function openSearch() {
     onOpenSearch?.();
@@ -339,7 +359,7 @@ export function bindExperience({
         ? sheetState === "expanded"
           ? "peek"
           : "minimized"
-        : sheetState === "minimized"
+        : sheetState === "minimized" && !searchOnly()
           ? "peek"
           : "expanded",
     );

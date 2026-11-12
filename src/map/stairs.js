@@ -806,11 +806,11 @@ export function withConfirmedStairSearch(index = [], floors = []) {
  */
 export function presentStairIdentity(place, floor = null) {
   if (place?.kind === "stairs" && floor) {
-    const library = libraryStairLayoutsForFloor(floor)[0];
-    if (library) {
+    const libraries = libraryStairLayoutsForFloor(floor);
+    if (libraries.length) {
       const marker = getMapStairMarkers(floor).find(
         (candidate) =>
-          candidate.layoutId === library.id &&
+          libraries.some((layout) => candidate.layoutId === layout.id) &&
           (candidate.id === place.id ||
             candidate.sourceIds.includes(place.id) ||
             candidate.graphAnchors.some((anchor) => anchor.id === place.id)),

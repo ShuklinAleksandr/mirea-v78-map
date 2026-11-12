@@ -1,4 +1,5 @@
 import { physicalLevel } from "./utils.js";
+import { entranceStairPortals } from "./entrance-stair-portals.js";
 
 const amenityKinds = new Set([
   "cafeteria",
@@ -49,12 +50,27 @@ const libraryDescent = {
   physicalLevel: 2,
   note: "По описанию пользователя: от гардероба первый марш спускается к стене главного входа с улицы, затем промежуточная площадка и разворот на 180°. Дальше коридор с библиотекой и связь с корпусом И. И и ИВЦ — разные корпуса. Размеры, число ступеней, физический этаж и точная привязка нижнего выхода ещё не подтверждены; схема не создаёт нового плана или маршрута.",
 };
+const rightEntranceDescent = {
+  kind: "stairs",
+  label: "Спуск справа от главного входа",
+  physicalLevel: 2,
+  confirmedAt: "2026-11-12",
+  note: "Правый спуск из главного холла на 2 этаже, аналогичный левому: два марша и разворот на промежуточной площадке. Размеры и высота схемы приблизительные; номер физического этажа нижнего коридора и точное совмещение планов уточняются.",
+};
 const nearLibraryPoint = (value, expected) =>
   Array.isArray(value) &&
   value.length >= 2 &&
   Math.hypot(value[0] - expected[0], value[1] - expected[1]) < 0.0001;
-function isLibraryDescent(room) {
-  const sourceId = "v-78:edge:20734";
+function isEntranceDescent(room, layoutId) {
+  const reference = entranceStairPortals.find(
+    (portal) => portal.layoutId === layoutId,
+  );
+  const destination = entranceStairPortals.find(
+    (portal) =>
+      portal.sourceEdgeId === reference.sourceEdgeId &&
+      portal.floorId === "v-78-floor1",
+  );
+  const sourceId = reference.sourceEdgeId;
   const id = String(room?.id || "");
   const positions = [room?.center, room?.position].filter(Array.isArray);
   if (
@@ -65,22 +81,24 @@ function isLibraryDescent(room) {
       room.sourceIds?.includes(sourceId)
     ) ||
     !positions.length ||
-    !positions.every((point) => nearLibraryPoint(point, [30.523, 33.1784]))
+    !positions.every((point) => nearLibraryPoint(point, reference.position))
   )
     return false;
   if (
     room.targetFloorId &&
     (room.targetFloorId !== "v-78-floor1" ||
-      !nearLibraryPoint(room.targetPosition, [40.407, 22.8264]))
+      !nearLibraryPoint(room.targetPosition, destination.position))
   )
     return false;
   return true;
 }
 
 function confirmedHallPlace(room, floor) {
-  const correction = isLibraryDescent(room)
+  const correction = isEntranceDescent(room, "v-78-floor2-user-stair-library")
     ? libraryDescent
-    : hallPlaces[room?.roomId || room?.id];
+    : isEntranceDescent(room, "v-78-floor2-user-stair-entrance-right")
+      ? rightEntranceDescent
+      : hallPlaces[room?.roomId || room?.id];
   if (
     !correction ||
     (room?.kind !== correction.kind && room?.kind !== correction.displayKind)
@@ -102,7 +120,7 @@ export function presentPlaceIdentity(room, floor = null) {
     floorId: floor?.id || room.floorId,
     kind: correction.displayKind || room.kind,
     label: correction.label || room.label,
-    ...(correction === libraryDescent
+    ...([libraryDescent, rightEntranceDescent].includes(correction)
       ? {
           building: null,
           note:
@@ -113,7 +131,7 @@ export function presentPlaceIdentity(room, floor = null) {
       : {}),
     placeEvidence: {
       type: "user-confirmed",
-      date: "2026-10-25",
+      date: correction.confirmedAt || "2026-10-25",
       physicalLevel: correction.physicalLevel,
     },
   };
@@ -173,7 +191,7 @@ export function placeLocation(room, floor, landmarks = null) {
       : "",
     landmarkEvidence: landmark || null,
     locationEvidence: confirmed
-      ? { type: "user-confirmed", date: "2026-10-25" }
+      ? { type: "user-confirmed", date: confirmed.confirmedAt || "2026-10-25" }
       : null,
   };
 }

@@ -149,6 +149,7 @@ function harness(file, exports, saved = {}, options = {}) {
   const timers = new Map();
   let nextTimer = 0;
   const resizeObservers = [];
+  const mutationObservers = [];
   let nextAnimationFrame = 0;
   let currentWorker;
   let clock = null;
@@ -267,6 +268,14 @@ function harness(file, exports, saved = {}, options = {}) {
     cancelAnimationFrame(id) {
       animationFrames.delete(id);
     },
+    MutationObserver: class {
+      constructor(callback) {
+        this.callback = callback;
+      }
+      observe(target, config) {
+        mutationObservers.push({ target, config, callback: this.callback });
+      }
+    },
     ResizeObserver: class {
       constructor(callback) {
         this.callback = callback;
@@ -320,6 +329,14 @@ function harness(file, exports, saved = {}, options = {}) {
       const pending = [...timers.values()];
       timers.clear();
       for (const callback of pending) callback();
+    },
+    mutate(target, attributeName = "hidden") {
+      for (const observer of mutationObservers)
+        if (
+          observer.target === target &&
+          observer.config.attributeFilter.includes(attributeName)
+        )
+          observer.callback([{ target, attributeName }]);
     },
     resize() {
       for (const { target, callback } of resizeObservers)
@@ -717,6 +734,137 @@ test("canceled or unrelated pointers cannot collapse the sheet; keyboard arrows 
   assert.equal(sheet.classList.contains("minimized"), false);
   handle.dispatch("keydown", { key: "ArrowUp" });
   assert.equal(sheet.classList.contains("expanded"), true);
+});
+
+test("plain mobile search returns directly to its compact entry and keeps the query", () => {
+  for (const [width, height] of [
+    [390, 844],
+    [844, 390],
+  ]) {
+    const h = experienceHarness({}, null, { width, height });
+    const sidebar = h.element(".sidebar"),
+      handle = h.element("#sheet-toggle"),
+      search = h.element("#search"),
+      content = h.element(".sidebar-scroll");
+    h.element("#explore-panel").hidden = false;
+    h.element("#route-panel").hidden = true;
+    h.element("#room-card").hidden = true;
+    search.focus = () => {
+      h.document.activeElement = search;
+      search.dispatch("focus");
+    };
+    search.blur = () => {
+      h.document.activeElement = null;
+    };
+    handle.focus = () => {
+      h.document.activeElement = handle;
+    };
+    for (const query of ["", "Г-209"]) {
+      search.value = query;
+      h.openSearch();
+      assert.equal(h.getSheetState(), "expanded");
+      assert.equal(sidebar.dataset.editingField, "search");
+      assert.equal(h.document.activeElement, search);
+      assert.equal(h.finishInputEditing(), true);
+      assert.equal(h.getSheetState(), "minimized");
+      assert.equal(sidebar.dataset.inputEditing, "false");
+      assert.equal(content.inert, true);
+      assert.equal(h.document.activeElement, handle);
+      assert.equal(search.value, query);
+      handle.dispatch("click", { detail: 0 });
+      assert.equal(h.getSheetState(), "expanded");
+      assert.equal(h.document.activeElement, search);
+      assert.equal(search.value, query);
+      h.finishInputEditing();
+    }
+  }
+});
+
+test("plain search skips the middle drag/key stop but place cards and routes keep it", () => {
+  for (const [width, height] of [
+    [390, 844],
+    [844, 390],
+  ]) {
+    const h = experienceHarness({}, null, { width, height });
+    const handle = h.element("#sheet-toggle"),
+      room = h.element("#room-card"),
+      route = h.element("#route-panel");
+    h.element("#explore-panel").hidden = false;
+    room.hidden = true;
+    route.hidden = true;
+    h.expand(true);
+    handle.dispatch("pointerdown", { clientY: 200, pointerId: 1 });
+    handle.dispatch("pointerup", { clientY: 300, pointerId: 1 });
+    handle.dispatch("click");
+    assert.equal(h.getSheetState(), "minimized");
+    handle.dispatch("keydown", { key: "ArrowUp" });
+    assert.equal(h.getSheetState(), "expanded");
+    handle.dispatch("keydown", { key: "ArrowDown" });
+    assert.equal(h.getSheetState(), "minimized");
+    room.hidden = false;
+    h.expand(false);
+    assert.equal(h.getSheetState(), "peek");
+    assert.equal(h.element(".sidebar-scroll").inert, false);
+    room.hidden = true;
+    h.mutate(room);
+    assert.equal(
+      h.getSheetState(),
+      "minimized",
+      "closing the card restores compact search",
+    );
+    route.hidden = false;
+    h.element("#explore-panel").hidden = true;
+    h.expand(false);
+    assert.equal(
+      h.getSheetState(),
+      "peek",
+      "route content retains its middle position",
+    );
+  }
+});
+
+test("Escape and Android Back close plain search without an intermediate panel", () => {
+  for (const [width, height] of [
+    [390, 844],
+    [844, 390],
+  ]) {
+    const h = experienceHarness({}, null, { width, height });
+    h.element("#route-panel").hidden = true;
+    h.element("#room-card").hidden = true;
+    const search = h.element("#search");
+    search.focus = () => search.dispatch("focus");
+    for (const close of [
+      () =>
+        h.element(".sidebar").dispatch("keydown", {
+          key: "Escape",
+          stopPropagation() {},
+        }),
+      () =>
+        h.window.dispatchEvent(new Event("atlas:back", { cancelable: true })),
+    ]) {
+      h.openSearch();
+      h.setViewport(width, height - 150);
+      assert.equal(
+        h.getSheetState(),
+        "expanded",
+        "keyboard resize keeps the full editor",
+      );
+      assert.equal(h.element(".sidebar").dataset.editingField, "search");
+      close();
+      assert.equal(h.getSheetState(), "minimized");
+      assert.equal(h.element(".sidebar").dataset.inputEditing, "false");
+      h.setViewport(width, height);
+    }
+  }
+});
+
+test("desktop search retains its panel when asked to use the middle position", () => {
+  const h = experienceHarness({}, null, { width: 1366, height: 900 });
+  h.element("#route-panel").hidden = true;
+  h.element("#room-card").hidden = true;
+  h.expand(false);
+  assert.equal(h.getSheetState(), "peek");
+  assert.equal(h.element(".sidebar-scroll").inert, false);
 });
 
 test("Android Back closes search suggestions before collapsing the sheet or leaving the app", () => {

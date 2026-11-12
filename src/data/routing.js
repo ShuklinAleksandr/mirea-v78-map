@@ -3,6 +3,11 @@ import { attachCurrentRouteEndpoint } from "./current-route-origin.js";
 import { getSurveyBlockedEdges } from "./survey-routing.js";
 import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
 
+import {
+  stairEndpointCandidates,
+  staircasePreferencePenalty,
+} from "./stair-routing.js";
+
 const prepared = new WeakMap();
 const verticalKinds = new Set(["stairs", "elevator", "lift"]);
 const failure = (code, message) => ({ ok: false, code, message });
@@ -203,6 +208,28 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
       "graph-unavailable",
       "Для этой площадки нет исходного графа проходов. Можно посмотреть помещение на карте.",
     );
+  for (const endpoint of [fromRoom, toRoom]) {
+    const candidates = stairEndpointCandidates(graph, endpoint);
+    if (!candidates?.length) continue;
+    if (roomKey(fromRoom) === roomKey(toRoom))
+      return failure("same-place", "Начало и конец совпадают.");
+    let best = null;
+    for (const candidate of candidates) {
+      const attached = {
+        ...graph,
+        rooms: { ...graph.rooms, [roomKey(endpoint)]: candidate },
+      };
+      const result = findRoute(attached, fromRoom, toRoom, options);
+      if (
+        result.ok &&
+        (!best?.ok ||
+          result.diagnostics.routingCost < best.diagnostics.routingCost)
+      )
+        best = result;
+      else if (!best) best = result;
+    }
+    return best;
+  }
   for (const [key, endpoint] of [
     ["from", fromRoom],
     ["to", toRoom],
@@ -261,7 +288,14 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
         )
       )
         continue;
-      const cost = current.cost + next.edge.cost;
+      const cost =
+        current.cost +
+        next.edge.cost +
+        staircasePreferencePenalty(
+          graph,
+          next.edge,
+          options.preferStaircase !== false,
+        );
       if (cost >= (costs.get(next.to) ?? Infinity)) continue;
       costs.set(next.to, cost);
       previous.set(next.to, { node: current.id, edge: next.edge });
@@ -457,6 +491,17 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
     navigationMode: "manual",
     diagnostics: {
       visitedNodes: visited,
+      routingCost: costs.get(to.nodeId),
+      stairPreferencePenalty: edges.reduce(
+        (sum, edge) =>
+          sum +
+          staircasePreferencePenalty(
+            graph,
+            edge,
+            options.preferStaircase !== false,
+          ),
+        0,
+      ),
       sourceEdges: edges.filter(
         (edge) => !edge.ephemeral || edge.originalSourceEdgeId,
       ).length,

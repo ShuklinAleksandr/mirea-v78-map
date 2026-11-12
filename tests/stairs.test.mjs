@@ -348,6 +348,7 @@ test("main stair on A3 descends to A2 through a display cutout, while the separa
       [
         "v-78-floor2-photo-stair-A154-arrival",
         "v-78-floor2-user-stair-library",
+        "v-78-floor2-user-stair-entrance-right",
       ],
     );
   } finally {
