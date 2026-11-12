@@ -105,5 +105,21 @@ Android-эмулятор API36: обновление 0.5.21-local → 0.5.22 б�
 сообщения Capacitor SystemBars об обращении к CSS до готовности DOM повторились;
 видимой проблемы отступов после загрузки нет. Эти сообщения не исправлялись.
 
-Готовый сайт и main публикуются из этой копии без локальных экспериментов.
-Проверка файлов по публичному URL записывается в `.native-build/release-0.5.22/public-verification.json` после публикации.
+## Публикация проверена
+
+Код выпуска в `main`: `25fa12abf0e83724d62736ffff30ef5044038f94`.
+[Сайт 0.5.22](https://shuklinaleksandr.github.io/mirea-v78-map/) опубликован
+коммитом `f2e73c55556cf6e06461f46e86e4c487b150efdb` ветки `gh-pages`.
+Все **93 публичных файла** скачаны по HTTPS и совпали с подготовленной сборкой.
+Публичный маршрут А-217 → А-228.1 проверен на активном мобильном окне Chrome:
+работает загрузка плана/worker и финал «Рядом с А-228.1», ошибок JS/сети нет.
+
+[Тестовый Android-выпуск v0.5.22](https://github.com/ShuklinAleksandr/mirea-v78-map/releases/tag/v0.5.22)
+содержит APK и `SHA256SUMS.txt`; размер и SHA-256 загруженного APK совпали с локальными.
+[GitHub Web checks](https://github.com/ShuklinAleksandr/mirea-v78-map/actions/runs/43317447489)
+для коммита кода завершились успешно.
+
+Локальные отчёты: `.native-build/release-0.5.22/status.json`,
+`public-verification.json`, `public-runtime.json`;
+`.native-build/ui-smoke-2026-11-12/extended/extended-ui-report.json`;
+`.native-build/android-ui-qa-2026-11-12/android-smoke.json`.
