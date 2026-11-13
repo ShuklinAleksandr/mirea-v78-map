@@ -3,6 +3,7 @@ import { attachCurrentRouteEndpoint } from "./current-route-origin.js";
 import { getSurveyBlockedEdges } from "./survey-routing.js";
 import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
 import { withAIOutdoorInstructions } from "./outdoor-passage.js";
+import { withLibraryPassageGraph } from "./library-passage.js";
 
 import {
   stairEndpointCandidates,
@@ -191,6 +192,7 @@ function turnsForSegment(segment) {
  * attachment, straight-line fallback, real-time positioning or access claims.
  */
 export function findRoute(graph, fromRoom, toRoom, options = {}) {
+  graph = withLibraryPassageGraph(graph);
   if (
     (fromRoom?.campusId && fromRoom.campusId !== graph.campusId) ||
     (toRoom?.campusId && toRoom.campusId !== graph.campusId)
@@ -269,6 +271,7 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
     [fromId, toId, from.originAreaId, to.originAreaId].filter(Boolean),
   );
   const costs = new Map([[from.nodeId, 0]]);
+  const blockedEdgeIds = new Set(options.blockedEdgeIds || []);
   const previous = new Map();
   const heap = new MinHeap();
   heap.push(from.nodeId, 0);
@@ -279,6 +282,7 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
     visited++;
     if (current.id === to.nodeId) break;
     for (const next of adjacency.get(current.id)) {
+      if (blockedEdgeIds.has(next.edge.id)) continue;
       const target = nodes.get(next.to);
       // Do not silently use an unrelated classroom/toilet as a shortcut.
       if (

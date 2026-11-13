@@ -3,6 +3,8 @@ import registry from "../../public/data/stair-layouts.json" with { type: "json" 
 import { entranceStairPortals } from "./entrance-stair-portals.js";
 import { photographedStairCounterparts } from "./stair-counterparts.js";
 import { iMainStairReferences } from "./i-main-stair.js";
+import { firstFloorStairSchematics } from "./first-floor-stair-schematics.js";
+import { remainingStairSchematics } from "./remaining-stair-schematics.js";
 
 const references = new WeakMap();
 const keyOf = (room) =>
@@ -34,13 +36,17 @@ function prepare(graph) {
         )
       : []),
     ...(graph.campusId === "v-78"
-      ? iMainStairReferences.map((ref) => ({
+      ? [
+          ...iMainStairReferences,
+          ...firstFloorStairSchematics,
+          ...remainingStairSchematics,
+        ].map((ref) => ({
           id: ref.layoutId,
           floorId: ref.floorId,
           sourceMarkerIds: ref.portals.map((p) => p.sourceEdgeId),
           routingPortals: ref.portals,
           strictSourceMarkerMatch: true,
-          label: "Главная лестница · корпус И",
+          label: `${ref.label}${ref.building ? ` · корпус ${ref.building}` : ""}`,
         }))
       : []),
   ];

@@ -20,6 +20,7 @@ import { placeLocation, presentPlaceIdentity } from "../data/place-location.js";
 import placeLandmarks from "../data/place-landmarks.json" with { type: "json" };
 import { isNextInterface } from "./variant.js";
 import { nextRouteReadout, partialRouteInfo } from "./next-route.js";
+import { createRouteOptionPicker } from "./route-options.js";
 import {
   createRouteGuidance,
   sampleRouteGuidance,
@@ -93,6 +94,7 @@ export function bindRoutes({
   const routeDisplay = createRouteLocationDisplay();
   let displayExpiryTimer = null;
   const pending = new Map();
+  const routeOptionPicker = createRouteOptionPicker();
   function calculate(a, b, id) {
     if (!worker) {
       worker = new Worker(new URL("../data/route-worker.js", import.meta.url), {
@@ -143,6 +145,7 @@ export function bindRoutes({
     $("#route-status").classList.toggle("error", error);
   }
   function invalidate() {
+    routeOptionPicker.cancel();
     pausePreview(false);
     automatic = false;
     liveTracker = liveProgress = null;
@@ -816,7 +819,9 @@ export function bindRoutes({
       label:
         level === -1
           ? "В цоколь"
-          : `На этаж ${Number.isFinite(level) ? level : sourceLevel}`,
+          : Number.isFinite(level)
+            ? `На этаж ${level}`
+            : "Продолжение лестницы",
       nearby:
         automatic &&
         ["tracking", "floor-change"].includes(liveProgress?.status) &&
@@ -1376,7 +1381,7 @@ export function bindRoutes({
       if (state.campus.id !== a.campusId && !(await loadCampus(a.campusId)))
         throw Error("Не удалось открыть площадку");
       const campusRevision = state.loading;
-      const result = await calculate(a, b, id);
+      let result = await calculate(a, b, id);
       if (id !== revision) return;
       if (state.loading !== campusRevision || state.campus.id !== a.campusId) {
         status("Карта изменилась во время расчёта. Постройте маршрут ещё раз.");
@@ -1387,6 +1392,14 @@ export function bindRoutes({
         experience.expand(true);
         return;
       }
+      result = await routeOptionPicker.choose(result);
+      if (!result || id !== revision) {
+        if (id === revision)
+          status("Выберите вариант, когда будете готовы идти.");
+        return;
+      }
+      if (state.loading !== campusRevision || state.campus.id !== a.campusId)
+        return;
       route = result;
       guide = createRouteGuidance(result);
       liveTracker = createRouteTracker(result);
@@ -1406,6 +1419,22 @@ export function bindRoutes({
           : "";
       $("#route-summary").innerHTML =
         `<div class="route-summary-head">${icon("route", 30)}<div><b>${result.durationMinutes != null ? `≈ ${result.durationMinutes} мин` : "Путь найден"}</b><small>${escape(a.label)} → ${escape(partial?.nearby ? b.label : partial?.via || b.label)}${result.distanceMeters != null ? ` · ≈ ${Math.round(result.distanceMeters)} м` : ""}</small></div></div>${partial && !partial.nearby ? `<p class="route-estimate">${escape(partial.summary)} ${escape(partial.note)}</p>` : ""}${originFloorNote}<p class="route-estimate">${escape(result.durationModel || "Время и расстояние оценочные.")}</p><div id="route-floor-chips" class="route-floor-chips" aria-label="Этажи маршрута"></div><div id="route-progress" class="route-progress"></div>`;
+      if (result.routeOptionLabel) {
+        const option = document.createElement(
+          result.routeOptions?.length > 1 ? "button" : "p",
+        );
+        option.className = "route-selected-option";
+        option.textContent = result.routeOptionLabel;
+        if (option.tagName === "BUTTON") {
+          option.type = "button";
+          option.setAttribute(
+            "aria-label",
+            `Изменить путь: ${result.routeOptionLabel}`,
+          );
+          option.onclick = build;
+        }
+        $("#route-summary").prepend(option);
+      }
       for (const key of ["route-summary", "route-steps", "route-actions"])
         $("#" + key).hidden = false;
       status(

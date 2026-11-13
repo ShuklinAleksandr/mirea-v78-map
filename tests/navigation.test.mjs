@@ -584,7 +584,7 @@ function realStairView(level, options = {}) {
   return h;
 }
 
-test("the library descent button uses the destination's source level instead of borrowing A1 from the selected wing", () => {
+test("the library descent button keeps an unknown physical floor neutral instead of borrowing a source level or wing", () => {
   const h = realStairView(2);
   const source = getMapStairMarkers(h.state.floor).find((marker) =>
     marker.sourceIds.includes("v-78:edge:20734"),
@@ -595,7 +595,7 @@ test("the library descent button uses the destination's source level instead of 
   assert.match(card, /Спуск к библиотеке · корпус И/);
   assert.match(
     card,
-    /data-target="0" title="Уровень 1 плана">На этаж 1<\/button>/,
+    /data-target="0" title="Уровень 1 плана">Продолжение лестницы<\/button>/,
   );
   h.clickStairTarget();
   assert.equal(h.state.floor.id, "v-78-floor1");
@@ -616,6 +616,25 @@ test("the library descent button uses the destination's source level instead of 
     h.$("#room-card").innerHTML,
     /title="2 этаж · корпус уточняется">На этаж 2<\/button>/,
   );
+});
+
+test("sports stair buttons never relabel unknown source plans 0 and 1 as physical floors", () => {
+  for (const level of [0, 1])
+    for (const edge of [20718, 20719]) {
+      const h = realStairView(level);
+      const source = getMapStairMarkers(h.state.floor).find(
+        (m) => m.layoutId === `v78-source-floor${level}-schematic-${edge}`,
+      );
+      assert.ok(source);
+      h.select(source);
+      const card = h.$("#room-card").innerHTML;
+      assert.match(card, /Корпус и этаж уточняются/);
+      assert.match(card, /data-target="0"[^>]*>Продолжение лестницы<\/button>/);
+      assert.doesNotMatch(card, />На этаж [01]</);
+      h.clickStairTarget();
+      assert.equal(h.state.floor.id, `v-78-floor${1 - level}`);
+      assert.equal(h.state.building, null);
+    }
 });
 
 test("the accepted main stair keeps its confirmed A3 destination and paired marker after clicking its button", () => {

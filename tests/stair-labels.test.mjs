@@ -64,7 +64,7 @@ test("confirmed stairs can be found by library text and campus slang without cha
   const original = structuredClone(source);
   const floors = [floor(1), floor(2)];
   const shown = withConfirmedStairSearch(source, floors);
-  assert.equal(shown.length, source.length + 12);
+  assert.equal(shown.length, source.length + 21);
   const additions = shown.slice(source.length);
   assert.deepEqual(
     additions.map((marker) => marker.layoutId).sort(),
@@ -81,9 +81,18 @@ test("confirmed stairs can be found by library text and campus slang without cha
       "v78-Д-scan-v-78-floor2",
       "v78-И-1-user-main-stair",
       "v78-И-2-user-main-stair",
+      "v78-А-1-schematic-20728",
+      "v78-А-1-schematic-20729",
+      "v78-А-1-schematic-20730",
+      "v78-А-1-photo-ЛК-5",
+      "v78-Е-1-schematic-20739",
+      "v78-source-floor1-schematic-20718",
+      "v78-source-floor1-schematic-20719",
+      "v78-source-floor1-schematic-20726",
+      "v78-source-floor2-schematic-20739",
     ].sort(),
   );
-  assert.equal(new Set(additions.map((marker) => marker.id)).size, 12);
+  assert.equal(new Set(additions.map((marker) => marker.id)).size, 21);
   assert.ok(
     additions.every(
       (marker) => !source.some((place) => place.id === marker.id),

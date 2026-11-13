@@ -14,9 +14,9 @@ const rectangle = (x, y, X, Y) => [
   [x, Y],
 ];
 
-/** Local first-floor photo evidence supplies the shape. The second-floor
- * model does not supply geometry or dimensions, and no other unknown cell
- * is given a staircase merely because its neighbouring floor has one. */
+/** Local first-floor photo evidence identifies each cell. Where a photo only
+ * partially shows a shape, its explicitly authorized schematic profile stays
+ * separate from observed geometry. No upper-floor dimensions are copied. */
 export function photoCounterpartStairLayoutsForFloor(floor) {
   if (
     floor?.campusId !== "v-78" ||
@@ -87,10 +87,20 @@ export function photoCounterpartStairLayoutsForFloor(floor) {
         sourcePolygonIds: [area.id],
         sourceMarkerIds: [reference.sourceEdgeId],
         strictSourceMarkerMatch: true,
-        sourcePhotoIds: ["photo-3219"],
-        sourcePhotos: ["/data/photos/IMG_3219.jpg"],
+        sourcePhotoIds: reference.sourcePhotoIds || ["photo-3219"],
+        sourcePhotos: reference.sourcePhotos || ["/data/photos/IMG_3219.jpg"],
         shape: "compact-U",
-        shapeStatus: "photo-plan-observed",
+        shapeStatus: reference.shapeStatus || "photo-plan-observed",
+        ...(reference.shapeReviewStatus
+          ? {
+              shapeReviewStatus: reference.shapeReviewStatus,
+              shapeSourcePhotoIds: reference.shapeSourcePhotoIds,
+              shapeSourcePhotos: reference.shapeSourcePhotos,
+              geometryStatus: reference.geometryStatus,
+              geometrySource: reference.geometrySource,
+              geometryEvidence: reference.geometryEvidence,
+            }
+          : {}),
         placementStatus: "local-native-cell-photo-oriented",
         verticalStatus: "approximate",
         dimensionsStatus: "model-assumptions-not-measured",
@@ -124,7 +134,9 @@ export function photoCounterpartStairLayoutsForFloor(floor) {
           { points: rectangle(0.53, 0.75, 0.97, 0.97), elevationFraction: 1 },
         ],
         landmarkNote: reference.landmarkNote,
-        note: "Форма двух маршей и площадки сверена по плану А1 IMG_3219 и соседним подписанным помещениям. Локальное пятно находится внутри исходной лестничной клетки. Высота, размеры ступеней и направление подъёма приблизительные; верхний план не совмещён обмером.",
+        note:
+          reference.note ||
+          "Форма двух маршей и площадки сверена по плану А1 IMG_3219 и соседним подписанным помещениям. Локальное пятно находится внутри исходной лестничной клетки. Высота, размеры ступеней и направление подъёма приблизительные; верхний план не совмещён обмером.",
       },
     ];
   });

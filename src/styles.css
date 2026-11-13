@@ -776,6 +776,59 @@ summary:focus-visible {
   padding: 16px 0 12px;
   border-top: 1px solid var(--line);
 }
+#route-choice-dialog {
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+#route-choice-list {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0;
+}
+.route-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 76px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+.route-choice b,
+.route-choice small {
+  display: block;
+}
+.route-choice b {
+  font-size: 15px;
+}
+.route-choice small {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.route-choice strong {
+  white-space: nowrap;
+  font-size: 14px;
+}
+.route-choice:hover,
+.route-choice:focus-visible {
+  border-color: var(--green);
+}
+.route-selected-option {
+  display: block;
+  margin: 10px 0;
+  padding: 10px 12px;
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
 .route-summary-head > svg {
   color: var(--green);
 }

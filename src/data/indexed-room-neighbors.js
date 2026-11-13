@@ -32,7 +32,7 @@ export function indexedRoomGroup(label) {
     .replace(/[‐‑‒–—−]/gu, "-")
     .replace(/\s+/gu, "");
   const match = normalized.match(
-    /^([А-ЯЁA-Z]+)-?(\d+)(?:[-.](\d+[А-ЯЁA-Z]?))?$/u,
+    /^([А-ЯЁA-Z]+)-?(\d+)(?:[-.]((?:\d+[А-ЯЁA-Z]?(?:[-.]\d+[А-ЯЁA-Z]?)*|[А-ЯЁA-Z]\d*)))?$/u,
   );
   return match
     ? { key: `${match[1]}-${match[2]}`, index: match[3] || null }

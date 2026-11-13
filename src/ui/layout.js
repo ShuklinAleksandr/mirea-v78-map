@@ -27,6 +27,7 @@ export const layout = `
 <div id="route-actions" class="route-actions" hidden><button id="route-fit">${icon("expand", 16)}Показать путь</button><button id="route-edit" aria-label="Изменить точки маршрута">Изменить</button><button id="route-share">${icon("share", 16)}Поделиться</button><button id="route-clear">Сбросить</button></div>
 </section></div>
 </aside>
+<dialog id="route-choice-dialog" aria-labelledby="route-choice-title"><div class="dialog-heading"><h2 id="route-choice-title">Как идти в корпус И?</h2><button id="route-choice-close" type="button" class="icon-button" aria-label="Закрыть выбор пути">${icon("close")}</button></div><div id="route-choice-list" aria-label="Варианты маршрута"></div></dialog>
 <main class="map-shell">
   <div id="viewport" tabindex="0" role="region" aria-label="Карта. Стрелки перемещают карту, плюс и минус меняют масштаб"><div id="location-crosshair" class="location-crosshair" aria-hidden="true" hidden><span></span></div></div>
   <div class="map-top">

@@ -125,6 +125,11 @@ export function resolveRoom(floor, query) {
 
 /** A point marker has no measured room boundary, even in a metric campus. */
 export function geometryEvidence(room, campus = null) {
+  if (room?.shapeReviewStatus === "user-authorized-schematic")
+    return {
+      kind: "provisional-schematic",
+      label: "Условная модель · форма уточняется",
+    };
   if (room?.shapeReviewStatus === "user-confirmed-schematic")
     return {
       kind: "user-schematic",

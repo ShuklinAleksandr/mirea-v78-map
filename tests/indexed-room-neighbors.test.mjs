@@ -338,6 +338,118 @@ test("index grouping does not merge neighbouring but different base numbers", ()
   assert.equal(indexedRoomGroup("Буфет"), null);
 });
 
+test("explicit letter and compound indices are grouped without accepting two room names", () => {
+  for (const [label, key, index] of [
+    ["И-205-а", "И-205", "А"],
+    ["Г-322-а1", "Г-322", "А1"],
+    ["Б-209.1.1", "Б-209", "1.1"],
+    ["Г-424-1-1", "Г-424", "1-1"],
+  ])
+    assert.deepEqual(indexedRoomGroup(label), { key, index });
+  for (const label of [
+    "Д-227-Д-228",
+    "А-101-А А-101-Б",
+    "А-214.1, А-214.2",
+    "В-204 - наука",
+  ])
+    assert.equal(indexedRoomGroup(label), null, label);
+});
+
+test("same neighbouring door is a waypoint in both directions, without a line through an unknown wall", () => {
+  const { graph, options } = fixture();
+  for (const [from, to] of [
+    ["target", "base"],
+    ["base", "target"],
+  ]) {
+    const route = findNavigationRoute(graph, from, to, options);
+    assert.equal(route.ok, true);
+    assert.equal(route.sharedNeighborDoor, true);
+    assert.deepEqual(
+      route.nodes.map((n) => n.position),
+      [[6, 0]],
+    );
+    assert.deepEqual(route.nodes[0].sourceNodeIds, [
+      "base-inside",
+      "base-outside",
+    ]);
+    assert.equal(route.nodes[0].sourceDoorEdgeId, "base-outside:base-inside");
+    assert.equal(route.edges.length, 0);
+    assert.equal(route.distanceMeters, null);
+    assert.equal(route.horizontalDistanceMeters, null);
+    assert.equal(route.durationMinutes, null);
+    assert.equal(
+      route.steps.some((s) => s.kind === "arrive"),
+      false,
+    );
+    assert.equal((route.firstLeg || route.lastLeg).geometryAvailable, false);
+  }
+});
+
+test("isolated indexed siblings may share a confirmed neighbouring doorway without being falsely connected", () => {
+  const { graph, floor, options } = fixture();
+  graph.edges = graph.edges.filter((e) => !e.id.includes("sibling"));
+  floor.polygons.find((p) => p.id === "sibling").points = rectangle(4, 4, 8, 8);
+  const before = JSON.stringify({ graph, floor });
+  for (const [from, to] of [
+    ["target", "sibling"],
+    ["sibling", "target"],
+  ]) {
+    const route = findNavigationRoute(graph, from, to, options);
+    assert.equal(route.ok, true);
+    assert.equal(route.requestedOrigin.roomId, from);
+    assert.equal(route.requestedDestination.roomId, to);
+    assert.equal(route.sharedNeighborDoor, true);
+    assert.equal(route.firstLeg.geometryAvailable, false);
+    assert.equal(route.lastLeg.geometryAvailable, false);
+    assert.equal(route.nodes.length, 1);
+    assert.equal(route.nodes[0].roomId, "base");
+    assert.equal(route.distanceMeters, null);
+  }
+  assert.equal(JSON.stringify({ graph, floor }), before);
+});
+
+test("a zero-door waypoint requires a reachable public source door and obeys blocked edges", () => {
+  for (const change of [
+    ({ graph }) => {
+      graph.edges.find(
+        (e) => e.kind === "door" && e.id.includes("base"),
+      ).eligible = false;
+    },
+    ({ graph }) => {
+      graph.edges.find((e) => e.kind === "door" && e.id.includes("base")).kind =
+        "corridor";
+    },
+    ({ graph }) => {
+      graph.edges.find(
+        (e) => e.kind === "door" && e.id.includes("base"),
+      ).bidirectional = false;
+    },
+    ({ graph }) => {
+      graph.edges = graph.edges.filter((e) => e.id !== "base-inside:base");
+    },
+    ({ graph }) => {
+      graph.rooms.hall = { kind: "room" };
+    },
+    ({ options }) => {
+      options.blockedEdgeIds = ["base-outside:base-inside"];
+    },
+  ]) {
+    const data = fixture();
+    data.graph.edges = data.graph.edges.filter(
+      (e) => !e.id.includes("sibling"),
+    );
+    change(data);
+    assert.equal(
+      findNavigationRoute(data.graph, "target", "base", data.options).ok,
+      false,
+    );
+    assert.equal(
+      findNavigationRoute(data.graph, "base", "target", data.options).ok,
+      false,
+    );
+  }
+});
+
 test("real А-228.1 uses the existing adjacent А-228 door without changing its missing entrance", () => {
   const read = (name) =>
     JSON.parse(readFileSync(new URL(name, import.meta.url)));

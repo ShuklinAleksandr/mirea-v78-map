@@ -237,8 +237,18 @@ test("the small A3 stair stays a single straight flight and A1 grouping preserve
   );
   assert.equal(sharedEdge.length, 2);
   const matches = sharedEdge.map((marker) => stairLayoutFor(marker, floor));
-  assert.equal(matches.filter(Boolean).length, 1);
-  assert.equal(matches.find(Boolean).id, "v-78-floor1-photo-stair-A154");
+  assert.deepEqual(
+    matches.map((m) => m.id).sort(),
+    [
+      "v-78-floor1-photo-stair-A154",
+      "v78-source-floor1-schematic-20726",
+    ].sort(),
+  );
+  assert.notEqual(
+    matches[0].fitAreaId,
+    matches[1].fitAreaId,
+    "same source edge endpoints keep their separate native cells",
+  );
 });
 
 test("ground central landing discrepancies are explicitly sourced, not silently claimed as native footprints", () => {
@@ -349,6 +359,7 @@ test("main stair on A3 descends to A2 through a display cutout, while the separa
         "v-78-floor2-photo-stair-A154-arrival",
         "v-78-floor2-user-stair-library",
         "v-78-floor2-user-stair-entrance-right",
+        "v78-source-floor2-schematic-20739",
       ],
     );
   } finally {
@@ -600,7 +611,9 @@ test("last available A/B/V/G plans show incoming stairs below their floor instea
     const floor = byId.get(floorId);
     const before = structuredClone(floor);
     const markers = getMapStairMarkers(floor).filter(
-      (marker) => marker.building === building && marker.layoutId,
+      (marker) =>
+        marker.building === building &&
+        registry.layouts.some((native) => native.id === marker.layoutId),
     );
     assert.equal(markers.length, count);
     const cutouts = getStairDisplayCutouts(floor);
@@ -950,8 +963,10 @@ test("all photographed stairs produce finite batched geometry and unknown points
       const layout = stairLayoutFor(marker, floor);
       assert.equal(
         group.userData.geometryStatus,
-        marker.shapeReviewStatus === "user-confirmed-schematic"
-          ? "user-confirmed-schematic"
+        ["user-confirmed-schematic", "user-authorized-schematic"].includes(
+          marker.shapeReviewStatus,
+        )
+          ? marker.shapeReviewStatus
           : "photo-plan-layout-approximate-vertical",
       );
       assert.ok(

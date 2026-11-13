@@ -56,6 +56,7 @@ function harness(file, exports, saved = {}, options = {}) {
       attributes: {},
       disabled: false,
       inert: false,
+      open: false,
       style: {
         values: new Map(),
         setProperty(name, value) {
@@ -93,7 +94,9 @@ function harness(file, exports, saved = {}, options = {}) {
         listeners.get(event.type)?.(event);
         return !event.defaultPrevented;
       },
-      focus() {},
+      focus() {
+        el.focused = true;
+      },
       blur() {},
       setPointerCapture() {},
       hasPointerCapture() {
@@ -103,8 +106,35 @@ function harness(file, exports, saved = {}, options = {}) {
       contains() {
         return false;
       },
-      querySelectorAll() {
+      querySelectorAll(query) {
+        if (selector === "#route-choice-list" && query === "button")
+          return [...el.innerHTML.matchAll(/data-route-choice="(\d+)"/g)].map(
+            (match) => {
+              const button = element(`#route-choice-${match[1]}`);
+              button.dataset.routeChoice = match[1];
+              return button;
+            },
+          );
         return [];
+      },
+      querySelector(query) {
+        return el.querySelectorAll(query)[0] || null;
+      },
+      append(child) {
+        el.children.push(child);
+      },
+      prepend(child) {
+        el.children.unshift(child);
+      },
+      showModal() {
+        el.open = true;
+      },
+      close() {
+        if (!el.open) return;
+        el.open = false;
+        if (options.deferDialogClose)
+          timers.set(++nextTimer, () => el.dispatch("close"));
+        else el.dispatch("close");
       },
       getBoundingClientRect() {
         const width = options.width ?? 390;
@@ -193,6 +223,12 @@ function harness(file, exports, saved = {}, options = {}) {
     document: Object.assign(new EventTarget(), {
       body: { dataset: {} },
       documentElement: { dataset: {} },
+      querySelector: element,
+      createElement: (tag) => {
+        const el = element(`created-${tag}-${elements.size}`);
+        el.tagName = tag.toUpperCase();
+        return el;
+      },
     }),
     window: new EventTarget(),
     Worker,
@@ -293,7 +329,14 @@ function harness(file, exports, saved = {}, options = {}) {
       }),
     );
   }
-  const source = readFileSync(new URL(file, import.meta.url), "utf8")
+  const controllerSource = readFileSync(new URL(file, import.meta.url), "utf8");
+  const pickerSource = file.endsWith("/routes.js")
+    ? readFileSync(
+        new URL("../src/ui/route-options.js", import.meta.url),
+        "utf8",
+      )
+    : "";
+  const source = `${pickerSource}\n${controllerSource}`
     .replace(/^import[\s\S]*?;\n/gm, "")
     .replace(/export /g, "")
     .replace(/import\.meta\.url/g, '"https://local.test/routes.js"');
@@ -509,6 +552,202 @@ async function buildPreview(h) {
   h.reply(h.result);
   await pending;
 }
+
+function routeVariants(base = {}) {
+  const options = [
+    [
+      "library",
+      "Через библиотеку",
+      [
+        [0, 0],
+        [20, 0],
+      ],
+    ],
+    [
+      "street",
+      "По улице",
+      [
+        [0, 0],
+        [0, 30],
+      ],
+    ],
+  ].map(([id, label, points], index) => ({
+    id,
+    label,
+    description: `${label} · проверенный проход`,
+    route: {
+      ...base,
+      ok: true,
+      routeOptionId: id,
+      routeOptionLabel: label,
+      durationMinutes: index + 1,
+      segments: [
+        { floorId: "a-floor1", points, nodes: [{ physicalLevel: 1 }] },
+      ],
+      steps: [
+        {
+          kind: "start",
+          text: label,
+          floorId: "a-floor1",
+          position: points[0],
+        },
+      ],
+      edges: [{ id: `source-edge-${id}` }],
+    },
+  }));
+  return { ...options[0].route, routeOptions: options };
+}
+const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
+
+test("computed route variants wait for a choice and render the selected geometry and label", async () => {
+  for (const choice of [0, 1]) {
+    const h = routeHarness({ nextInterface: true });
+    const result = routeVariants(h.result);
+    const pending = h.build();
+    h.reply(result);
+    await flushPromises();
+    const dialog = h.element("#route-choice-dialog");
+    const buttons = h.element("#route-choice-list").querySelectorAll("button");
+    assert.equal(dialog.open, true);
+    assert.equal(buttons.length, 2);
+    assert.equal(buttons[0].focused, true);
+    assert.equal(
+      h.draws.length,
+      0,
+      "no default path is drawn before the choice",
+    );
+    buttons[choice].onclick();
+    await pending;
+    assert.equal(dialog.open, false);
+    assert.equal(h.element("#route-build").disabled, false);
+    const selected = h.draws.at(-1);
+    assert.equal(selected.routeOptionId, result.routeOptions[choice].id);
+    assert.equal(selected.segments, result.routeOptions[choice].route.segments);
+    assert.equal(selected.edges, result.routeOptions[choice].route.edges);
+    assert.equal(
+      h.element("#route-summary").children[0].textContent,
+      result.routeOptions[choice].label,
+    );
+    assert.equal(h.element("#route-summary").children[0].tagName, "BUTTON");
+    assert.equal(
+      typeof h.element("#route-summary").children[0].onclick,
+      "function",
+    );
+  }
+});
+
+test("canceling a first route choice never starts or draws either variant", async () => {
+  const h = routeHarness({ nextInterface: true });
+  const pending = h.build();
+  h.reply(routeVariants(h.result));
+  await flushPromises();
+  h.element("#route-choice-close").onclick();
+  await pending;
+  assert.equal(h.draws.length, 0);
+  assert.equal(h.element("#route-choice-dialog").open, false);
+  assert.equal(h.element("#route-build").disabled, false);
+  assert.equal(h.navigationModes.includes(true), false);
+  assert.match(h.element("#route-status").textContent, /Выберите вариант/);
+});
+
+test("canceling a replacement choice keeps the previous route geometry, selection label and endpoints", async () => {
+  const h = routeHarness({ nextInterface: true });
+  const endpoints = h.getEndpoints();
+  let pending = h.build();
+  h.reply(routeVariants(h.result));
+  await flushPromises();
+  h.element("#route-choice-1").onclick();
+  await pending;
+  const previous = h.draws.at(-1),
+    drawCount = h.draws.length;
+  const label = h.element("#route-summary").children[0];
+  pending = h.build();
+  h.reply(routeVariants(h.result));
+  await flushPromises();
+  h.element("#route-choice-close").onclick();
+  await pending;
+  assert.equal(h.draws.length, drawCount);
+  assert.equal(h.draws.at(-1), previous);
+  assert.equal(previous.routeOptionId, "street");
+  assert.equal(h.element("#route-summary").children[0], label);
+  assert.equal(label.textContent, "По улице");
+  assert.deepEqual(h.getEndpoints(), endpoints);
+  assert.equal(h.element("#route-summary").hidden, false);
+});
+
+test("changing an endpoint while the choice is open cancels it and ignores stale choice buttons", async () => {
+  const h = routeHarness();
+  const pending = h.build();
+  h.reply(routeVariants(h.result));
+  await flushPromises();
+  const oldButton = h.element("#route-choice-0").onclick;
+  h.setEndpoint("to", h.room("new-destination"));
+  await pending;
+  oldButton();
+  await flushPromises();
+  assert.equal(h.element("#route-choice-dialog").open, false);
+  assert.equal(h.draws.length, 0);
+  assert.equal(h.getEndpoints().to.id, "new-destination");
+  assert.equal(h.element("#route-panel").dataset.complete, "false");
+});
+
+test("a route with no alternative cancels an older pending choice instead of leaving a stale dialog", async () => {
+  const h = harness(
+    "../src/ui/route-options.js",
+    ["createRouteOptionPicker"],
+    {},
+    { deferDialogClose: true },
+  );
+  const picker = h.createRouteOptionPicker();
+  const old = picker.choose(routeVariants());
+  const single = routeVariants().routeOptions[1].route;
+  assert.equal(await picker.choose(single), single);
+  assert.equal(await old, null);
+  assert.equal(h.element("#route-choice-dialog").open, false);
+  h.flushTimers();
+});
+
+test("a queued close event from an older choice cannot cancel a newly opened choice", async () => {
+  const h = harness(
+    "../src/ui/route-options.js",
+    ["createRouteOptionPicker"],
+    {},
+    { deferDialogClose: true },
+  );
+  const picker = h.createRouteOptionPicker();
+  const old = picker.choose(routeVariants());
+  const current = picker.choose(routeVariants());
+  assert.equal(await old, null);
+  let settled = false;
+  current.then(() => {
+    settled = true;
+  });
+  h.flushTimers();
+  await flushPromises();
+  assert.equal(settled, false);
+  assert.equal(h.element("#route-choice-dialog").open, true);
+  h.element("#route-choice-1").onclick();
+  assert.equal((await current).routeOptionId, "street");
+  h.flushTimers();
+});
+
+test("native dialog close and explicit cancellation both resolve the choice without picking a path", async () => {
+  for (const cancel of ["dialog", "picker"]) {
+    const h = harness(
+      "../src/ui/route-options.js",
+      ["createRouteOptionPicker"],
+      {},
+      { deferDialogClose: true },
+    );
+    const picker = h.createRouteOptionPicker();
+    const pending = picker.choose(routeVariants());
+    if (cancel === "dialog") h.element("#route-choice-dialog").close();
+    else picker.cancel();
+    h.flushTimers();
+    assert.equal(await pending, null);
+    assert.equal(h.element("#route-choice-dialog").open, false);
+  }
+});
 
 test("the separate route button opens the same draft and its back control returns to search", () => {
   const h = routeHarness();
@@ -2419,7 +2658,10 @@ test("an on-map stair handoff waits for explicit floor confirmation and uses the
   assert.equal(action.label, "На этаж 4");
   const target = h.result.segments[1].nodes[0];
   delete target.physicalLevel;
-  assert.equal(h.getStairAction().label, "На этаж 2");
+  assert.equal(h.getStairAction().label, "Продолжение лестницы");
+  target.sourceLevel = 0;
+  assert.equal(h.getStairAction().label, "Продолжение лестницы");
+  target.sourceLevel = 2;
   target.physicalLevel = -1;
   assert.equal(h.getStairAction().label, "В цоколь");
   target.physicalLevel = 4;

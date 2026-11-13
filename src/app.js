@@ -746,7 +746,9 @@ function stairTargetsFor(room) {
         buttonLabel:
           physical === -1
             ? "В цоколь"
-            : `На этаж ${physical ?? targetFloor?.level}`,
+            : Number.isFinite(physical)
+              ? `На этаж ${physical}`
+              : "Продолжение лестницы",
         label:
           physical != null
             ? `${physical === -1 ? "Цоколь" : `${physical} этаж`}${targetLocation.building ? ` корпуса ${targetLocation.building}` : " · корпус уточняется"}`
@@ -807,6 +809,7 @@ function selectRoom(room, focus = true) {
   const evidence =
     room.shapeReviewStatus === "requires-correction" ||
     room.shapeReviewStatus === "user-confirmed-schematic" ||
+    room.shapeReviewStatus === "user-authorized-schematic" ||
     room.displayEvidence?.type === "user-confirmed-room-adjacency"
       ? geometryEvidence(room, state.campus).label
       : room.existenceStatus === "user-confirmed-existence"

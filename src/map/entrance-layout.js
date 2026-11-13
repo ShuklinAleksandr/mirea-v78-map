@@ -55,6 +55,30 @@ function footprint(center, along, length, depth) {
   );
 }
 
+// Intersect a right-going line with the actual hall contour, including holes.
+// Taking the first boundary prevents extending this local bank across the hall
+// to the distant buffet/exterior wall when a nearer wall or recess intervenes.
+function nearestRightBoundary(hall, anchor, along, inside, depth, start) {
+  const project = (point, axis) =>
+    (point[0] - anchor[0]) * axis[0] + (point[1] - anchor[1]) * axis[1];
+  const hits = [];
+  for (const ring of [hall.points, ...(hall.holes || [])]) {
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i],
+        b = ring[(i + 1) % ring.length];
+      const da = project(a, inside),
+        db = project(b, inside);
+      if (Math.abs(db - da) < 1e-9) continue;
+      const t = (depth - da) / (db - da);
+      if (t < 0 || t > 1) continue;
+      const point = a.map((value, k) => value + (b[k] - value) * t);
+      const across = project(point, along);
+      if (across > start + 1e-6) hits.push({ across, point, wall: { a, b } });
+    }
+  }
+  return hits.sort((a, b) => a.across - b.across)[0] || null;
+}
+
 /** A display-only entrance bank. Counts and furniture dimensions are a compact
  * schematic, not surveyed doors, obstacles, routing nodes or a new room plan. */
 export function getEntranceLayout(floor) {
@@ -89,6 +113,21 @@ export function getEntranceLayout(floor) {
     )
   )
     return null;
+  const hallRings = [halls[0].points, ...(halls[0].holes || [])];
+  if (
+    hallRings.some(
+      (ring) =>
+        !Array.isArray(ring) ||
+        ring.length < 3 ||
+        ring.some(
+          (point) =>
+            !Array.isArray(point) ||
+            point.length !== 2 ||
+            !point.every(Number.isFinite),
+        ),
+    )
+  )
+    return null;
   if (
     !sourceDoors.every((expected) => {
       const matches = floor.doors.filter((door) => door.id === expected.id);
@@ -116,23 +155,70 @@ export function getEntranceLayout(floor) {
       (value, i) =>
         value + innerAlong[i] * u * innerWidth + innerInside[i] * depth,
     );
+  // Furniture dimensions are schematic: the desk starts after the frames and
+  // ends at the dense bank facing the nearby right-hand entrance wall.
+  const turnstileDepth = 1.6;
+  const deskStart = 0.1,
+    deskLength = turnstileDepth - deskStart,
+    deskDepth = 0.55,
+    deskAcross = -0.6;
   const deskCenter = inner.a.map(
-    (value, i) => value - innerAlong[i] * 0.6 + innerInside[i] * 1.6,
+    (value, i) =>
+      value +
+      innerAlong[i] * deskAcross +
+      innerInside[i] * ((deskStart + turnstileDepth) / 2),
   );
-  const chairs = [0.8, 2.4].map((depth) =>
+  const chairs = [0.4, 1.25].map((depth) =>
     inner.a.map(
       (value, i) => value - innerAlong[i] * 1.65 + innerInside[i] * depth,
     ),
   );
-  const turnstileCenters = [0.22, 0.5, 0.78].map((u) => afterFrame(u, 3.2));
+  const bankStart = deskAcross + deskDepth / 2;
+  const postWidth = 0.22,
+    postDepth = 0.42;
+  const boundaryHits = [-postDepth / 2, 0, postDepth / 2].map((offset) =>
+    nearestRightBoundary(
+      halls[0],
+      inner.a,
+      innerAlong,
+      innerInside,
+      turnstileDepth + offset,
+      bankStart,
+    ),
+  );
+  // If this local wall disappears, do not silently span the entire main hall.
+  if (
+    boundaryHits.some(
+      (hit) => !hit || hit.across > innerWidth + 3 || hit.across < 1,
+    )
+  )
+    return null;
+  const bankEnd = Math.min(...boundaryHits.map((hit) => hit.across)) - 0.012;
+  const postSpan = bankEnd - bankStart - postWidth;
+  const turnstileCount = Math.max(1, Math.round(postSpan / 0.9));
+  const pitch = postSpan / turnstileCount;
+  const bankPoint = (across) =>
+    inner.a.map(
+      (value, i) =>
+        value + innerAlong[i] * across + innerInside[i] * turnstileDepth,
+    );
+  const postCenters = Array.from({ length: turnstileCount + 1 }, (_, i) =>
+    bankPoint(bankStart + postWidth / 2 + i * pitch),
+  );
+  const turnstileCenters = Array.from({ length: turnstileCount }, (_, i) =>
+    bankPoint(bankStart + postWidth / 2 + (i + 0.5) * pitch),
+  );
   // Security is AFTER the detector line, inside the existing hall. The small
   // source room beside the street doors stays unnamed and receives no opening.
   // Nothing stretches that room or the hall to make decorative furniture fit.
   const hallFurniture = [
-    footprint(deskCenter, innerInside, 3, 0.55),
+    footprint(deskCenter, innerInside, deskLength, deskDepth),
     ...chairs.map((center) => footprint(center, innerAlong, 0.5, 0.5)),
-    ...turnstileCenters.map((center) =>
-      footprint(center, innerAlong, 1.4, 0.5),
+    footprint(
+      bankPoint((bankStart + bankEnd) / 2),
+      innerAlong,
+      bankEnd - bankStart,
+      postDepth,
     ),
   ];
   try {
@@ -182,9 +268,17 @@ export function getEntranceLayout(floor) {
       opening: 1.35,
     },
     turnstiles: {
-      count: 3,
-      depthAfterInnerBoundary: 3.2,
+      count: turnstileCount,
+      depthAfterInnerBoundary: turnstileDepth,
       centers: turnstileCenters,
+      postCenters,
+      postWidth,
+      postDepth,
+      pitch,
+      start: bankPoint(bankStart),
+      end: bankPoint(bankEnd),
+      boundary: boundaryHits[1],
+      placement: "continuous-bank-from-security-desk-to-nearest-right-wall",
     },
     guard: {
       sourcePolygonId: HALL_ID,
@@ -192,8 +286,8 @@ export function getEntranceLayout(floor) {
       center: deskCenter,
       deskCenter,
       deskAlong: innerInside,
-      deskLength: 3,
-      deskDepth: 0.55,
+      deskLength,
+      deskDepth,
       rotationFromDoorBankDegrees: -90,
       chairCenters: chairs,
       placement: "after-detectors-before-turnstiles-left-side-of-hall",

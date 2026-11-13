@@ -1,0 +1,1057 @@
+{
+  "checkedAt": "2026-11-13T00:32:10.930Z",
+  "sourceFingerprints": {
+    "public/data/routing/v-78.json": "a6f68d44482e87806a6a62d2c9717ce38ca7a2969e759320003898150c80958b",
+    "public/data/campuses/v-78/v-78-floor0.json": "1963609b3d52d68f2d20c1999cb3411cd6fa935fe97cebd5ebd126454c6c94b5",
+    "public/data/campuses/v-78/v-78-floor1.json": "00662efaf0d44e68ba615e0e8cb2d3a77b5e8a4a6d0eafadeae0052b9084da7c",
+    "public/data/campuses/v-78/v-78-floor2.json": "7074bf6da38338271a4465bfc6db9ede9c0ea75e03aeff2d06ad457e71aed427",
+    "public/data/campuses/v-78/v-78-floor3.json": "13632c80179a77d6316257a5d91dc2ddb0db31d013b59a385056fbd83a7a6ab3",
+    "public/data/campuses/v-78/v-78-floor4.json": "7d2107e1af01759bdfc5874876e352673fd0e0c21f8fa8ea30a2deb2f5734850",
+    "src/data/routing.js": "58c316dcfeb4ef41727454093e2ade61150ac09f6d2a7d1aa1bfe8ed3e802355",
+    "src/data/entrance-route.js": "6827a4b8dedbb6aa922ea494b7026d472e3f8ee2ec63194a2102be3b56cb4771",
+    "src/data/indexed-room-neighbors.js": "661c8a21799d0579ef886643229b11a2fdc000a6df9c4a77ecfce7b10024db03",
+    "src/data/neighbor-door-route.js": "d2cc3737859c29451a02079f7b7d7d53dd0bf28d2ec5ca0748c99774d7a00f63",
+    "src/data/library-passage.js": "ab12f1a29f4d00006e6de82603ccc120f5ee146c96337f44ff297e1651434e01",
+    "src/data/library-passage-reference.json": "fa5b2f79c92760f94050717f9b5ba147b219f0e88d54b36e480e46bb057de7cf",
+    "src/data/survey-routing.js": "c86705f0b429b30a510b59b883638ac48a76e6f184cd1f97fad24acae1b0af20",
+    "src/data/stair-partition-routing.js": "8ad9dc55c148f863b47098c9ad0ec731cd525efa2f9f91bfa7abc59e0155d124"
+  },
+  "graphOverlay": {
+    "id": "v78-library-to-i-confirmed-passage",
+    "originalNodes": 16237,
+    "originalEdges": 41218,
+    "addedNodes": 2,
+    "addedEdges": 3,
+    "addedEdgeSource": "user-confirmed-library-passage"
+  },
+  "scope": {
+    "allNamedPlaces": 1148,
+    "kindRoom": 1044,
+    "numberedRoom": 941,
+    "orderedDistinctPairs": 1316756
+  },
+  "method": {
+    "allPairs": "Exact undirected component reachability with only origin+target private areas enabled; current eligible directed edge count is 0. Fallback candidates independently validate shared wall and every candidate external eligible edge is a source door. Zero-door waypoints checked separately through atNeighborDoor; these are not physical links between indexed rooms. No path through other rooms is permitted.",
+    "compressedComponents": 1452,
+    "publicComponents": 272,
+    "eligibleEdges": 41078,
+    "excludedEdges": 143,
+    "dijkstraMainComparisons": 1147,
+    "dijkstraPairSampleChecks": 188,
+    "formedRoutesFromMain": 759,
+    "firstToFourthDijkstraChecks": 10
+  },
+  "mainEntrance": {
+    "id": "v-78--floor-2--9yb",
+    "label": "Главный вход",
+    "allPlaces": {
+      "total": 1148,
+      "origin": 1,
+      "exact": 706,
+      "parent": 5,
+      "indexed-neighbor": 48,
+      "unreachable": 388
+    },
+    "kindRoom": {
+      "total": 1044,
+      "origin": 0,
+      "exact": 663,
+      "parent": 5,
+      "indexed-neighbor": 48,
+      "unreachable": 328
+    },
+    "numberedRooms": {
+      "total": 941,
+      "origin": 0,
+      "exact": 619,
+      "parent": 5,
+      "indexed-neighbor": 45,
+      "unreachable": 272
+    }
+  },
+  "allPairs": {
+    "unreachable": 738680,
+    "exact": 500242,
+    "nearby-destination": 34097,
+    "parent": 3535,
+    "nearby-origin": 37534,
+    "both-nearby-destination": 2408,
+    "both-parent": 260
+  },
+  "zeroLengthResults": {
+    "zeroDoorWaypoints": 78,
+    "parentRoomInstructions": 5
+  },
+  "noExternalReachability": {
+    "outgoingZero": [
+      "v-78--floor-0--201",
+      "v-78--floor-0--203",
+      "v-78--floor-0--204",
+      "v-78--floor-0--207",
+      "v-78--floor-0--208",
+      "v-78--floor-0--209",
+      "v-78--floor-0--218",
+      "v-78--floor-0--219",
+      "v-78--floor-0--220",
+      "v-78--floor-0--222",
+      "v-78--floor-0--223",
+      "v-78--floor-0--224",
+      "v-78--floor-0--228",
+      "v-78--floor-0--229",
+      "v-78--floor-0--234",
+      "v-78--floor-0--236",
+      "v-78--floor-0--239",
+      "v-78--floor-0--241",
+      "v-78--floor-0--246",
+      "v-78--floor-0--248",
+      "v-78--floor-0--250",
+      "v-78--floor-0--251",
+      "v-78--floor-0--253",
+      "v-78--floor-0--1x3",
+      "v-78--floor-0--1y7",
+      "v-78--floor-0--1yb",
+      "v-78--floor-0--1yr",
+      "v-78--floor-0--1yx",
+      "v-78--floor-0--1z3",
+      "v-78--floor-0--1z6",
+      "v-78--floor-0--1zb",
+      "v-78--floor-0--1zd",
+      "v-78--floor-0--1zq",
+      "v-78--floor-0--1zr",
+      "v-78--floor-0--1zt",
+      "v-78--floor-0--1zu",
+      "v-78--floor-0--1zv",
+      "v-78--floor-0--1zx",
+      "v-78--floor-0--20b",
+      "v-78--floor-0--20c",
+      "v-78--floor-0--20h",
+      "v-78--floor-0--20l",
+      "v-78--floor-0--20n",
+      "v-78--floor-0--20q",
+      "v-78--floor-0--20r",
+      "v-78--floor-0--20s",
+      "v-78--floor-0--20v",
+      "v-78--floor-0--20y",
+      "v-78--floor-0--21a",
+      "v-78--floor-0--21b",
+      "v-78--floor-0--21e",
+      "v-78--floor-0--21f",
+      "v-78--floor-0--21g",
+      "v-78--floor-0--21h",
+      "v-78--floor-0--21i",
+      "v-78--floor-0--21j",
+      "v-78--floor-0--21m",
+      "v-78--floor-0--21n",
+      "v-78--floor-0--21o",
+      "v-78--floor-0--21q",
+      "v-78--floor-0--21r",
+      "v-78--floor-0--21s",
+      "v-78--floor-0--21t",
+      "v-78--floor-0--21u",
+      "v-78--floor-0--21v",
+      "v-78--floor-0--22a",
+      "v-78--floor-0--22d",
+      "v-78--floor-0--22e",
+      "v-78--floor-0--22f",
+      "v-78--floor-0--22i",
+      "v-78--floor-0--22l",
+      "v-78--floor-0--22m",
+      "v-78--floor-0--22n",
+      "v-78--floor-0--22o",
+      "v-78--floor-0--22r",
+      "v-78--floor-0--22w",
+      "v-78--floor-0--23a",
+      "v-78--floor-0--23f",
+      "v-78--floor-0--23g",
+      "v-78--floor-0--23o",
+      "v-78--floor-0--23p",
+      "v-78--floor-0--23q",
+      "v-78--floor-0--23r",
+      "v-78--floor-0--23t",
+      "v-78--floor-0--23u",
+      "v-78--floor-0--23v",
+      "v-78--floor-0--23z",
+      "v-78--floor-0--24a",
+      "v-78--floor-0--24g",
+      "v-78--floor-0--24i",
+      "v-78--floor-0--24j",
+      "v-78--floor-0--24k",
+      "v-78--floor-0--24l",
+      "v-78--floor-0--24m",
+      "v-78--floor-0--24p",
+      "v-78--floor-0--24r",
+      "v-78--floor-0--24s",
+      "v-78--floor-0--24t",
+      "v-78--floor-0--24u",
+      "v-78--floor-0--24y",
+      "v-78--floor-0--24z",
+      "v-78--floor-1--67y",
+      "v-78--floor-1--668",
+      "v-78--floor-1--66a",
+      "v-78--floor-1--66m",
+      "v-78--floor-1--66n",
+      "v-78--floor-1--677",
+      "v-78--floor-1--67h",
+      "v-78--floor-1--67k",
+      "v-78--floor-1--67l",
+      "v-78--floor-1--67p",
+      "v-78--floor-1--681",
+      "v-78--floor-1--682",
+      "v-78--floor-1--68b",
+      "v-78--floor-1--68i",
+      "v-78--floor-1--692",
+      "v-78--floor-1--69i",
+      "v-78--floor-1--69y",
+      "v-78--floor-1--6an",
+      "v-78--floor-1--6ap",
+      "v-78--floor-1--6b7",
+      "v-78--floor-1--6bn",
+      "v-78--floor-1--6c6",
+      "v-78--floor-1--6dm",
+      "v-78--floor-1--6e3",
+      "v-78--floor-1--6ev",
+      "v-78--floor-1--6f1",
+      "v-78--floor-1--6ff",
+      "v-78--floor-1--6g1",
+      "v-78--floor-1--6gm",
+      "v-78--floor-1--6gn",
+      "v-78--floor-1--6gp",
+      "v-78--floor-1--6gr",
+      "v-78--floor-1--6gt",
+      "v-78--floor-1--6gu",
+      "v-78--floor-1--6gy",
+      "v-78--floor-1--6gz",
+      "v-78--floor-1--6h1",
+      "v-78--floor-1--6h4",
+      "v-78--floor-1--6h6",
+      "v-78--floor-1--6h9",
+      "v-78--floor-1--6ha",
+      "v-78--floor-1--6hb",
+      "v-78--floor-1--6hc",
+      "v-78--floor-1--6hg",
+      "v-78--floor-1--6hk",
+      "v-78--floor-1--6hl",
+      "v-78--floor-1--6hn",
+      "v-78--floor-1--6ho",
+      "v-78--floor-1--6hp",
+      "v-78--floor-1--6hq",
+      "v-78--floor-1--6hs",
+      "v-78--floor-1--6ht",
+      "v-78--floor-1--6hu",
+      "v-78--floor-1--6hv",
+      "v-78--floor-1--6hx",
+      "v-78--floor-1--6hy",
+      "v-78--floor-1--6hz",
+      "v-78--floor-1--6i0",
+      "v-78--floor-1--6i3",
+      "v-78--floor-1--6i4",
+      "v-78--floor-1--6i5",
+      "v-78--floor-1--6i6",
+      "v-78--floor-1--6i7",
+      "v-78--floor-1--6i9",
+      "v-78--floor-1--6ie",
+      "v-78--floor-1--6ig",
+      "v-78--floor-1--6ij",
+      "v-78--floor-1--6io",
+      "v-78--floor-1--6it",
+      "v-78--floor-1--6iu",
+      "v-78--floor-1--6iv",
+      "v-78--floor-1--6j1",
+      "v-78--floor-1--6j3",
+      "v-78--floor-1--6j4",
+      "v-78--floor-1--6ja",
+      "v-78--floor-1--6jd",
+      "v-78--floor-1--6kc",
+      "v-78--floor-1--6kn",
+      "v-78--floor-1--6ko",
+      "v-78--floor-1--6kr",
+      "v-78--floor-1--6l1",
+      "v-78--floor-1--6l6",
+      "v-78--floor-1--6l7",
+      "v-78--floor-1--6la",
+      "v-78--floor-1--6ld",
+      "v-78--floor-1--6lg",
+      "v-78--floor-1--6lm",
+      "v-78--floor-1--6lv",
+      "v-78--floor-1--6m3",
+      "v-78--floor-2--a3f",
+      "v-78--floor-2--a42",
+      "v-78--floor-2--a46",
+      "v-78--floor-2--a4a",
+      "v-78--floor-2--a5f",
+      "v-78--floor-2--a5o",
+      "v-78--floor-2--a5w",
+      "v-78--floor-2--a5x",
+      "v-78--floor-2--a5y",
+      "v-78--floor-2--a62",
+      "v-78--floor-2--a67",
+      "v-78--floor-2--a6e",
+      "v-78--floor-2--a6i",
+      "v-78--floor-2--a6p",
+      "v-78--floor-2--a7f",
+      "v-78--floor-2--a7g",
+      "v-78--floor-2--a9c",
+      "v-78--floor-2--aa3",
+      "v-78--floor-3--cq3",
+      "v-78--floor-3--crc",
+      "v-78--floor-3--ct6",
+      "v-78--floor-3--ct9",
+      "v-78--floor-3--ctu",
+      "v-78--floor-3--cun",
+      "v-78--floor-3--cut",
+      "v-78--floor-3--cv2",
+      "v-78--floor-3--cvh",
+      "v-78--floor-3--cvl",
+      "v-78--floor-3--cwf",
+      "v-78--floor-3--cwi",
+      "v-78--floor-3--cwn",
+      "v-78--floor-3--cwu",
+      "v-78--floor-3--cwv",
+      "v-78--floor-3--cwz",
+      "v-78--floor-3--cxa",
+      "v-78--floor-4--dfw",
+      "v-78--floor-4--dg6",
+      "v-78--floor-4--dgj",
+      "v-78--floor-4--dgr",
+      "v-78--floor-4--dgv",
+      "v-78--floor-4--dgy",
+      "v-78--floor-4--dh3",
+      "v-78--floor-4--dh4"
+    ],
+    "incomingZero": [
+      "v-78--floor-0--201",
+      "v-78--floor-0--203",
+      "v-78--floor-0--204",
+      "v-78--floor-0--207",
+      "v-78--floor-0--208",
+      "v-78--floor-0--209",
+      "v-78--floor-0--218",
+      "v-78--floor-0--219",
+      "v-78--floor-0--220",
+      "v-78--floor-0--222",
+      "v-78--floor-0--223",
+      "v-78--floor-0--224",
+      "v-78--floor-0--228",
+      "v-78--floor-0--229",
+      "v-78--floor-0--234",
+      "v-78--floor-0--236",
+      "v-78--floor-0--239",
+      "v-78--floor-0--241",
+      "v-78--floor-0--246",
+      "v-78--floor-0--248",
+      "v-78--floor-0--250",
+      "v-78--floor-0--251",
+      "v-78--floor-0--253",
+      "v-78--floor-0--1x3",
+      "v-78--floor-0--1y7",
+      "v-78--floor-0--1yb",
+      "v-78--floor-0--1yr",
+      "v-78--floor-0--1yx",
+      "v-78--floor-0--1z3",
+      "v-78--floor-0--1z6",
+      "v-78--floor-0--1zb",
+      "v-78--floor-0--1zd",
+      "v-78--floor-0--1zq",
+      "v-78--floor-0--1zr",
+      "v-78--floor-0--1zt",
+      "v-78--floor-0--1zu",
+      "v-78--floor-0--1zv",
+      "v-78--floor-0--1zx",
+      "v-78--floor-0--20b",
+      "v-78--floor-0--20c",
+      "v-78--floor-0--20h",
+      "v-78--floor-0--20l",
+      "v-78--floor-0--20n",
+      "v-78--floor-0--20q",
+      "v-78--floor-0--20r",
+      "v-78--floor-0--20s",
+      "v-78--floor-0--20v",
+      "v-78--floor-0--20y",
+      "v-78--floor-0--21a",
+      "v-78--floor-0--21b",
+      "v-78--floor-0--21e",
+      "v-78--floor-0--21f",
+      "v-78--floor-0--21g",
+      "v-78--floor-0--21h",
+      "v-78--floor-0--21i",
+      "v-78--floor-0--21j",
+      "v-78--floor-0--21m",
+      "v-78--floor-0--21n",
+      "v-78--floor-0--21o",
+      "v-78--floor-0--21q",
+      "v-78--floor-0--21r",
+      "v-78--floor-0--21s",
+      "v-78--floor-0--21t",
+      "v-78--floor-0--21u",
+      "v-78--floor-0--21v",
+      "v-78--floor-0--22a",
+      "v-78--floor-0--22d",
+      "v-78--floor-0--22e",
+      "v-78--floor-0--22f",
+      "v-78--floor-0--22i",
+      "v-78--floor-0--22l",
+      "v-78--floor-0--22m",
+      "v-78--floor-0--22n",
+      "v-78--floor-0--22o",
+      "v-78--floor-0--22r",
+      "v-78--floor-0--22w",
+      "v-78--floor-0--23a",
+      "v-78--floor-0--23f",
+      "v-78--floor-0--23g",
+      "v-78--floor-0--23o",
+      "v-78--floor-0--23p",
+      "v-78--floor-0--23q",
+      "v-78--floor-0--23r",
+      "v-78--floor-0--23t",
+      "v-78--floor-0--23u",
+      "v-78--floor-0--23v",
+      "v-78--floor-0--23z",
+      "v-78--floor-0--24a",
+      "v-78--floor-0--24g",
+      "v-78--floor-0--24i",
+      "v-78--floor-0--24j",
+      "v-78--floor-0--24k",
+      "v-78--floor-0--24l",
+      "v-78--floor-0--24m",
+      "v-78--floor-0--24p",
+      "v-78--floor-0--24r",
+      "v-78--floor-0--24s",
+      "v-78--floor-0--24t",
+      "v-78--floor-0--24u",
+      "v-78--floor-0--24y",
+      "v-78--floor-0--24z",
+      "v-78--floor-1--67y",
+      "v-78--floor-1--668",
+      "v-78--floor-1--66a",
+      "v-78--floor-1--66m",
+      "v-78--floor-1--66n",
+      "v-78--floor-1--677",
+      "v-78--floor-1--67h",
+      "v-78--floor-1--67k",
+      "v-78--floor-1--67l",
+      "v-78--floor-1--67p",
+      "v-78--floor-1--681",
+      "v-78--floor-1--682",
+      "v-78--floor-1--68b",
+      "v-78--floor-1--68i",
+      "v-78--floor-1--692",
+      "v-78--floor-1--69i",
+      "v-78--floor-1--69y",
+      "v-78--floor-1--6an",
+      "v-78--floor-1--6ap",
+      "v-78--floor-1--6b7",
+      "v-78--floor-1--6bn",
+      "v-78--floor-1--6c6",
+      "v-78--floor-1--6dm",
+      "v-78--floor-1--6e3",
+      "v-78--floor-1--6ev",
+      "v-78--floor-1--6f1",
+      "v-78--floor-1--6ff",
+      "v-78--floor-1--6g1",
+      "v-78--floor-1--6gm",
+      "v-78--floor-1--6gn",
+      "v-78--floor-1--6gp",
+      "v-78--floor-1--6gr",
+      "v-78--floor-1--6gt",
+      "v-78--floor-1--6gu",
+      "v-78--floor-1--6gy",
+      "v-78--floor-1--6gz",
+      "v-78--floor-1--6h1",
+      "v-78--floor-1--6h4",
+      "v-78--floor-1--6h6",
+      "v-78--floor-1--6h9",
+      "v-78--floor-1--6ha",
+      "v-78--floor-1--6hb",
+      "v-78--floor-1--6hc",
+      "v-78--floor-1--6hg",
+      "v-78--floor-1--6hk",
+      "v-78--floor-1--6hl",
+      "v-78--floor-1--6hn",
+      "v-78--floor-1--6ho",
+      "v-78--floor-1--6hp",
+      "v-78--floor-1--6hq",
+      "v-78--floor-1--6hs",
+      "v-78--floor-1--6ht",
+      "v-78--floor-1--6hu",
+      "v-78--floor-1--6hv",
+      "v-78--floor-1--6hx",
+      "v-78--floor-1--6hy",
+      "v-78--floor-1--6hz",
+      "v-78--floor-1--6i0",
+      "v-78--floor-1--6i3",
+      "v-78--floor-1--6i4",
+      "v-78--floor-1--6i5",
+      "v-78--floor-1--6i6",
+      "v-78--floor-1--6i7",
+      "v-78--floor-1--6i9",
+      "v-78--floor-1--6ie",
+      "v-78--floor-1--6ig",
+      "v-78--floor-1--6ij",
+      "v-78--floor-1--6io",
+      "v-78--floor-1--6it",
+      "v-78--floor-1--6iu",
+      "v-78--floor-1--6iv",
+      "v-78--floor-1--6j1",
+      "v-78--floor-1--6j3",
+      "v-78--floor-1--6j4",
+      "v-78--floor-1--6ja",
+      "v-78--floor-1--6jd",
+      "v-78--floor-1--6kc",
+      "v-78--floor-1--6kn",
+      "v-78--floor-1--6ko",
+      "v-78--floor-1--6kr",
+      "v-78--floor-1--6l1",
+      "v-78--floor-1--6l6",
+      "v-78--floor-1--6l7",
+      "v-78--floor-1--6la",
+      "v-78--floor-1--6ld",
+      "v-78--floor-1--6lg",
+      "v-78--floor-1--6lm",
+      "v-78--floor-1--6lv",
+      "v-78--floor-1--6m3",
+      "v-78--floor-2--a3f",
+      "v-78--floor-2--a42",
+      "v-78--floor-2--a46",
+      "v-78--floor-2--a4a",
+      "v-78--floor-2--a5f",
+      "v-78--floor-2--a5o",
+      "v-78--floor-2--a5w",
+      "v-78--floor-2--a5x",
+      "v-78--floor-2--a5y",
+      "v-78--floor-2--a62",
+      "v-78--floor-2--a67",
+      "v-78--floor-2--a6e",
+      "v-78--floor-2--a6i",
+      "v-78--floor-2--a6p",
+      "v-78--floor-2--a7f",
+      "v-78--floor-2--a7g",
+      "v-78--floor-2--a9c",
+      "v-78--floor-2--aa3",
+      "v-78--floor-3--cq3",
+      "v-78--floor-3--crc",
+      "v-78--floor-3--ct6",
+      "v-78--floor-3--ct9",
+      "v-78--floor-3--ctu",
+      "v-78--floor-3--cun",
+      "v-78--floor-3--cut",
+      "v-78--floor-3--cv2",
+      "v-78--floor-3--cvh",
+      "v-78--floor-3--cvl",
+      "v-78--floor-3--cwf",
+      "v-78--floor-3--cwi",
+      "v-78--floor-3--cwn",
+      "v-78--floor-3--cwu",
+      "v-78--floor-3--cwv",
+      "v-78--floor-3--cwz",
+      "v-78--floor-3--cxa",
+      "v-78--floor-4--dfw",
+      "v-78--floor-4--dg6",
+      "v-78--floor-4--dgj",
+      "v-78--floor-4--dgr",
+      "v-78--floor-4--dgv",
+      "v-78--floor-4--dgy",
+      "v-78--floor-4--dh3",
+      "v-78--floor-4--dh4"
+    ]
+  },
+  "multiFloorExamples": [
+    {
+      "roomId": "v-78--floor-0--200",
+      "label": "Г-103-1",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20721",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20714",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--205",
+      "label": "Г-112",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20721",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20714",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--206",
+      "label": "Г-100",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20721",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20714",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--210",
+      "label": "Г-100.2",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20721",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20714",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--213",
+      "label": "Г-105а",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20721",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20714",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--214",
+      "label": "Туалет Ж",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20721",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20714",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--225",
+      "label": "Д-115",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20724",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20717",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--226",
+      "label": "Д-117-1",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20724",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20717",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--1x4",
+      "label": "Б-110",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20723",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20716",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--1x5",
+      "label": "Б-108",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20723",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20716",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--1x7",
+      "label": "Б-106",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20723",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20716",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    },
+    {
+      "roomId": "v-78--floor-0--1xc",
+      "label": "Б-114",
+      "sourceFloors": [
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitions": [
+        {
+          "edge": "v-78:edge:20723",
+          "from": "v-78-floor2",
+          "to": "v-78-floor1"
+        },
+        {
+          "edge": "v-78:edge:20716",
+          "from": "v-78-floor1",
+          "to": "v-78-floor0"
+        }
+      ]
+    }
+  ],
+  "firstToFourth": [
+    {
+      "from": "А-142в",
+      "to": "А-422",
+      "fromId": "v-78--floor-1--65t",
+      "toId": "v-78--floor-4--dfg",
+      "sourceFloors": [
+        "v-78-floor1",
+        "v-78-floor2",
+        "v-78-floor3",
+        "v-78-floor4"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20731",
+        "v-78:edge:20744",
+        "v-78:edge:20756"
+      ]
+    },
+    {
+      "from": "А-422",
+      "to": "А-142в",
+      "fromId": "v-78--floor-4--dfg",
+      "toId": "v-78--floor-1--65t",
+      "sourceFloors": [
+        "v-78-floor4",
+        "v-78-floor3",
+        "v-78-floor2",
+        "v-78-floor1"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20756",
+        "v-78:edge:20744",
+        "v-78:edge:20731"
+      ]
+    },
+    {
+      "from": "Б-110",
+      "to": "Б-409",
+      "fromId": "v-78--floor-0--1x4",
+      "toId": "v-78--floor-3--cs4",
+      "sourceFloors": [
+        "v-78-floor0",
+        "v-78-floor1",
+        "v-78-floor2",
+        "v-78-floor3"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20716",
+        "v-78:edge:20723",
+        "v-78:edge:20742"
+      ]
+    },
+    {
+      "from": "Б-409",
+      "to": "Б-110",
+      "fromId": "v-78--floor-3--cs4",
+      "toId": "v-78--floor-0--1x4",
+      "sourceFloors": [
+        "v-78-floor3",
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20742",
+        "v-78:edge:20723",
+        "v-78:edge:20716"
+      ]
+    },
+    {
+      "from": "В-112",
+      "to": "В-421-4",
+      "fromId": "v-78--floor-0--1y9",
+      "toId": "v-78--floor-3--ctc",
+      "sourceFloors": [
+        "v-78-floor0",
+        "v-78-floor1",
+        "v-78-floor2",
+        "v-78-floor3"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20715",
+        "v-78:edge:20722",
+        "v-78:edge:20741"
+      ]
+    },
+    {
+      "from": "В-421-4",
+      "to": "В-112",
+      "fromId": "v-78--floor-3--ctc",
+      "toId": "v-78--floor-0--1y9",
+      "sourceFloors": [
+        "v-78-floor3",
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20741",
+        "v-78:edge:20722",
+        "v-78:edge:20715"
+      ]
+    },
+    {
+      "from": "Г-103-1",
+      "to": "Г-416",
+      "fromId": "v-78--floor-0--200",
+      "toId": "v-78--floor-3--cuk",
+      "sourceFloors": [
+        "v-78-floor0",
+        "v-78-floor1",
+        "v-78-floor2",
+        "v-78-floor3"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20714",
+        "v-78:edge:20721",
+        "v-78:edge:20740"
+      ]
+    },
+    {
+      "from": "Г-416",
+      "to": "Г-103-1",
+      "fromId": "v-78--floor-3--cuk",
+      "toId": "v-78--floor-0--200",
+      "sourceFloors": [
+        "v-78-floor3",
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20740",
+        "v-78:edge:20721",
+        "v-78:edge:20714"
+      ]
+    },
+    {
+      "from": "Д-115",
+      "to": "Д-410",
+      "fromId": "v-78--floor-0--225",
+      "toId": "v-78--floor-3--cw8",
+      "sourceFloors": [
+        "v-78-floor0",
+        "v-78-floor1",
+        "v-78-floor2",
+        "v-78-floor3"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20717",
+        "v-78:edge:20724",
+        "v-78:edge:20743"
+      ]
+    },
+    {
+      "from": "Д-410",
+      "to": "Д-115",
+      "fromId": "v-78--floor-3--cw8",
+      "toId": "v-78--floor-0--225",
+      "sourceFloors": [
+        "v-78-floor3",
+        "v-78-floor2",
+        "v-78-floor1",
+        "v-78-floor0"
+      ],
+      "transitionEdges": [
+        "v-78:edge:20743",
+        "v-78:edge:20724",
+        "v-78:edge:20717"
+      ]
+    }
+  ],
+  "perBuilding": {
+    "Г": {
+      "total": 174,
+      "origin": 0,
+      "exact": 106,
+      "parent": 5,
+      "indexed-neighbor": 17,
+      "unreachable": 46
+    },
+    "?": {
+      "total": 165,
+      "origin": 1,
+      "exact": 50,
+      "parent": 0,
+      "indexed-neighbor": 0,
+      "unreachable": 114
+    },
+    "Д": {
+      "total": 123,
+      "origin": 0,
+      "exact": 73,
+      "parent": 0,
+      "indexed-neighbor": 1,
+      "unreachable": 49
+    },
+    "Б": {
+      "total": 111,
+      "origin": 0,
+      "exact": 77,
+      "parent": 0,
+      "indexed-neighbor": 4,
+      "unreachable": 30
+    },
+    "В": {
+      "total": 123,
+      "origin": 0,
+      "exact": 94,
+      "parent": 0,
+      "indexed-neighbor": 4,
+      "unreachable": 25
+    },
+    "ИВЦ": {
+      "total": 41,
+      "origin": 0,
+      "exact": 37,
+      "parent": 0,
+      "indexed-neighbor": 3,
+      "unreachable": 1
+    },
+    "А": {
+      "total": 259,
+      "origin": 0,
+      "exact": 204,
+      "parent": 0,
+      "indexed-neighbor": 17,
+      "unreachable": 38
+    },
+    "И": {
+      "total": 108,
+      "origin": 0,
+      "exact": 65,
+      "parent": 0,
+      "indexed-neighbor": 2,
+      "unreachable": 41
+    },
+    "Е": {
+      "total": 44,
+      "origin": 0,
+      "exact": 0,
+      "parent": 0,
+      "indexed-neighbor": 0,
+      "unreachable": 44
+    }
+  }
+}

@@ -1,6 +1,7 @@
-// Two first-floor cells independently identified on IMG_3219: ЛК8 beside
-// А-115/the cafeteria and ЛК9 beside А-107.1/the toilets. Portal references
-// identify retained source transitions; the model never adds their trajectory.
+// First-floor cells independently identified on local photos. IMG_3219 gives
+// observed LK8/LK9 shapes; IMG_3220 only partially shows LK5, so its profile is
+// explicitly schematic. Portal references retain source transitions; these
+// display models never add a route trajectory or alter the source graph.
 export const photographedStairCounterparts = [
   {
     layoutId: "v78-А-1-photo-ЛК-8",
@@ -60,5 +61,50 @@ export const photographedStairCounterparts = [
       size: [3.7579246596126525, 7.403951399149254],
     },
     landmarkNote: "ЛК9 на IMG_3219, рядом с туалетами и А-107.1.",
+  },
+  {
+    layoutId: "v78-А-1-photo-ЛК-5",
+    floorId: "v-78-floor1",
+    building: "А",
+    physicalFloor: 1,
+    label: "ЛК-5",
+    sourceEdgeId: "v-78:edge:20727",
+    sourceTransitionId: "tr-7qh_cYOGz",
+    position: [-4.95, 2.8714],
+    targetFloorId: "v-78-floor2",
+    targetPosition: [-2.466, 1.6654],
+    sourceAreaId: "v-78-floor1-area-174",
+    sourceAreaCenter: [-4.819, 4.2919],
+    sourceAreaPoints: [
+      [-3.82, 0.9014],
+      [-7.79, 2.2624],
+      [-6.066, 7.0624],
+      [-5.557, 8.4264],
+      [-1.618, 7.0604],
+      [-2.184, 5.3794],
+      [-2.97, 3.2044],
+    ],
+    frame: {
+      origin: [-1.794542529932749, 6.977980292516499],
+      axisU: [-0.9459563885308774, 0.32429386518653],
+      axisV: [-0.32429386518653, -0.9459563885308774],
+      size: [3.992207536317684, 6.255023379865849],
+    },
+    sourcePhotoIds: ["photo-3220"],
+    sourcePhotos: ["/data/photos/IMG_3220.jpg"],
+    shapeStatus: "user-authorized-schematic",
+    shapeReviewStatus: "user-authorized-schematic",
+    shapeSourcePhotoIds: [],
+    shapeSourcePhotos: [],
+    geometryStatus: "user-authorized-schematic",
+    geometrySource: "source-portal-and-local-photo-with-schematic-profile",
+    geometryEvidence: {
+      date: "2026-11-12",
+      type: "local-photo-existence-user-authorized-schematic-profile",
+      description:
+        "IMG_3220 показывает лестницу рядом с двумя туалетами и А-172. Полная форма не читается; условные объёмные модели разрешены пользователем. Два возвратных марша — параметр визуализации, не подтверждённая геометрия.",
+    },
+    landmarkNote: "ЛК5 на IMG_3220, рядом с двумя туалетами и А-172.",
+    note: "Место лестницы найдено на плане А1 IMG_3220 рядом с двумя туалетами и А-172. Фото подтверждает наличие лестницы, но не полную форму маршей. С разрешения пользователя показана условная объёмная U-схема в исходной клетке. Высота, направление подъёма, размеры и число ступеней не измерены; эвакуационные стрелки не определяют направление подъёма.",
   },
 ];

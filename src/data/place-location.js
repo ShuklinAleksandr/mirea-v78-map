@@ -124,7 +124,9 @@ export function presentPlaceIdentity(room, floor = null) {
       ? {
           building: null,
           note:
-            room.shapeReviewStatus === "user-confirmed-schematic" && room.note
+            ["user-confirmed-schematic", "user-authorized-schematic"].includes(
+              room.shapeReviewStatus,
+            ) && room.note
               ? room.note
               : correction.note,
         }

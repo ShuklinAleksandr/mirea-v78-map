@@ -1,5 +1,6 @@
 import { isCurrentUserLocation } from "./user-location.js";
 import { getHallAdjacencyView } from "../map/hall-adjacency.js";
+import { withLibraryPassageFloor } from "./library-passage.js";
 import { getSurveyBlockedEdges } from "./survey-routing.js";
 import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
 import {
@@ -156,7 +157,7 @@ export function attachCurrentRouteEndpoint(
       "location-floor-unavailable",
       "Для этой точки не найден выбранный план этажа. Уточните своё место.",
     );
-  const floor = getHallAdjacencyView(sourceFloor);
+  const floor = withLibraryPassageFloor(getHallAdjacencyView(sourceFloor));
   if (
     floor.footprints?.length &&
     !floor.footprints.some((p) => inside(location.point, p))

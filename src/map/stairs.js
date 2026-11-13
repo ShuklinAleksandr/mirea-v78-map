@@ -5,6 +5,11 @@ import { getFloorMarkers } from "../data/utils.js";
 import { libraryStairLayoutsForFloor } from "./library-stair.js";
 import { photoCounterpartStairLayoutsForFloor } from "./stair-counterparts.js";
 import { iMainStairLayoutsForFloor } from "./i-main-stair.js";
+import {
+  firstFloorSchematicLayoutsForFloor,
+  remainingStairSchematicLayoutsForFloor,
+} from "./first-floor-stair-schematics.js";
+import { firstFloorStairSchematics } from "../data/first-floor-stair-schematics.js";
 import { middleStairArrival } from "./stair-arrivals.js";
 import { structuralStairOpenings } from "./stair-structural-openings.js";
 import { stairFlightSolid } from "./stair-solid.js";
@@ -17,8 +22,17 @@ import registry from "../../public/data/stair-layouts.json" with { type: "json" 
 
 const finitePoint = (point) =>
   Array.isArray(point) && point.length >= 2 && point.every(Number.isFinite);
+const isSchematic = (layout) =>
+  ["user-confirmed-schematic", "user-authorized-schematic"].includes(
+    layout?.shapeReviewStatus,
+  );
 
 const floorStairCache = new WeakMap();
+const namedFirstFloorCells = new Set(
+  firstFloorStairSchematics
+    .filter((ref) => !ref.portals.length)
+    .map((ref) => ref.sourceArea.id),
+);
 // Reuse CPU descriptions only. A source edit must still run every geometry and
 // portal guard, even when an editor retains the same floor object. No Three
 // geometry, height-dependent mesh or material is shared through this cache.
@@ -355,6 +369,8 @@ function displayLayoutsForFloor(floor, cache = stairCacheFor(floor)) {
     ...libraryStairLayoutsForFloor(floor),
     ...photoCounterpartStairLayoutsForFloor(floor),
     ...iMainStairLayoutsForFloor(floor),
+    ...firstFloorSchematicLayoutsForFloor(floor),
+    ...remainingStairSchematicLayoutsForFloor(floor),
     ...scanBackedStairLayoutsForFloor(floor),
   ]));
 }
@@ -488,7 +504,7 @@ export function getStairRoutePaths(
   { stack = false } = {},
 ) {
   const layouts = displayLayoutsForFloor(floor).filter(
-    (layout) => layout.shapeReviewStatus !== "user-confirmed-schematic",
+    (layout) => !isSchematic(layout),
   );
   const paths = [];
   for (const transition of route?.transitions || []) {
@@ -613,13 +629,17 @@ export function getPhotoStairMarkers(
     floorId: layout.floorId,
     hasPolygon: false,
     source:
-      layout.existenceStatus === "user-confirmed-existence"
-        ? "user-confirmed-location"
-        : "photo-fire-plan",
+      layout.existenceStatus === "source-graph-existence"
+        ? "source-navigation-graph"
+        : layout.existenceStatus === "user-confirmed-existence"
+          ? "user-confirmed-location"
+          : "photo-fire-plan",
     confidence:
-      layout.existenceStatus === "user-confirmed-existence"
-        ? "user-confirmed-existence"
-        : "photo-plan",
+      layout.existenceStatus === "source-graph-existence"
+        ? "source-graph"
+        : layout.existenceStatus === "user-confirmed-existence"
+          ? "user-confirmed-existence"
+          : "photo-plan",
     existenceStatus: layout.existenceStatus,
     destinationLabel:
       layout.id === "v-78-floor1-user-stair-basement"
@@ -629,7 +649,7 @@ export function getPhotoStairMarkers(
     routingStatus: layout.routingStatus,
     note: layout.incomingDisplay
       ? "На этом этаже показаны ближайшие марши вверх и вниз в разрезе. Высоты и размеры приблизительные."
-      : layout.shapeReviewStatus === "user-confirmed-schematic"
+      : isSchematic(layout)
         ? layout.note
         : layout.id === a146Stair.layoutId
           ? a146Stair.note
@@ -803,7 +823,11 @@ export function withConfirmedStairSearch(index = [], floors = []) {
     for (const marker of getMapStairMarkers(floor)) {
       // The campus nickname points to the stair at the main entrance hall.
       const mainStair = marker.layoutId === "v-78-floor2-photo-stair-wide-hall";
-      if (mainStair || marker.shapeReviewStatus === "user-confirmed-schematic")
+      if (
+        mainStair ||
+        (isSchematic(marker) &&
+          !index.some((place) => place.id === marker.fitAreaId))
+      )
         entries.push({
           ...marker,
           ...(mainStair
@@ -820,6 +844,25 @@ export function withConfirmedStairSearch(index = [], floors = []) {
  * not move. Other polygons labelled A146 are separate places and stay intact.
  */
 export function presentStairIdentity(place, floor = null) {
+  if (place && floor && namedFirstFloorCells.has(place.id)) {
+    const named = firstFloorSchematicLayoutsForFloor(floor).find(
+      (layout) =>
+        !layout.sourceMarkerIds.length && layout.fitAreaId === place.id,
+    );
+    if (named) {
+      const marker = getMapStairMarkers(floor).find(
+        (m) => m.layoutId === named.id,
+      );
+      if (marker)
+        return {
+          ...place,
+          ...marker,
+          sourcePlaceId: place.id,
+          sourceLabel: place.label,
+          sourceKind: place.kind,
+        };
+    }
+  }
   if (place?.kind === "stairs" && floor) {
     const libraries = libraryStairLayoutsForFloor(floor);
     if (libraries.length) {
@@ -986,15 +1029,18 @@ export function createStaircase(
   const group = new THREE.Group();
   group.position.set(anchor[0], 0, anchor[1]);
   const userConfirmed = layout.existenceStatus === "user-confirmed-existence";
-  const schematic = layout.shapeReviewStatus === "user-confirmed-schematic";
+  const schematic = isSchematic(layout);
   const geometryStatus = schematic
-    ? "user-confirmed-schematic"
+    ? layout.shapeReviewStatus
     : userConfirmed
       ? "user-confirmed-stair-approximate-geometry"
       : "photo-plan-layout-approximate-vertical";
-  group.name = userConfirmed
-    ? `${layout.label} · схема по описанию, размеры приблизительные`
-    : `${layout.label} · план ${layout.sourcePhotoIds.join(", ")}`;
+  group.name =
+    layout.shapeReviewStatus === "user-authorized-schematic"
+      ? `${layout.label} · условная модель, форма уточняется`
+      : userConfirmed
+        ? `${layout.label} · схема по описанию, размеры приблизительные`
+        : `${layout.label} · план ${layout.sourcePhotoIds.join(", ")}`;
   group.userData = {
     room: marker,
     approximate: true,
@@ -1030,7 +1076,7 @@ export function createStaircase(
     layoutsUrl: "/data/stair-layouts.json",
     note: layout.displayOnlyArrival
       ? "Приходящий снизу марш на последнем доступном плане корпуса; выше переход не подтверждён. Форма по местному фотоплану, вертикальные размеры приблизительны."
-      : userConfirmed
+      : schematic || userConfirmed
         ? layout.note
         : "Марши и площадки — по пожарному плану; высота, число ступеней и поручни приблизительны.",
   };

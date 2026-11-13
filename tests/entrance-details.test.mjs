@@ -65,7 +65,11 @@ test("entrance sequence keeps the enclosed source vestibule before frames and se
           1e-10,
       );
     for (const center of layout.turnstiles.centers)
-      assert.ok(distanceAlong(center, layout.inner.a, layout.innerInside) > 3);
+      assert.ok(
+        Math.abs(
+          distanceAlong(center, layout.inner.a, layout.innerInside) - 1.6,
+        ) < 1e-10,
+      );
     const desk = layout.guard;
     assert.equal(desk.sourcePolygonId, hall.id);
     assert.equal(desk.publicEntrance, false);
@@ -80,8 +84,10 @@ test("entrance sequence keeps the enclosed source vestibule before frames and se
       "desk begins after detector boundary",
     );
     assert.ok(
-      depth + desk.deskLength / 2 < layout.turnstiles.depthAfterInnerBoundary,
-      "desk ends before turnstiles",
+      Math.abs(
+        depth + desk.deskLength / 2 - layout.turnstiles.depthAfterInnerBoundary,
+      ) < 1e-10,
+      "desk ends at the bank instead of protruding behind it",
     );
     assert.ok(
       distanceAlong(desk.center, layout.inner.a, layout.innerAlong) < 0,
@@ -99,6 +105,74 @@ test("entrance sequence keeps the enclosed source vestibule before frames and se
     );
   }
   assert.equal(JSON.stringify(source), before);
+});
+
+test("the dense turnstile bank joins the desk to the nearest right-hand entrance wall, without crossing the hall to the buffet", () => {
+  for (const floor of [source, getHallAdjacencyView(source)]) {
+    const layout = getEntranceLayout(floor);
+    const { turnstiles: bank, guard } = layout;
+    assert.deepEqual(
+      [bank.boundary.wall.a, bank.boundary.wall.b].sort((a, b) => a[0] - b[0]),
+      [
+        [56.252, 34.9524],
+        [57.526, 33.0644],
+      ],
+    );
+    assert.ok(bank.boundary.across < layout.innerWidth + 2);
+    assert.ok(bank.count > 3 && bank.count <= 20);
+    assert.ok(bank.pitch >= 0.8 && bank.pitch <= 1);
+    assert.equal(bank.postCenters.length, bank.count + 1);
+    const across = (point) =>
+      distanceAlong(point, layout.inner.a, layout.innerAlong);
+    assert.ok(
+      Math.abs(
+        across(bank.start) - across(guard.center) - guard.deskDepth / 2,
+      ) < 1e-10,
+      "bank begins against the right side of the security desk",
+    );
+    assert.ok(
+      bank.boundary.across - across(bank.end) < 0.15,
+      "final post reaches the sloping wall without a large end gap",
+    );
+    for (let i = 1; i < bank.postCenters.length; i++)
+      assert.ok(
+        Math.abs(
+          across(bank.postCenters[i]) -
+            across(bank.postCenters[i - 1]) -
+            bank.pitch,
+        ) < 1e-10,
+        "adjacent passages share one post at a consistent dense pitch",
+      );
+    const group = createEntranceDetails(floor);
+    try {
+      const posts = group.userData.parts.filter(
+        (part) => part.kind === "turnstile-post",
+      );
+      const arms = group.userData.parts.filter(
+        (part) => part.kind === "turnstile-arm",
+      );
+      assert.equal(posts.length, bank.count + 1);
+      assert.equal(arms.length, bank.count);
+      for (let i = 0; i < arms.length; i++) {
+        assert.ok(
+          Math.abs(
+            across(arms[i].center) -
+              arms[i].length / 2 -
+              (across(posts[i].center) + posts[i].length / 2),
+          ) < 1e-10,
+        );
+        assert.ok(
+          Math.abs(
+            across(arms[i].center) +
+              arms[i].length / 2 -
+              (across(posts[i + 1].center) - posts[i + 1].length / 2),
+          ) < 1e-10,
+        );
+      }
+    } finally {
+      dispose(group);
+    }
+  }
 });
 
 test("only the two confirmed cross-wall banks open; both vestibule sides and the entire adjacent room remain intact", () => {
@@ -202,7 +276,7 @@ test("untextured entrance landmarks fit retained source areas and use only two b
         (n, m) => n + m.geometry.attributes.position.count,
         0,
       );
-      assert.ok(vertices / 3 <= 650, "bounded lightweight geometry");
+      assert.ok(vertices / 3 <= 1000, "bounded lightweight geometry");
       for (const mesh of group.children) {
         assert.equal(mesh.castShadow, false);
         assert.equal(mesh.receiveShadow, false);
@@ -237,6 +311,11 @@ test("changed source identities or unavailable furniture space fail closed inste
       [44, 34.5],
       [42, 34.5],
     ]);
+  const noLocalWall = structuredClone(source);
+  const changedHall = noLocalWall.polygons.find((p) => p.id === hall.id);
+  changedHall.points = changedHall.points.map((point) =>
+    [57.526, 60.303, 63.232].includes(point[0]) ? [point[0], 35.5] : point,
+  );
   const cases = [
     { ...source, campusId: "v-86" },
     { ...source, id: "v-78-floor1" },
@@ -266,6 +345,7 @@ test("changed source identities or unavailable furniture space fail closed inste
       ),
     },
     altered,
+    noLocalWall,
   ];
   for (const floor of cases) {
     assert.equal(getEntranceLayout(floor), null);

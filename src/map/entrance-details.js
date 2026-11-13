@@ -141,13 +141,29 @@ export function createEntranceDetails(floor, { plan = false } = {}) {
       0.14,
       1.05,
     );
-  for (const center of layout.turnstiles.centers) {
-    for (const offset of [-0.56, 0.56]) {
-      const point = center.map((value, i) => value + innerAlong[i] * offset);
-      add("turnstile-post", point, innerAlong, 0.22, 0.42, 0.86, 0.14, 1);
-    }
-    add("turnstile-arm", center, innerAlong, 0.92, 0.055, 0.055, 0.84, 1);
-  }
+  const bank = layout.turnstiles;
+  for (const center of bank.postCenters)
+    add(
+      "turnstile-post",
+      center,
+      innerAlong,
+      bank.postWidth,
+      bank.postDepth,
+      0.86,
+      0.14,
+      1,
+    );
+  for (const center of bank.centers)
+    add(
+      "turnstile-arm",
+      center,
+      innerAlong,
+      bank.pitch - bank.postWidth,
+      0.055,
+      0.055,
+      0.84,
+      1,
+    );
   const guard = layout.guard;
   add(
     "security-desk",

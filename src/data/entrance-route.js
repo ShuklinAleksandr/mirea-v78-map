@@ -1,6 +1,7 @@
 import { findRoute } from "./routing.js";
 import { entranceHint } from "./entrance-hints.js";
 import { indexedRoomNeighbors } from "./indexed-room-neighbors.js";
+import { atNeighborDoor } from "./neighbor-door-route.js";
 
 const roomKey = (room) =>
   typeof room === "string" ? room : room?.roomId || room?.id;
@@ -95,7 +96,7 @@ function findParentNavigationRoute(graph, from, to, options, exact) {
  * Prefer the explicitly confirmed parent relationship; otherwise require both
  * plan adjacency and a reachable original door of a room in the same group.
  */
-export function findNavigationRoute(graph, from, to, options = {}) {
+function findDestinationNavigationRoute(graph, from, to, options) {
   const exact = findRoute(graph, from, to, options);
   if (exact.ok || exact.code !== "no-path") return exact;
   const parentRoute = findParentNavigationRoute(
@@ -111,7 +112,9 @@ export function findNavigationRoute(graph, from, to, options = {}) {
   const target = graph.rooms[targetId];
   const floor = options.floors?.find((item) => item.id === target?.floorId);
   for (const candidate of indexedRoomNeighbors(graph, targetId, floor)) {
-    const route = findRoute(graph, from, candidate.roomId, options);
+    let route = findRoute(graph, from, candidate.roomId, options);
+    if (route.code === "same-place" && roomKey(from) === candidate.roomId)
+      route = atNeighborDoor(graph, candidate.roomId, options) || route;
     const doorway = route.nodes?.at(-1);
     if (
       !route.ok ||
@@ -147,6 +150,90 @@ export function findNavigationRoute(graph, from, to, options = {}) {
         },
       ],
       distanceStatus: "nearby-door-only",
+    };
+  }
+  return exact;
+}
+
+/** The same checked neighbouring doorway can start a route from an indexed
+ * room whose own exit is missing. Do not draw a connector from that room,
+ * rename the real start door, or infer a passage through the shared wall.
+ */
+export function findNavigationRoute(graph, from, to, options = {}) {
+  const exact = findDestinationNavigationRoute(graph, from, to, options);
+  if (exact.ok || exact.code !== "no-path" || graph.campusId !== "v-78")
+    return exact;
+  const originId = roomKey(from);
+  const origin = graph.rooms[originId];
+  const floor = options.floors?.find((item) => item.id === origin?.floorId);
+  for (const candidate of indexedRoomNeighbors(graph, originId, floor)) {
+    let route = findDestinationNavigationRoute(
+      graph,
+      candidate.roomId,
+      to,
+      options,
+    );
+    if (route.code === "same-place" && roomKey(to) === candidate.roomId)
+      route = atNeighborDoor(graph, candidate.roomId, options) || route;
+    if (
+      route.ok &&
+      route.lastLeg?.kind === "inside-parent" &&
+      route.start.roomId === candidate.roomId &&
+      route.end.roomId === candidate.roomId &&
+      route.edges.length === 0
+    ) {
+      const waypoint = atNeighborDoor(graph, candidate.roomId, options);
+      if (waypoint) {
+        const text = `Войдите в ${route.end.label}. Найдите ${route.requestedDestination.label} внутри.`;
+        route = {
+          ...waypoint,
+          partial: true,
+          requestedDestination: route.requestedDestination,
+          lastLeg: { ...route.lastLeg, message: text },
+          steps: [
+            ...waypoint.steps,
+            {
+              kind: "manual-entry",
+              text,
+              floorId: waypoint.end.floorId,
+              position: waypoint.end.point,
+            },
+          ],
+          distanceStatus: "parent-entrance-only",
+        };
+      }
+    }
+    const doorway = route.nodes?.[0];
+    if (
+      !route.ok ||
+      doorway?.kind !== "door" ||
+      doorway.sourceNodeIds?.length !== 2
+    )
+      continue;
+    const message = `Начните у входа в ${route.start.label}`;
+    return {
+      ...route,
+      partial: true,
+      requestedOrigin: {
+        roomId: originId,
+        label: origin.label,
+        floorId: origin.floorId,
+      },
+      firstLeg: {
+        kind: "nearby-room",
+        viaRoomId: candidate.roomId,
+        viaLabel: route.start.label,
+        label: origin.label,
+        message,
+        geometryAvailable: false,
+        sharedBoundaryMeters: candidate.sharedBoundaryMeters,
+      },
+      steps: route.steps.map((step, index) =>
+        index === 0 && step.kind === "start"
+          ? { ...step, text: message }
+          : step,
+      ),
+      originStatus: "nearby-door-only",
     };
   }
   return exact;

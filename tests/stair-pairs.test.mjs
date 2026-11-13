@@ -41,6 +41,10 @@ test("all 94 source stair records retain a selectable marker, target and correct
           ),
       );
       assert.equal(hits.length, 1, `${floor.id} ${source.id}`);
+      assert.ok(
+        stairLayoutFor(hits[0], floor),
+        "every known source endpoint has a bounded volumetric depiction",
+      );
       const marker = hits[0],
         target = marker.targets.find(
           (t) =>
@@ -75,7 +79,7 @@ test("all 94 source stair records retain a selectable marker, target and correct
   assert.equal(audited, 94);
 });
 
-test("the actual scene mesh batching retains the white glyph for every unknown stair and pickability in 2D/3D", () => {
+test("the actual scene batching retains every stair depiction and pickability in 2D/3D", () => {
   let sourceOnlyGlyphs = 0;
   for (const floor of floors)
     for (const plan of [false, true]) {
@@ -120,17 +124,29 @@ test("the actual scene mesh batching retains the white glyph for every unknown s
         dispose(view.model);
       }
     }
-  assert.ok(
-    sourceOnlyGlyphs >= 15,
-    "unknown cells keep symbols instead of invented stairs",
+  assert.equal(
+    sourceOnlyGlyphs,
+    0,
+    "all 94 known source endpoints have volumetric depictions, including conditional shapes",
+  );
+  assert.deepEqual(
+    floors.flatMap((f) =>
+      getMapStairMarkers(f).filter((m) => !stairLayoutFor(m, f)),
+    ),
+    [],
   );
 });
 
 test("unknown stair symbols stay flat and have finite mesh-only geometry", () => {
-  const marker = getMapStairMarkers(floors[4]).find(
-    (m) => m.kind === "stairs" && !stairLayoutFor(m, floors[4]),
+  const fallbackFloor = structuredClone(floors[4]);
+  fallbackFloor.polygons.find(
+    (p) => p.id === "v-78-floor4-area-51",
+  ).points[0][0] += 0.1;
+  const marker = getMapStairMarkers(fallbackFloor).find(
+    (m) => m.kind === "stairs" && !stairLayoutFor(m, fallbackFloor),
   );
-  const group = createStaircase(marker, floors[4]);
+  assert.ok(marker, "stale geometry must still fail closed to a source symbol");
+  const group = createStaircase(marker, fallbackFloor);
   try {
     assert.equal(group.userData.geometryStatus, "source-marker-only");
     assert.equal(group.userData.visualStepCounts, undefined);
@@ -158,7 +174,9 @@ test("unknown stair symbols stay flat and have finite mesh-only geometry", () =>
 test("A1 LK8/LK9 use their own IMG3219 cells, retain portals, and fit without cutting neighbouring rooms", () => {
   const floor = floors[1],
     before = JSON.stringify(floor);
-  const layouts = photoCounterpartStairLayoutsForFloor(floor);
+  const layouts = photoCounterpartStairLayoutsForFloor(floor).filter((layout) =>
+    layout.sourcePhotoIds.includes("photo-3219"),
+  );
   assert.equal(layouts.length, 2);
   const scoped = getBuildingFloorView(floor, "А");
   for (const layout of layouts) {

@@ -1,10 +1,20 @@
 import { getHallAdjacencyView } from "../map/hall-adjacency.js";
+import {
+  withLibraryPassageFloor,
+  isConfirmedLibraryPassageConnector,
+} from "./library-passage.js";
 import { pickLocationSurface } from "../map/location-view.js";
 import { getStairDisplayCutouts } from "../map/stairs.js";
 
 const EPSILON = 1e-7;
 const guards = new WeakMap();
-const protectedKinds = new Set(["door", "stairs", "elevator", "lift"]);
+const protectedKinds = new Set([
+  "door",
+  "passage",
+  "stairs",
+  "elevator",
+  "lift",
+]);
 const finitePoint = (point) =>
   Array.isArray(point) &&
   point.length >= 2 &&
@@ -117,7 +127,7 @@ export function createRouteTrackingSurfaceGuard(sourceFloor, options = {}) {
     return () => false;
   let floor, cutouts;
   try {
-    floor = getHallAdjacencyView(sourceFloor);
+    floor = withLibraryPassageFloor(getHallAdjacencyView(sourceFloor));
     cutouts = options.cutouts ?? getStairDisplayCutouts(floor);
   } catch {
     return () => false;
@@ -183,12 +193,26 @@ export function createRouteTrackingSurfaceGuard(sourceFloor, options = {}) {
     const projectedAreas = polygons.filter((polygon) =>
       inside(projectedPoint, polygon),
     );
+    const confirmedPassage = isConfirmedLibraryPassageConnector(
+      floor,
+      point,
+      projectedPoint,
+    );
     // An overlapping/ambiguous source area cannot select which parallel room
     // contains the observation, even when both points have the same x/z.
-    if (pointAreas.length > 1 || projectedAreas.length > 1) return false;
+    if (
+      !confirmedPassage &&
+      (pointAreas.length > 1 || projectedAreas.length > 1)
+    )
+      return false;
     if (pointAreas.length || projectedAreas.length) {
-      if (pointAreas[0] !== projectedAreas[0]) return false;
-      if (!same && !remainsInside(point, projectedPoint, pointAreas[0]))
+      if (!confirmedPassage && pointAreas[0] !== projectedAreas[0])
+        return false;
+      if (
+        !confirmedPassage &&
+        !same &&
+        !remainsInside(point, projectedPoint, pointAreas[0])
+      )
         return false;
     } else if (
       !same &&

@@ -1,5 +1,6 @@
 import { loadRouting } from "./routing.js";
 import { findNavigationRoute } from "./entrance-route.js";
+import { findIRouteOptions } from "./i-route-options.js";
 import { getJSON } from "./client.js";
 import { indexedRoomGroup } from "./indexed-room-neighbors.js";
 self.onmessage = async ({ data }) => {
@@ -20,26 +21,30 @@ self.onmessage = async ({ data }) => {
       }),
     );
     let result = findNavigationRoute(graph, data.from, data.to, { floors });
-    const target = graph.rooms[data.to?.roomId || data.to?.id || data.to];
-    if (
-      !result.ok &&
-      result.code === "no-path" &&
-      indexedRoomGroup(target?.label)?.index &&
-      graph.floors?.[target.floorId] &&
-      !floors.some((floor) => floor.id === target.floorId)
-    ) {
-      try {
-        floors.push(
-          await getJSON(
-            `/data/campuses/${graph.campusId}/${target.floorId}.json`,
-          ),
-        );
-        result = findNavigationRoute(graph, data.from, data.to, { floors });
-      } catch {
-        // A missing plan cannot establish adjacency. Preserve the original
-        // honest no-path result instead of guessing a same-number neighbour.
+    if (!result.ok && result.code === "no-path") {
+      for (const endpoint of [data.to, data.from]) {
+        const room = graph.rooms[endpoint?.roomId || endpoint?.id || endpoint];
+        if (
+          !indexedRoomGroup(room?.label)?.index ||
+          !graph.floors?.[room.floorId] ||
+          floors.some((floor) => floor.id === room.floorId)
+        )
+          continue;
+        try {
+          floors.push(
+            await getJSON(
+              `/data/campuses/${graph.campusId}/${room.floorId}.json`,
+            ),
+          );
+        } catch {
+          // A missing plan cannot establish adjacency. Never replace it
+          // with a nearest room number or an invented connector.
+        }
       }
+      result = findNavigationRoute(graph, data.from, data.to, { floors });
     }
+    if (result.ok)
+      result = findIRouteOptions(graph, data.from, data.to, { floors });
     self.postMessage({
       id: data.id,
       result,

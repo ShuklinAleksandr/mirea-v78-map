@@ -17,6 +17,7 @@ import {
   USER_HEADING_MAX_AGE_MS,
 } from "./location-view.js";
 import { getHallAdjacencyView } from "./hall-adjacency.js";
+import { withLibraryPassageFloor } from "../data/library-passage.js";
 import {
   outdoorPassageFloorView,
   outdoorPassageExteriorView,
@@ -2276,7 +2277,9 @@ export class AtlasScene {
     return true;
   }
   prepareFloorDisplay(floor, scopedBuilding) {
-    const hallFloor = outdoorPassageFloorView(getHallAdjacencyView(floor));
+    const hallFloor = outdoorPassageFloorView(
+      withLibraryPassageFloor(getHallAdjacencyView(floor)),
+    );
     const components = scopedBuilding
       ? getBuildingFloorComponentScopes(hallFloor, scopedBuilding)
       : [];
@@ -2709,6 +2712,7 @@ export class AtlasScene {
         : marker.shapeReviewStatus === "requires-correction"
           ? 0.55
           : marker.shapeReviewStatus === "user-confirmed-schematic" ||
+              marker.shapeReviewStatus === "user-authorized-schematic" ||
               stairLayout?.incomingDisplay ||
               stairLayout?.levelRole === "upper-arrival"
             ? 1.25
