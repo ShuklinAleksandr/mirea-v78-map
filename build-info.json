@@ -1,6 +1,6 @@
 {
-  "version": "0.5.24",
-  "sourceCommit": "16b14b2349a5ecdbba6c2e9e8610fc044b827ba7",
+  "version": "0.5.25",
+  "sourceCommit": "efb9f17ffaf2fba5ace6a6b5e6a18c06f6175423",
   "base": "/mirea-v78-map/",
-  "scope": "V78 only; entrance, outdoor A-I passage and stair views; no private GPS experiments"
+  "scope": "V78 public bugfixes; no private GPS experiments"
 }
