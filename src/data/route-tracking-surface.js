@@ -153,7 +153,7 @@ export function createRouteTrackingSurfaceGuard(sourceFloor, options = {}) {
   const protectedAreas = polygons.filter((polygon) =>
     protectedKinds.has(polygon.kind),
   );
-  return (point, projectedPoint) => {
+  return (point, projectedPoint, requiredAreaId) => {
     if (!finitePoint(point) || !finitePoint(projectedPoint)) return false;
     const same =
       Math.hypot(point[0] - projectedPoint[0], point[1] - projectedPoint[1]) <=
@@ -193,6 +193,24 @@ export function createRouteTrackingSurfaceGuard(sourceFloor, options = {}) {
     const projectedAreas = polygons.filter((polygon) =>
       inside(projectedPoint, polygon),
     );
+    if (options.requireSourceArea) {
+      const area = pointAreas[0];
+      if (
+        pointAreas.length !== 1 ||
+        projectedAreas.length !== 1 ||
+        area !== projectedAreas[0] ||
+        (area.sourcePolygonId ||
+          area.sourceAreaId ||
+          area.roomId ||
+          area.id) !== requiredAreaId ||
+        !remainsInside(point, projectedPoint, area) ||
+        polygons.some(
+          (other) =>
+            other !== area && crossesRing(point, projectedPoint, other.points),
+        )
+      )
+        return false;
+    }
     const confirmedPassage = isConfirmedLibraryPassageConnector(
       floor,
       point,

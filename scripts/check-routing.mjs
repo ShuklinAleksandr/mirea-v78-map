@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Deterministic, stratified real-data route QA. Timings are desktop Node only. */
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { cpus, platform, arch } from "node:os";
@@ -280,6 +280,7 @@ for (const campus of ["v-78", "v-86", "s-20", "mp-1"]) {
   );
 }
 report.validatedSuccessfulRoutes = passedRoutes;
+mkdirSync(new URL("analysis/", root), { recursive: true });
 writeFileSync(
   new URL("analysis/routing-runtime-qa.json", root),
   JSON.stringify(report, null, 2) + "\n",

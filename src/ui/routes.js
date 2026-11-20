@@ -2,7 +2,7 @@ import { $, escape } from "./dom.js";
 import { icon } from "./icons.js";
 import { shareView } from "./experience.js";
 import {
-  isCompactLandscape,
+  viewportLayout,
   landscapeMapPadding,
   portraitMapPadding,
   desktopMapPadding,
@@ -51,6 +51,7 @@ const norm = (s) =>
     );
 export function bindRoutes({
   state,
+  findSavedPlace = (id) => state.search.find((r) => r.id === id),
   scene,
   loadCampus,
   chooseFloor,
@@ -117,7 +118,12 @@ export function bindRoutes({
     }
     return new Promise((resolve) => {
       pending.set(id, resolve);
-      worker.postMessage({ from: a, to: b, id });
+      worker.postMessage({
+        from: a,
+        to: b,
+        id,
+        walkingFloorIds: state.floorData?.map((floor) => floor.id) || [],
+      });
     });
   }
   function panel(routeMode) {
@@ -135,8 +141,7 @@ export function bindRoutes({
     experience.expand(!route);
     if (!route && (!from || !to)) {
       const key = to ? "from" : "to";
-      if (innerWidth > 700 && !isCompactLandscape(innerWidth, innerHeight))
-        focusEndpoint(key);
+      if (viewportLayout() === "desktop") focusEndpoint(key);
       else candidates(key);
     }
   };
@@ -471,9 +476,12 @@ export function bindRoutes({
     const query = selected?.label === value ? "" : value;
     const q = norm(query);
     const list = $("#route-results");
+    const destinations = state.search.filter(
+      (record) => record.routingStatus !== "display-only-no-source-transition",
+    );
     const records = (
       nextInterface
-        ? findNextPlaces(state.search, {
+        ? findNextPlaces(destinations, {
             query,
             campusId: state.campus?.id,
             building: state.building,
@@ -481,7 +489,7 @@ export function bindRoutes({
             physicalLevel: state.floor?.buildingLevels?.[state.building],
             manifest: state.manifest,
           })
-        : state.search
+        : destinations
             .filter((r) => r.label && (!q || norm(r.label).includes(q)))
             .sort(
               (a, b) =>
@@ -608,9 +616,8 @@ export function bindRoutes({
   const padding = () => {
     if (document.body?.dataset.cleanMap === "true")
       return { top: 64, bottom: 16, left: 16, right: 16 };
-    if (isCompactLandscape(innerWidth, innerHeight))
-      return landscapeMapPadding();
-    if (innerWidth <= 700) return portraitMapPadding();
+    if (viewportLayout() === "landscape") return landscapeMapPadding();
+    if (viewportLayout() === "portrait") return portraitMapPadding();
     return desktopMapPadding();
   };
   function minimizePanel() {
@@ -923,11 +930,7 @@ export function bindRoutes({
     $("#route-dock-next")?.addEventListener("click", () => {
       if (!route) return;
       if (!guiding) {
-        if (
-          innerWidth > 700 &&
-          !isCompactLandscape(innerWidth, innerHeight) &&
-          from?.kind !== "user-location"
-        ) {
+        if (viewportLayout() === "desktop" && from?.kind !== "user-location") {
           automatic = false;
           focusStep(0);
         } else startGuidance();
@@ -1083,11 +1086,7 @@ export function bindRoutes({
       if (meta) meta.textContent = view.meta;
       if (note)
         note.textContent =
-          guiding &&
-          !automatic &&
-          !previewing &&
-          innerWidth > 700 &&
-          !isCompactLandscape(innerWidth, innerHeight)
+          guiding && !automatic && !previewing && viewportLayout() === "desktop"
             ? "Просмотр маршрута · переключайте шаги кнопками"
             : view.note;
       if (previous) {
@@ -1098,8 +1097,7 @@ export function bindRoutes({
         next.hidden = !view.showNext;
         const label =
           !guiding &&
-          innerWidth > 700 &&
-          !isCompactLandscape(innerWidth, innerHeight) &&
+          viewportLayout() === "desktop" &&
           from?.kind !== "user-location"
             ? "Посмотреть шаги"
             : view.nextLabel;
@@ -1343,7 +1341,7 @@ export function bindRoutes({
     };
     previewFrame = requestAnimationFrame(frame);
   }
-  async function build() {
+  async function build({ allowAutoStart = true } = {}) {
     if (!from || !to) {
       status("Выберите начало и конец из результатов поиска.", true);
       experience.expand(true);
@@ -1444,7 +1442,8 @@ export function bindRoutes({
       minimizePanel();
       renderSteps();
       viewFloor(route.segments[0].floorId, !guide.sections.length);
-      if (state.routeSnapEnabled && guide.sections.length) startGuidance();
+      if (allowAutoStart && state.routeAutoStart && guide.sections.length)
+        startGuidance();
       else if (guide.sections.length) applyGuidance({ animate: true });
       saveView();
     } catch (error) {
@@ -1468,7 +1467,7 @@ export function bindRoutes({
   $("#route-fit").onclick = () => {
     pausePreview();
     scene.setRouteGuidance?.(null);
-    experience.expand(false);
+    minimizePanel();
     if (
       !scene.routeOverview &&
       (scene.mode !== "floor" ||
@@ -1564,23 +1563,9 @@ export function bindRoutes({
     getStairAction,
     routeLocationMatch,
     routeSnapChanged() {
-      if (
-        state.routeSnapEnabled &&
-        route &&
-        !automatic &&
-        guide.sections.length
-      )
-        startGuidance(stepIndex);
-      else {
-        if (!state.routeSnapEnabled && automatic) {
-          resetRouteDisplay();
-          automatic = false;
-          liveProgress = null;
-          clearTimeout(liveExpiryTimer);
-          updateProgressReadout();
-        }
-        scene.refreshUserLocation?.();
-      }
+      resetRouteDisplay();
+      updateLiveGuidance(false);
+      scene.refreshUserLocation?.();
     },
     isFollowingHeading: () =>
       Boolean(
@@ -1638,15 +1623,15 @@ export function bindRoutes({
       else params.delete("to");
     },
     async restore(params) {
-      const a = state.search.find((r) => r.id === params.get("from")),
-        b = state.search.find((r) => r.id === params.get("to"));
+      const a = findSavedPlace(params.get("from")),
+        b = findSavedPlace(params.get("to"));
       if (a || b) {
         from = a || null;
         to = b || null;
         $("#route-from").value = from?.label || "";
         $("#route-to").value = to?.label || "";
         panel(true);
-        if (a && b) await build();
+        if (a && b) await build({ allowAutoStart: false });
         else candidates(b ? "from" : "to");
       }
     },

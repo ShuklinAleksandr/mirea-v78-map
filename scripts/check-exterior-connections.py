@@ -68,7 +68,9 @@ def main():
         report['campuses'][campus_id]={'checks':results,'floorSha256':{
             p.stem:hashlib.sha256(p.read_bytes()).hexdigest() for p in floor_paths},
             'exteriorFootprintDifference':round(baseline.symmetric_difference(displayed).area,6)}
-    (ROOT/'analysis/exterior-connections-qa.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+    destination = ROOT / 'analysis/exterior-connections-qa.json'
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
     print('Exterior connections: exact source footprints retained; occupied other-floor geometry protected; only confirmed isolated cutouts opened.')
 
 if __name__=='__main__':main()

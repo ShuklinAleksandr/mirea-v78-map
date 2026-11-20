@@ -21,10 +21,10 @@ ROOT_FILES = {
     "capacitor.config.json", "index.html", "jsconfig.json",
     "package.json", "package-lock.json", "README.md", "vite.config.js",
     "BUILD_ON_MAC.txt", "PROMPT_FOR_BUILD_PC.txt", "STAIRS_TODO_FOR_MAC.txt",
-    "XCODE_IPHONE.md", "ВОПРОСЫ_ПО_КАРТЕ.md",
+    "ВОПРОСЫ_ПО_КАРТЕ.md",
 }
 OPTIONAL_ROOT_FILES = {".gitattributes", "CONTRIBUTING.md"}
-TREES = {".github", "src", "public", "scripts", "tests", "docs", "tools", "android", "ios", "desktop"}
+TREES = {".github", "src", "public", "scripts", "tests", "docs", "tools", "android"}
 SOURCE_METADATA_FILES = {
     "source/lidar/2026-10-26/README.md",
     "source/lidar/2026-10-26/sources.json",
@@ -59,8 +59,6 @@ def included(relative: Path) -> bool:
         return False
     # Capacitor sync recreates these copies from dist and installed packages.
     if parts[:6] == ("android", "app", "src", "main", "assets", "public"):
-        return False
-    if parts[:4] == ("ios", "App", "App", "public"):
         return False
     if parts[:2] == ("android", "capacitor-cordova-android-plugins"):
         return False
@@ -111,7 +109,7 @@ def main() -> None:
             "format": 1,
             "project": "mirea-map-v78",
             "date": datetime.now(timezone.utc).date().isoformat(),
-            "purpose": "Portable source; build Android and iOS on the receiving Mac",
+            "purpose": "Portable source; build the web app and Android APK",
             "files": entries,
         }
         bundle.writestr("mirea-map-v78/HANDOFF_MANIFEST.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")

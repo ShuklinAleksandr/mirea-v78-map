@@ -32,6 +32,11 @@ export function bindSearch({
     revision = 0,
     worker = null;
   const pending = new Map();
+  const placeList = document.createElement("div");
+  placeList.id = "search-options";
+  placeList.setAttribute("role", "listbox");
+  placeList.setAttribute("aria-label", "Найденные места");
+  $("#results").append(placeList);
 
   function close() {
     revision++;
@@ -39,6 +44,17 @@ export function bindSearch({
     $("#search-status").textContent = "";
     $("#search").setAttribute("aria-expanded", "false");
   }
+
+  document.addEventListener("click", (event) => {
+    const insideSearch = event
+      .composedPath()
+      .some((element) =>
+        element.matches?.(
+          ".search-wrap, #place-categories, #sheet-toggle, #route-back-search, #desktop-search",
+        ),
+      );
+    if (!insideSearch) close();
+  });
 
   function requestNearby(records, position, id) {
     if (typeof Worker !== "function") return Promise.resolve(null);
@@ -106,7 +122,7 @@ export function bindSearch({
 
   function showNearby(matches, ranking) {
     const results = $("#results");
-    results.replaceChildren();
+    placeList.replaceChildren();
     const intro = document.createElement("div");
     intro.className = "nearby-intro";
     const positionKnown = ranking.mode !== "no-location";
@@ -124,11 +140,11 @@ export function bindSearch({
       locate.onclick = () => onLocate();
       intro.append(locate);
     }
-    results.append(intro);
+    results.replaceChildren(intro, placeList);
     const entries = ranking.items;
-    const shown = expanded ? entries.slice(0, 60) : entries.slice(0, 5);
+    const shown = expanded ? entries : entries.slice(0, 5);
     for (const entry of shown)
-      results.append(placeButton(entry.room, positionKnown ? entry : null));
+      placeList.append(placeButton(entry.room, positionKnown ? entry : null));
     if (entries.length > 5) {
       const more = document.createElement("button");
       more.type = "button";
@@ -138,8 +154,14 @@ export function bindSearch({
         : `Все места · ${entries.length}`;
       more.setAttribute("aria-expanded", String(expanded));
       more.onclick = () => {
+        const focused = document.activeElement === more;
         expanded = !expanded;
         showNearby(matches, ranking);
+        if (focused)
+          (expanded
+            ? placeList.children[5]
+            : results.querySelector(".nearby-more")
+          )?.focus();
       };
       results.append(more);
     }
@@ -153,7 +175,8 @@ export function bindSearch({
     const id = ++revision;
     const navigationRevision = state.loading;
     const results = $("#results");
-    results.replaceChildren();
+    placeList.replaceChildren();
+    results.replaceChildren(placeList);
     const query = $("#search").value;
     const active = Boolean(query.trim() || category);
     $("#search-clear").hidden = !active;
@@ -181,6 +204,8 @@ export function bindSearch({
       results.innerHTML = /unifood|унифуд|юнифуд/iu.test(query)
         ? '<div class="search-empty">Unifood пока отдельно не отмечен на карте. Другие места питания — в разделе «Еда».</div>'
         : '<div class="search-empty">Ничего не найдено. Попробуйте номер аудитории или другую категорию.</div>';
+      results.append(placeList);
+      $("#search").setAttribute("aria-expanded", "false");
       $("#search-status").textContent = "Ничего не найдено";
       results.hidden = false;
       return;
@@ -195,6 +220,7 @@ export function bindSearch({
       if (canRankNearbyRoutes(position, { interfaceMode })) {
         results.innerHTML =
           '<div class="search-empty">Ищем ближайшее место…</div>';
+        results.append(placeList);
         results.hidden = false;
         $("#search-status").textContent = "Сравниваем пути…";
         ranking = (await requestNearby(matches, position, id)) || ranking;
@@ -203,7 +229,8 @@ export function bindSearch({
       showNearby(matches, ranking);
       return;
     }
-    for (const room of matches.slice(0, 60)) results.append(placeButton(room));
+    for (const room of matches.slice(0, 60))
+      placeList.append(placeButton(room));
     $("#search-status").textContent =
       matches.length > 60
         ? `Найдено ${matches.length}. Показаны первые 60 — уточните запрос.`
@@ -253,13 +280,14 @@ export function bindSearch({
   });
   $("#search").addEventListener("atlas:input-editing-end", close);
   $("#search").addEventListener("keydown", (event) => {
-    const buttons = [...$("#results").querySelectorAll("button")];
     if (
       (event.key === "Enter" || event.key === "ArrowDown") &&
       !$("#results").hidden
     ) {
       event.preventDefault();
-      event.key === "Enter" ? buttons[0]?.click() : buttons[0]?.focus();
+      if (event.key === "Enter")
+        $("#results").querySelector('[role="option"]')?.click();
+      else placeList.children[0]?.focus();
     }
     if (event.key === "Escape") {
       close();
@@ -288,7 +316,11 @@ export function bindSearch({
     renderCategories,
     refresh: searchRooms,
     refreshPosition: () => {
-      if (!$("#results").hidden) return searchRooms();
+      if (
+        !$("#results").hidden &&
+        (category || categoryForPlaceQuery($("#search").value))
+      )
+        return searchRooms();
     },
     close,
   };

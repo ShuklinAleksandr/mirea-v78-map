@@ -263,3 +263,87 @@ test("both entrance stairs and their lower landings bind only to the four retain
   }
   assert.equal(JSON.stringify(graph), before);
 });
+
+test("different stair aliases at one physical landing resolve as the same place", () => {
+  const portals = stairEndpointCandidates(graph, main).map((p) => p.nodeId);
+  const legacy = getFloorMarkers(floor).find((marker) =>
+    stairEndpointCandidates(graph, marker)?.some((p) =>
+      portals.includes(p.nodeId),
+    ),
+  );
+  assert.ok(legacy && legacy.id !== main.id);
+  for (const [from, to] of [
+    [main, legacy],
+    [legacy, main],
+  ]) {
+    assert.equal(findRoute(graph, from, to).code, "same-place");
+  }
+});
+
+test("routing between two stair POIs chooses the cheapest pair of actual portals", () => {
+  const lower = read("../public/data/campuses/v-78/v-78-floor1.json");
+  const destination = getMapStairMarkers(lower).find(
+    (p) => p.building === "Г" && stairEndpointCandidates(graph, p)?.length,
+  );
+  assert.ok(destination);
+  const fromPortals = stairEndpointCandidates(graph, main);
+  const toPortals = stairEndpointCandidates(graph, destination);
+  const candidates = [];
+  for (const from of fromPortals)
+    for (const to of toPortals) {
+      const fixture = {
+        ...graph,
+        rooms: { ...graph.rooms, startPortal: from, endPortal: to },
+      };
+      const route = findRoute(fixture, "startPortal", "endPortal");
+      if (route.ok) candidates.push(route.diagnostics.routingCost);
+    }
+  const result = findRoute(graph, main, destination);
+  assert.equal(result.ok, true);
+  assert.equal(result.diagnostics.routingCost, Math.min(...candidates));
+  assert.ok(fromPortals.some((p) => p.nodeId === result.graphNodes[0].id));
+  assert.ok(toPortals.some((p) => p.nodeId === result.graphNodes.at(-1).id));
+  assert.equal(graph.rooms[main.id], undefined);
+  assert.equal(graph.rooms[destination.id], undefined);
+});
+
+test("each scanned stair in Д routes through its registered portals only when both source ends agree", () => {
+  for (const index of [1, 2, 3]) {
+    const f = read("../public/data/campuses/v-78/v-78-floor" + index + ".json");
+    const marker = getMapStairMarkers(f).find(
+      (m) => m.layoutId === "v78-Д-scan-" + f.id,
+    );
+    assert.ok(marker);
+    const portals = stairEndpointCandidates(graph, marker);
+    assert.equal(portals.length, index === 3 ? 1 : 2);
+    for (const [from, to] of [
+      [main, marker],
+      [marker, main],
+    ]) {
+      const route = findRoute(graph, from, to);
+      assertOriginalEdges(route);
+      assert.ok(
+        portals.some(
+          (p) =>
+            p.nodeId ===
+            (to === marker ? route.graphNodes.at(-1) : route.graphNodes[0]).id,
+        ),
+      );
+    }
+    const e = graph.edges.find(
+      (e) => e.kind === "stairs" && marker.sourceIds.includes(e.id),
+    );
+    const opposite = [e.from, e.to]
+      .map((id) => graph.nodes.find((n) => n.id === id))
+      .find((n) => n.floorId !== f.id);
+    const shifted = {
+      ...graph,
+      nodes: graph.nodes.map((n) =>
+        n === opposite
+          ? { ...n, position: [n.position[0] + 1, n.position[1]] }
+          : n,
+      ),
+    };
+    assert.deepEqual(stairEndpointCandidates(shifted, marker), []);
+  }
+});

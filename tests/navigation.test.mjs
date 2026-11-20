@@ -11,8 +11,10 @@ import { mergedFloorView } from "../src/data/floor-view.js";
 import { geometryEvidence, resolveRoom } from "../src/data/utils.js";
 import { getHallAdjacencyView } from "../src/map/hall-adjacency.js";
 import { entranceHint } from "../src/data/entrance-hints.js";
+import { hasRouteEndpoint } from "../src/data/route-endpoint-availability.js";
+import { resolveSavedMapPlace } from "../src/data/saved-map-place.js";
 import {
-  isCompactLandscape,
+  viewportLayout,
   measuredPortraitPadding,
   measuredLandscapePadding,
 } from "../src/ui/map-viewport.js";
@@ -234,6 +236,8 @@ function harness({
     getHallAdjacencyView,
     mergedFloorView,
     entranceHint,
+    hasRouteEndpoint,
+    resolveSavedMapPlace,
     isNextInterface,
     resolveFloorContext,
     resolveGpsFloorContext,
@@ -294,7 +298,8 @@ function harness({
     kindNames: { room: "Помещение" },
     innerWidth: width,
     innerHeight: height,
-    isCompactLandscape,
+    viewportLayout: () =>
+      viewportLayout({ innerWidth: width, innerHeight: height }),
     portraitMapPadding: () =>
       measuredPortraitPadding(
         width,

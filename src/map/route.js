@@ -166,14 +166,18 @@ export function createRouteLayer(
     arrows = [],
     labels = [];
   const segments = visibleRouteSegments(route, floorId);
+  // Guidance and tracking use straightened points directly. Applying a
+  // second fillet here would move the displayed route away from both.
   const paths = segments.map((segment) =>
-    roundWalkingRoute(
-      segment,
-      route,
-      floor,
-      protectedAreaIds,
-      protectedRegions,
-    ),
+    segment.straightened
+      ? { ...segment, roundedCorners: 0 }
+      : roundWalkingRoute(
+          segment,
+          route,
+          floor,
+          protectedAreaIds,
+          protectedRegions,
+        ),
   );
   group.userData.roundedRouteCorners = paths.reduce(
     (total, segment) => total + segment.roundedCorners,

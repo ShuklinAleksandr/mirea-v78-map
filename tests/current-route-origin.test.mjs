@@ -404,3 +404,52 @@ test("attachment preserves direction on an internal corridor instead of connecti
     true,
   );
 });
+
+test("two pins on one corridor follow the portion between them in the permitted direction", () => {
+  const { graph, floor } = fixture();
+  const start = endpoint(manual([6, 6]));
+  const end = endpoint(manual([9, 6]));
+  const options = { floors: [floor] };
+  const before = JSON.stringify(graph);
+  const forward = findRoute(graph, start, end, options);
+  assert.equal(forward.ok, true);
+  assert.deepEqual(forward.segments[0].points, [
+    [6, 6],
+    [6, 5],
+    [9, 5],
+    [9, 6],
+  ]);
+  assert.equal(forward.distanceMeters, 5);
+  assert.equal(findRoute(graph, end, start, options).code, "no-path");
+  assert.equal(JSON.stringify(graph), before);
+
+  graph.edges[0].bidirectional = true;
+  assert.equal(findRoute(graph, end, start, options).distanceMeters, 5);
+});
+
+test("a current-position connector respects route-specific corridor exclusions", () => {
+  const { graph, floor } = fixture();
+  const start = endpoint(manual([8, 6]));
+  const options = { floors: [floor], blockedEdgeIds: ["h0h"] };
+  assert.equal(findRoute(graph, start, "dest", options).ok, false);
+});
+
+test("a pin at A-154 can use the stair landing but cannot start in its floor opening", () => {
+  const read = (path) =>
+    JSON.parse(readFileSync(new URL(path, import.meta.url)));
+  const graph = read("../public/data/routing/v-78.json");
+  const floor = read("../public/data/campuses/v-78/v-78-floor2.json");
+  const attach = (point) =>
+    attachCurrentRouteEndpoint(
+      graph,
+      endpoint({
+        ...manual(point),
+        campusId: graph.campusId,
+        floorId: floor.id,
+        building: "А",
+      }),
+      floor,
+    );
+  assert.equal(attach([42.5, -19]).code, "location-connector-unavailable");
+  assert.equal(attach([49.73, -17.64457]).ok, true);
+});

@@ -47,6 +47,15 @@ function harness(nextInterface = false) {
     click() {
       this.onclick?.();
     }
+    querySelector(selector) {
+      if (selector === '[role="option"]')
+        return (
+          this.querySelectorAll("button").find(
+            (button) => button.attributes.role === "option",
+          ) || null
+        );
+      return null;
+    }
     querySelectorAll(selector) {
       return this.children.flatMap((child) => [
         ...(selector === "button" && child.tagName === "BUTTON" ? [child] : []),
@@ -107,6 +116,7 @@ function harness(nextInterface = false) {
   };
   let located = 0;
   const chosen = [];
+  const documentEvents = {};
   const sandbox = {
     $,
     icon: () => "",
@@ -129,6 +139,9 @@ function harness(nextInterface = false) {
     clearTimeout,
     document: {
       activeElement: null,
+      addEventListener(name, fn) {
+        documentEvents[name] = fn;
+      },
       createElement(tag) {
         const result = new Element();
         result.tagName = tag.toUpperCase();
@@ -158,6 +171,7 @@ function harness(nextInterface = false) {
     api,
     messages,
     chosen,
+    documentEvents,
     get located() {
       return located;
     },
@@ -190,7 +204,10 @@ test("Next sends a free corridor pin to route ranking and keeps an honest fallba
   h.fail(h.messages[0].id);
   await request;
   assert.match(h.$("#results").children[0].innerHTML, /по прямой/u);
-  assert.match(h.$("#results").children[1].innerHTML, /1 м по прямой/u);
+  assert.match(
+    h.$("#results").querySelector('[role="option"]').innerHTML,
+    /1 м по прямой/u,
+  );
 });
 
 test("Next routes reliable GPS searches but keeps imprecise GPS out of the worker", async () => {
@@ -222,7 +239,10 @@ test("Next routes reliable GPS searches but keeps imprecise GPS out of the worke
   h.reply(h.messages[0].id, { mode: "routes", items: [entry], nearest: entry });
   await request;
   assert.match(h.$("#results").children[0].innerHTML, /Ближайшие по пути/u);
-  assert.match(h.$("#results").children[1].innerHTML, /15 м пешком/u);
+  assert.match(
+    h.$("#results").querySelector('[role="option"]').innerHTML,
+    /15 м пешком/u,
+  );
 });
 
 test("category dropdown shows several places immediately and keeps a working location action", async () => {
@@ -231,7 +251,9 @@ test("category dropdown shows several places immediately and keeps a working loc
   await h.api.refresh();
   const results = h.$("#results");
   assert.equal(
-    results.children.filter((c) => c.className === "place-result").length,
+    results
+      .querySelectorAll("button")
+      .filter((c) => c.className === "place-result").length,
     2,
   );
   results
@@ -245,8 +267,30 @@ test("category dropdown shows several places immediately and keeps a working loc
       .some((b) => b.className === "nearby-more"),
     false,
   );
-  results.children.find((c) => c.className === "place-result").click();
+  results
+    .querySelectorAll("button")
+    .find((c) => c.className === "place-result")
+    .click();
   assert.equal(h.chosen.length, 1);
+});
+
+test("pressing Enter on a category opens its first place without starting location", async () => {
+  const h = harness(true);
+  const input = h.$("#search");
+  input.value = "еда";
+  await h.api.refresh();
+  input.listeners.keydown({ key: "Enter", preventDefault() {} });
+  assert.deepEqual(h.chosen, ["food-1"]);
+  assert.equal(h.located, 0);
+});
+
+test("location refresh preserves a numbered-room result while the user selects it", async () => {
+  const h = harness(true);
+  h.$("#search").value = "А-101";
+  await h.api.refresh();
+  const button = h.$("#results").querySelector('[role="option"]');
+  await h.api.refreshPosition();
+  assert.equal(h.$("#results").querySelector('[role="option"]'), button);
 });
 
 test("an old nearest result cannot replace a newer numbered-room search", async () => {
@@ -264,14 +308,20 @@ test("an old nearest result cannot replace a newer numbered-room search", async 
   assert.equal(h.messages.length, 1);
   h.$("#search").value = "А-101";
   await h.api.refresh();
-  assert.match(h.$("#results").children[0].innerHTML, /А-101/u);
+  assert.match(
+    h.$("#results").querySelector('[role="option"]').innerHTML,
+    /А-101/u,
+  );
   h.reply(h.messages[0].id, {
     mode: "routes",
     items: [{ room: h.state.search[0], reachable: true }],
     nearest: { room: h.state.search[0] },
   });
   await first;
-  assert.match(h.$("#results").children[0].innerHTML, /А-101/u);
+  assert.match(
+    h.$("#results").querySelector('[role="option"]').innerHTML,
+    /А-101/u,
+  );
 });
 
 test("changing location refreshes an ordered dropdown with distances and building labels", async () => {
@@ -288,9 +338,9 @@ test("changing location refreshes an ordered dropdown with distances and buildin
   await h.api.refresh();
   const results = h.$("#results");
   assert.match(results.children[0].innerHTML, /по прямой/u);
-  const places = results.children.filter(
-    (child) => child.className === "place-result",
-  );
+  const places = results
+    .querySelectorAll("button")
+    .filter((child) => child.className === "place-result");
   assert.equal(places.length, 2);
   assert.match(places[0].innerHTML, /Столовая/u);
   places[0].click();
@@ -392,7 +442,7 @@ test("a route lookup error falls back to labelled straight-line results, and fai
 test("a long nearest dropdown initially shows five sorted places and expands explicitly", async () => {
   const h = harness();
   const row = h.state.search[0];
-  for (let i = 3; i <= 7; i++)
+  for (let i = 3; i <= 94; i++)
     h.state.search.push({ ...row, id: `food-${i}`, center: [i * 10, 0] });
   h.state.userLocation = {
     source: "manual",
@@ -404,14 +454,27 @@ test("a long nearest dropdown initially shows five sorted places and expands exp
   h.$("#search").value = "буфет";
   await h.api.refresh();
   const places = () =>
-    h.$("#results").children.filter((c) => c.className === "place-result");
+    h
+      .$("#results")
+      .querySelectorAll("button")
+      .filter((c) => c.className === "place-result");
   assert.equal(places().length, 5);
   assert.match(places()[0].innerHTML, /Буфет.*Корпус А.*5 м по прямой/su);
   h.$("#results")
     .querySelectorAll("button")
     .find((b) => b.className === "nearby-more")
     .click();
-  assert.equal(places().length, 7);
+  // The click bubbles after expansion has detached its original button.
+  h.documentEvents.click({
+    composedPath: () => [
+      {},
+      { matches: (selector) => selector.includes(".search-wrap") },
+    ],
+  });
+  assert.equal(h.$("#results").hidden, false);
+  assert.equal(places().length, 94);
+  h.documentEvents.click({ composedPath: () => [{}] });
+  assert.equal(h.$("#results").hidden, true);
 });
 
 test("live GPS compares the explicitly chosen map floor without claiming a measured floor", async () => {
@@ -433,8 +496,10 @@ test("live GPS compares the explicitly chosen map floor without claiming a measu
   await h.api.refresh();
   assert.match(h.$("#results").children[0].innerHTML, /выбранном этаже/);
   assert.match(
-    h.$("#results").children.find((c) => c.className === "place-result")
-      .innerHTML,
+    h
+      .$("#results")
+      .querySelectorAll("button")
+      .find((c) => c.className === "place-result").innerHTML,
     /Столовая.*1 м по прямой/su,
   );
   assert.equal(h.messages.length, 0, "GPS never borrows a graph room");

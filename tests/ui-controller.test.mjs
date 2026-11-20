@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { makeCurrentRouteEndpoint } from "../src/data/current-route-origin.js";
+import { findRoute } from "../src/data/routing.js";
+import { resolveSavedMapPlace } from "../src/data/saved-map-place.js";
+import { withConfirmedStairSearch } from "../src/map/stairs.js";
 import { isCurrentUserLocation } from "../src/data/user-location.js";
 import {
   createRouteTracker,
@@ -22,7 +25,7 @@ import {
   migrateInterfaceStorage,
 } from "../src/ui/variant.js";
 import {
-  isCompactLandscape,
+  viewportLayout,
   measuredPortraitPadding,
   measuredLandscapePadding,
 } from "../src/ui/map-viewport.js";
@@ -218,7 +221,10 @@ function harness(file, exports, saved = {}, options = {}) {
     guidanceAnchorForStep,
     getBundledMapPackage: async () => null,
     nativeShareLink: () => "",
-    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    matchMedia: (query) => ({
+      matches: options.touch === true && query === "(any-pointer: coarse)",
+      addEventListener() {},
+    }),
     localStorage: persistedStorage,
     document: Object.assign(new EventTarget(), {
       body: { dataset: {} },
@@ -242,7 +248,11 @@ function harness(file, exports, saved = {}, options = {}) {
     },
     innerWidth: options.width ?? 390,
     innerHeight: options.height ?? 844,
-    isCompactLandscape,
+    viewportLayout: () =>
+      viewportLayout({
+        innerWidth: sandbox.innerWidth,
+        innerHeight: sandbox.innerHeight,
+      }),
     portraitMapPadding: () =>
       measuredPortraitPadding(
         sandbox.innerWidth,
@@ -399,8 +409,9 @@ function experienceHarness(saved, visualViewport, options = {}) {
   );
   h.window.visualViewport = visualViewport;
   const qualityCalls = [];
+  const state = { search: [] };
   const api = h.bindExperience({
-    state: { search: [] },
+    state,
     scene: {
       setTheme() {},
       setQuality(value) {
@@ -411,10 +422,11 @@ function experienceHarness(saved, visualViewport, options = {}) {
     navigateRoom() {},
     toast() {},
   });
-  return { ...h, ...api, qualityCalls };
+  return { ...h, ...api, state, qualityCalls };
 }
 function routeHarness({
   nextInterface = false,
+  findSavedPlace,
   chooseFloor: chooseFloorOverride,
   getUserOrigin,
   onLocate,
@@ -470,6 +482,7 @@ function routeHarness({
   };
   const api = h.bindRoutes({
     state,
+    findSavedPlace,
     getUserOrigin,
     onLocate,
     onRefineLocation,
@@ -541,6 +554,44 @@ function routeHarness({
     result,
   };
 }
+
+test("a shared route restores mapped stairs in Д and Г in both directions, including a landing absent from search", async () => {
+  const read = (path) =>
+    JSON.parse(readFileSync(new URL(path, import.meta.url)));
+  const floor = read("../public/data/campuses/v-78/v-78-floor2.json");
+  const graph = read("../public/data/routing/v-78.json");
+  const search = withConfirmedStairSearch(
+    read("../public/data/search-index.json"),
+    [floor],
+  );
+  const d = "photo-stair:v78-Д-scan-v-78-floor2",
+    g = "photo-stair:v78-Г-2-ЛК2";
+  assert.ok(search.some((place) => place.id === d));
+  assert.ok(!search.some((place) => place.id === g));
+  for (const [from, to] of [
+    [d, g],
+    [g, d],
+  ]) {
+    const h = routeHarness({
+      findSavedPlace: (id) => resolveSavedMapPlace(id, search, [floor], floor),
+    });
+    h.state.campus = { id: "v-78" };
+    h.state.search = search;
+    const saved = new URLSearchParams({ from, to });
+    const pending = h.restore(saved);
+    const message = h.workerMessages.at(-1);
+    assert.equal(message.from.id, from);
+    assert.equal(message.to.id, to);
+    const route = findRoute(graph, message.from, message.to);
+    assert.ok(route.ok);
+    h.reply(route);
+    await pending;
+    assert.equal(h.getRoute(), route);
+    const restored = new URLSearchParams();
+    h.appendURL(restored);
+    assert.equal(restored.toString(), saved.toString());
+  }
+});
 
 async function buildPreview(h) {
   h.result.segments[0].points = [
@@ -831,6 +882,13 @@ test("desktop collapse releases content focus and resizing back to mobile restor
   h.element("#desktop-collapse").onclick();
   assert.equal(sidebar.dataset.desktopCollapsed, "true");
   assert.equal(content.inert, true);
+  h.setViewport(1200, 700);
+  assert.equal(sidebar.dataset.desktopCollapsed, "true");
+  assert.equal(
+    h.element("#desktop-search").attributes["aria-expanded"],
+    "false",
+  );
+  assert.equal(content.inert, true);
   h.openSearch();
   assert.equal(sidebar.dataset.desktopCollapsed, "false");
   assert.equal(content.inert, false);
@@ -866,22 +924,55 @@ test("a tap retargeted to the mobile sheet after focus keeps the empty origin su
   );
 });
 
-test("route-line preference starts GPS on route creation and turning it off keeps the current manual route", async () => {
-  let locateCalls = 0;
-  const h = routeHarness({
+test("a fresh installation snaps the walking marker only after an explicit start", async () => {
+  const settings = experienceHarness().state;
+  assert.equal(settings.routeAutoStart, false);
+  assert.equal(settings.routeSnapEnabled, true);
+  let calls = 0;
+  const h = await liveRouteHarness({
     nextInterface: true,
-    onLocate: () => locateCalls++,
+    onLocate: () => calls++,
+    configureRoute(h) {
+      h.state.routeSnapEnabled = settings.routeSnapEnabled;
+      h.state.routeAutoStart = settings.routeAutoStart;
+    },
+    beforeStart() {
+      assert.equal(calls, 0);
+    },
   });
-  h.state.routeSnapEnabled = true;
-  await buildPreview(h);
-  assert.equal(locateCalls, 1);
-  assert.equal(h.element("#route-panel").dataset.guiding, "true");
-  assert.match(h.element("#route-dock-note").textContent, /Нет геопозиции/);
+  assert.equal(calls, 1);
+  h.emitGps([0, 1]);
+  h.emitGps([2, 1]);
+  assert.deepEqual(h.routeLocationMatch(h.state.userLocation).point, [2, 0]);
   h.state.routeSnapEnabled = false;
   h.routeSnapChanged();
+  assert.equal(h.routeLocationMatch(h.state.userLocation), null);
+  assert.equal(h.element("#route-panel").dataset.guiding, "true");
+  assert.deepEqual(h.state.userLocation.point, [2, 1]);
+  assert.equal(calls, 1);
+  h.clear();
+});
+
+test("explicit auto-start applies to a route build, while opening a shared route only previews it", async () => {
+  let calls = 0;
+  const h = routeHarness({ nextInterface: true, onLocate: () => calls++ });
+  h.state.routeAutoStart = true;
+  h.state.routeSnapEnabled = true;
+  h.state.search = [h.room("start"), h.room("finish")];
+  h.result.segments[0].points = [
+    [0, 0],
+    [20, 0],
+  ];
+  h.result.steps[0].position = [0, 0];
+  const restored = h.restore(new URLSearchParams("from=start&to=finish"));
+  h.reply(h.result);
+  await restored;
+  assert.equal(calls, 0);
   assert.equal(h.getRoute(), h.result);
-  assert.match(h.element("#route-dock-note").textContent, /Переключайте шаги/);
-  assert.equal(h.element("#route-dock-next").hidden, false);
+  await buildPreview(h);
+  assert.equal(calls, 1);
+  assert.equal(h.element("#route-panel").dataset.guiding, "true");
+  h.clear();
 });
 
 test("dragging mobile sheet up/down keeps its position after the synthesized click", () => {
@@ -925,7 +1016,10 @@ test("the sheet can be swiped to the bottom, reopened and revealed by search/nav
   assert.equal(sheet.classList.contains("minimized"), true);
   assert.equal(content.inert, true, "offscreen controls cannot receive focus");
   assert.equal(content.attributes["aria-hidden"], "true");
-  assert.equal(handle.attributes["aria-label"], "Открыть поиск помещения");
+  assert.equal(
+    handle.attributes["aria-label"],
+    "Аудитория или нужное место — открыть поиск",
+  );
   assert.equal(sheet.style.values.has("--sheet-drag"), false);
   handle.dispatch("click", { detail: 0 });
   assert.equal(sheet.classList.contains("minimized"), false);
@@ -1176,14 +1270,30 @@ test("malformed saved arrays/settings cannot prevent startup or favorite/history
     frameRate: "auto",
     motion: false,
     headingFollow: true,
-    routeSnap: false,
+    routeSnap: true,
+    routeAutoStart: false,
   });
   h.element("#heading-follow-setting").onchange({ target: { checked: false } });
   assert.equal(JSON.parse(h.store.get(settingsKey)).headingFollow, false);
-  h.element("#route-snap-setting").onchange({ target: { checked: true } });
-  assert.equal(JSON.parse(h.store.get(settingsKey)).routeSnap, true);
+  h.element("#route-snap-setting").onchange({ target: { checked: false } });
+  assert.equal(JSON.parse(h.store.get(settingsKey)).routeSnap, false);
   const restored = experienceHarness(Object.fromEntries(h.store));
-  assert.equal(restored.element("#route-snap-setting").checked, true);
+  assert.equal(restored.element("#route-snap-setting").checked, false);
+});
+
+test("existing route preferences survive migration and auto-start can be changed independently", () => {
+  const key = variantStorageKey("atlas:settings");
+  for (const old of [false, true]) {
+    const h = experienceHarness({ [key]: JSON.stringify({ routeSnap: old }) });
+    assert.equal(h.state.routeSnapEnabled, old);
+    assert.equal(h.state.routeAutoStart, old);
+    h.element("#route-auto-start-setting").onchange({
+      target: { checked: !old },
+    });
+    const restored = experienceHarness(Object.fromEntries(h.store));
+    assert.equal(restored.state.routeSnapEnabled, old);
+    assert.equal(restored.state.routeAutoStart, !old);
+  }
 });
 
 test("canceling a route during worker calculation cannot restore its path", async () => {
@@ -2229,6 +2339,7 @@ async function liveRouteHarness(options = {}) {
     };
     h.locationChanged();
   };
+  options.beforeStart?.();
   h.element("#route-dock-next").dispatch("click");
   return h;
 }
@@ -2756,7 +2867,8 @@ test("the single interface uses balanced quality and migrates legacy auto only o
     assert.deepEqual(JSON.parse(migrated.store.get(settingsKey)), {
       ...preferences,
       quality: "balanced",
-      routeSnap: false,
+      routeSnap: true,
+      routeAutoStart: false,
     });
     assert.equal(migrated.store.get(versionKey), "1");
 
@@ -2785,7 +2897,8 @@ test("the single interface uses balanced quality and migrates legacy auto only o
       assert.deepEqual(JSON.parse(existing.store.get(settingsKey)), {
         ...preferences,
         quality,
-        routeSnap: false,
+        routeSnap: true,
+        routeAutoStart: false,
       });
     }
   }
@@ -2964,6 +3077,36 @@ test("native layout resize reserves the remaining input area without double-coun
   assert.equal(sidebar.style.values.get("--sheet-viewport-height"), "180px");
 });
 
+test("a wide touch tablet gives suggestions its visible keyboard space and keeps its desktop sidebar with a hardware keyboard", () => {
+  for (const touch of [true, false]) {
+    const h = experienceHarness(undefined, undefined, {
+      width: 1280,
+      height: 720,
+      touch,
+    });
+    const sidebar = h.element(".sidebar");
+    const input = h.element("#route-from");
+    input.dispatch("focus");
+    assert.equal(sidebar.dataset.inputEditing, "false");
+    h.setViewport(1280, 318);
+    assert.equal(sidebar.dataset.inputEditing, String(touch));
+    assert.equal(sidebar.dataset.keyboardOpen, String(touch));
+    if (touch) {
+      assert.equal(sidebar.dataset.editingField, "route-from");
+      assert.equal(
+        sidebar.style.values.get("--sheet-viewport-height"),
+        "318px",
+      );
+      h.setViewport(1280, 720);
+      assert.equal(sidebar.dataset.inputEditing, "false");
+      h.setViewport(1280, 318);
+      h.element("#sheet-toggle").dispatch("click");
+      assert.equal(sidebar.dataset.editingField, "");
+      assert.equal(h.element("#desktop-search").focused, true);
+    }
+  }
+});
+
 test("keyboard suggestion navigation retains only its active field until leaving or choosing a result", () => {
   for (const nextInterface of [false, true]) {
     for (const field of ["search", "route-from", "route-to"]) {
@@ -3022,7 +3165,7 @@ test("Done, Escape and Android Back exit focused editing without rewriting the f
       () => (searchEnded = true),
     );
     input.dispatch("focus");
-    assert.equal(handle.attributes["aria-label"], "Завершить ввод");
+    assert.equal(handle.attributes["aria-label"], "Готово — завершить ввод");
     assert.equal(h.document.body.dataset.inputEditing, "true");
 
     if (exit === "done") handle.dispatch("click");

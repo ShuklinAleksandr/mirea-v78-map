@@ -94,7 +94,7 @@ export function normalizeGpsPosition(position, now = Date.now()) {
     !Number.isFinite(accuracy) ||
     accuracy <= 0 ||
     !Number.isFinite(timestamp) ||
-    timestamp > now + 10_000
+    timestamp > now + 2_000
   )
     throw new Error("GPS вернул некорректные координаты. Попробуйте ещё раз.");
   if (now - timestamp > GPS_MAX_AGE_MS)

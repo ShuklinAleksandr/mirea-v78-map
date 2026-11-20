@@ -118,6 +118,7 @@ export function createRouteLocationDisplay() {
     ) {
       current = {
         point: progress.matchedPoint.slice(0, 2),
+        matchedDistance: progress.matchedDistance ?? null,
         status: progress.status,
         sourceSegmentIndex,
         locationTimestamp: timestamp,

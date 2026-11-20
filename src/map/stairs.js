@@ -375,6 +375,24 @@ function displayLayoutsForFloor(floor, cache = stairCacheFor(floor)) {
   ]));
 }
 
+/** Full footprints of the registered models, including ascending flights. */
+export function getStairFootprints(floor) {
+  return displayLayoutsForFloor(floor).flatMap((layout) =>
+    (layout.incomingDisplay ? [layout, layout.incomingDisplay] : [layout]).map(
+      ({ footprint, frame }) => ({
+        points: footprint.map(([u, v]) =>
+          frame.origin.map(
+            (n, i) =>
+              n +
+              frame.axisU[i] * u * frame.size[0] +
+              frame.axisV[i] * v * frame.size[1],
+          ),
+        ),
+      }),
+    ),
+  );
+}
+
 /** Display-only openings for stairs descending from the selected level.
  * Original floor polygons and navigation geometry remain untouched.
  */

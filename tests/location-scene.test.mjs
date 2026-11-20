@@ -154,6 +154,41 @@ test("the route marker sits on its visible segment while the accuracy circle sta
   assert.deepEqual(layer.position.toArray(), [1, 0.4, 2]);
 });
 
+test("the marker and camera use the tracked visit at a route crossing", (t) => {
+  const view = harness();
+  t.after(() => {
+    view.callbacks.getRouteLocationMatch = () => null;
+    view.setUserLocation(null);
+  });
+  view.routeLayer = {
+    paths: [
+      {
+        sourceSegmentIndex: 0,
+        points: [
+          [-4, 0],
+          [4, 0],
+          [4, 4],
+          [0, 4],
+          [0, -4],
+        ],
+      },
+    ],
+  };
+  view.callbacks.getRouteLocationMatch = () => ({
+    point: [0, 0],
+    matchedDistance: 20,
+    sourceSegmentIndex: 0,
+    status: "tracking",
+  });
+  view.setUserLocation({
+    source: "gps",
+    campusId: "v-78",
+    point: [0.2, 0.3],
+    timestamp: Date.now(),
+  });
+  assert.equal(view.routeLocationFix.distance, 20);
+});
+
 test("successive GPS fixes move around the visible route corner and cancel when the match is lost", (t) => {
   const view = harness();
   t.after(() => view.setUserLocation(null));

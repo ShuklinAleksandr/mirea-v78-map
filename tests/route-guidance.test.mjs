@@ -80,6 +80,40 @@ test("preview sampling retains every original turn and never cuts across its cam
   assert.equal(guidanceAnchorForStep(guide, 1).distance, 10);
 });
 
+test("a step at a revisited junction stays after the previous turn on the same floor", () => {
+  const points = [
+    [0, 0],
+    [4, 0],
+    [4, 4],
+    [0, 4],
+    [0, 0],
+    [-4, 0],
+  ];
+  const route = {
+    segments: [{ floorId: "f1", points }],
+    steps: [
+      { kind: "start", floorId: "f1", position: points[0] },
+      { kind: "turn", floorId: "f1", position: points[3] },
+      { kind: "turn", floorId: "f1", position: points[4] },
+      { kind: "arrive", floorId: "f1", position: points[5] },
+    ],
+  };
+  const guide = createRouteGuidance(route);
+  assert.deepEqual(
+    guide.anchors.map((a) => a.distance),
+    [0, 12, 16, 20],
+  );
+  assert.equal(sampleRouteGuidance(guide, 0, 4).stepIndex, 0);
+  assert.equal(sampleRouteGuidance(guide, 0, 16).stepIndex, 2);
+  points.pop();
+  route.steps.splice(1, 3, {
+    kind: "arrive",
+    floorId: "f1",
+    position: points[0],
+  });
+  assert.equal(createRouteGuidance(route).anchors[1].distance, 16);
+});
+
 test("a stair boundary and separate visits to the same floor remain separate preview sections", () => {
   const route = {
     segments: [

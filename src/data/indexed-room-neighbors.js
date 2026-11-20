@@ -2,6 +2,7 @@ import polygonClipping from "polygon-clipping";
 
 const BORDER_TOLERANCE = 0.05;
 const MIN_SHARED_BORDER = 0.5;
+const neighborCache = new WeakMap();
 const finitePoint = (point) =>
   Array.isArray(point) &&
   point.length >= 2 &&
@@ -98,6 +99,13 @@ export function indexedRoomNeighbors(graph, targetId, floor) {
     !Array.isArray(floor.polygons)
   )
     return [];
+  // Source graph and floor objects are immutable between data loads. Reuse
+  // the geometric intersection test when another route targets the same door.
+  let byGraph = neighborCache.get(floor);
+  if (!byGraph) neighborCache.set(floor, (byGraph = new WeakMap()));
+  let byRoom = byGraph.get(graph);
+  if (!byRoom) byGraph.set(graph, (byRoom = new Map()));
+  if (byRoom.has(targetId)) return byRoom.get(targetId);
   const polygons = (id) =>
     floor.polygons.filter(
       (polygon) =>
@@ -107,9 +115,10 @@ export function indexedRoomNeighbors(graph, targetId, floor) {
         validPolygon(polygon),
     );
   const targetPolygons = polygons(targetId);
-  if (!targetPolygons.length) return [];
   const result = [];
-  for (const [id, room] of Object.entries(graph.rooms)) {
+  for (const [id, room] of targetPolygons.length
+    ? Object.entries(graph.rooms)
+    : []) {
     const other = indexedRoomGroup(room.label);
     if (
       id === targetId ||
@@ -136,10 +145,12 @@ export function indexedRoomNeighbors(graph, targetId, floor) {
         sharedBoundaryMeters: boundary,
       });
   }
-  return result.sort(
+  result.sort(
     (a, b) =>
       Number(b.baseRoom) - Number(a.baseRoom) ||
       b.sharedBoundaryMeters - a.sharedBoundaryMeters ||
       a.roomId.localeCompare(b.roomId),
   );
+  byRoom.set(targetId, result);
+  return result;
 }

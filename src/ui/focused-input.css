@@ -9,8 +9,11 @@ body[data-input-editing="true"] :is(.map-shell, .topbar) {
    between the system bars and the keyboard, including overlay keyboards. */
 .sidebar[data-input-editing="true"] {
   --editor-gap: 8px;
-  --editor-done-width: 70px;
+  --editor-done-width: max(70px, 6.5ch);
   z-index: 14;
+  position: fixed;
+  grid-area: auto;
+  align-self: stretch;
   inset: calc(
       var(--editor-gap) + max(var(--safe-top), var(--sheet-viewport-top, 0px))
     )
@@ -45,7 +48,12 @@ body[data-input-editing="true"] :is(.map-shell, .topbar) {
   color: var(--green);
 }
 .sidebar[data-input-editing="true"]
-  :is(.sheet-grip, .sheet-search-icon, .sheet-collapsed-title),
+  :is(
+    .sheet-grip,
+    .sheet-search-icon,
+    .sheet-collapsed-title,
+    .desktop-sidebar-header
+  ),
 .sidebar[data-input-editing="true"]
   .sidebar-scroll
   > :not(#explore-panel, #route-panel),
@@ -102,6 +110,18 @@ body[data-input-editing="true"] #route-open {
 .sidebar[data-input-editing="true"] .search-box {
   height: 44px;
   padding: 0 10px;
+}
+@media (max-width: 360px) {
+  .sidebar[data-input-editing="true"]
+    .search-box:has(#search-clear:not([hidden])) {
+    gap: 4px;
+    padding-inline: 6px;
+  }
+  .sidebar[data-input-editing="true"]
+    .search-box:has(#search-clear:not([hidden]))
+    > svg {
+    display: none;
+  }
 }
 .sidebar[data-input-editing="true"] .route-inputs {
   padding: 0 10px;

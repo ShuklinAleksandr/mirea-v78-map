@@ -284,25 +284,20 @@ test("native integrity rejects old campus files even when every expected asset m
   await writeReleaseData(f.root, f.output);
   await writeMobilePackage(f.root, f.output);
   await put(f.output, "index.html", "release app");
-  const nativeRoots = [
-    path.join(f.root, "ios-copy"),
-    path.join(f.root, "android-copy"),
-  ];
-  for (const native of nativeRoots) {
-    await cp(f.output, native, { recursive: true });
-    await put(native, "cordova.js", "native-only bridge");
-  }
-  await checkNativeBundles(f.output, nativeRoots);
+  const native = path.join(f.root, "android-copy");
+  await cp(f.output, native, { recursive: true });
+  await put(native, "cordova.js", "native-only bridge");
+  await checkNativeBundles(f.output, [native]);
   const stale = "data/campuses/v-86/old-floor.json";
-  await put(nativeRoots[0], stale, "old campus");
+  await put(native, stale, "old campus");
   await assert.rejects(
-    checkNativeBundles(f.output, nativeRoots),
+    checkNativeBundles(f.output, [native]),
     /stale or extra map data/,
   );
-  await rm(path.join(nativeRoots[0], stale));
-  await put(nativeRoots[1], "index.html", "outdated app");
+  await rm(path.join(native, stale));
+  await put(native, "index.html", "outdated app");
   await assert.rejects(
-    checkNativeBundles(f.output, nativeRoots),
+    checkNativeBundles(f.output, [native]),
     /stale index.html/,
   );
 });

@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { findRoute } from "../src/data/routing.js";
 import { findNavigationRoute } from "../src/data/entrance-route.js";
@@ -7,7 +9,7 @@ import { withLibraryPassageGraph } from "../src/data/library-passage.js";
 import { atNeighborDoor } from "../src/data/neighbor-door-route.js";
 import { entranceHint } from "../src/data/entrance-hints.js";
 import { getSurveyBlockedEdges } from "../src/data/survey-routing.js";
-import { getStairPartitionBlockedEdges } from "../src/data/stair-partition-routing.js";
+import { getStairBlockedEdges } from "../src/data/stair-partition-routing.js";
 const out = process.argv[2] || ".native-build/route-coverage/latest";
 fs.mkdirSync(out, { recursive: true });
 const read = (p) => JSON.parse(fs.readFileSync(p));
@@ -21,6 +23,8 @@ const sourceFingerprints = Object.fromEntries(
     ),
     ...[
       "routing.js",
+      "route-simplification.js",
+      "route-tracking-surface.js",
       "entrance-route.js",
       "indexed-room-neighbors.js",
       "neighbor-door-route.js",
@@ -28,6 +32,7 @@ const sourceFingerprints = Object.fromEntries(
       "library-passage-reference.json",
       "survey-routing.js",
       "stair-partition-routing.js",
+      "stair-partitions.json",
     ].map((name) => `src/data/${name}`),
   ].map((path) => [
     path,
@@ -51,7 +56,7 @@ const owner = graph.nodes.map((n) => {
 });
 const blocked = new Set([
   ...getSurveyBlockedEdges(graph),
-  ...getStairPartitionBlockedEdges(graph),
+  ...getStairBlockedEdges(graph),
 ]);
 const eligible = graph.edges.filter(
   (e) =>
@@ -275,6 +280,7 @@ const mainRows = [],
   examples = [];
 let formed = 0,
   comparisons = 0;
+const walking = { checkedRoutes: 0, straightenedRoutes: 0, removedVertices: 0 };
 const describeFailure = (r) => {
   const own = ownRawComponents.get(r.id),
     external = [];
@@ -335,7 +341,50 @@ for (const r of rooms) {
     result.ok !== Boolean(predicted)
   )
     throw Error(`Main reachability disagrees with Dijkstra: ${r.label}`);
-  if (result.ok) formed++;
+  if (result.ok) {
+    formed++;
+    const route = findNavigationRoute(graph, main.id, r.id, {
+      floors,
+      walkingFloors: floors,
+    });
+    assert.deepEqual(route.start, result.start);
+    assert.deepEqual(route.end, result.end);
+    assert.deepEqual(route.transitions, result.transitions);
+    assert.deepEqual(
+      route.edges.map((edge) => edge.id),
+      result.edges.map((edge) => edge.id),
+    );
+    assert.equal(route.segments.length, result.segments.length);
+    let removed = 0,
+      meters = 0;
+    for (const [index, segment] of route.segments.entries()) {
+      const raw = result.segments[index];
+      assert.equal(segment.floorId, raw.floorId);
+      assert.deepEqual(segment.points[0], raw.points[0]);
+      assert.deepEqual(segment.points.at(-1), raw.points.at(-1));
+      let cursor = 0;
+      for (const [i, node] of segment.nodes.entries()) {
+        while (cursor < raw.nodes.length && raw.nodes[cursor].id !== node.id)
+          cursor++;
+        assert.ok(cursor < raw.nodes.length);
+        cursor++;
+        assert.deepEqual(node.position, segment.points[i]);
+        if (i)
+          meters += Math.hypot(
+            node.position[0] - segment.points[i - 1][0],
+            node.position[1] - segment.points[i - 1][1],
+          );
+      }
+      removed += raw.points.length - segment.points.length;
+    }
+    if (route.horizontalDistanceMeters != null) {
+      assert.ok(Math.abs(meters - route.horizontalDistanceMeters) < 1e-6);
+      assert.ok(meters <= result.horizontalDistanceMeters + 1e-6);
+    }
+    walking.checkedRoutes++;
+    if (removed > 0) walking.straightenedRoutes++;
+    walking.removedVertices += removed;
+  }
   const status = exact.ok
     ? "exact"
     : result.ok
@@ -389,6 +438,7 @@ let pairs = 0,
   zeroDoorWaypoints = 0,
   parentRoomInstructions = 0;
 let sampleChecks = 0;
+const expectedPairs = Buffer.alloc(rooms.length ** 2);
 for (const a of rooms) {
   for (const b of rooms) {
     if (a.id === b.id) continue;
@@ -396,6 +446,7 @@ for (const a of rooms) {
     const exact = exactReach(a.id, b.id),
       nav = navigationResolve(a.id, b.id);
     const key = nav?.kind || "unreachable";
+    expectedPairs[a.index * rooms.length + b.index] = exact ? 1 : nav ? 2 : 3;
     if (nav?.zeroDoor) zeroDoorWaypoints++;
     if (nav?.zero) parentRoomInstructions++;
     counts[key] = (counts[key] || 0) + 1;
@@ -423,6 +474,7 @@ for (const a of rooms) {
   }
   if (a.index % 250 === 0) console.log("all-pairs origins", a.index);
 }
+fs.writeFileSync(path.join(out, "expected-pairs.bin"), expectedPairs);
 const summarize = (rows) => ({
   total: rows.length,
   ...Object.fromEntries(
@@ -459,6 +511,7 @@ for (const building of ["А", "Б", "В", "Г", "Д"]) {
 }
 const summary = {
   checkedAt: new Date().toISOString(),
+  walkingGeometryFromMain: walking,
   sourceFingerprints,
   graphOverlay: {
     id: graph.userConfirmedLibraryPassage?.id || null,

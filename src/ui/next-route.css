@@ -93,6 +93,7 @@
 }
 .route-dock-progress-labels {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 6px;
   margin-top: 3px;
@@ -152,7 +153,7 @@
 [data-interface="next"] .route-dock-next {
   flex: 1 1 auto;
 }
-@media (min-width: 701px) and (min-height: 521px), (min-width: 1101px) {
+@media (width > 700px) and (height > 520px), (width > 1100px) {
   [data-interface="next"] .route-guidance-dock {
     width: min(520px, calc(100vw - 422px));
     max-height: calc(100dvh - 56px);
@@ -180,6 +181,51 @@
   }
   [data-interface="next"] .route-dock-details svg {
     display: inline;
+  }
+}
+
+/* Keep route map tools in the second row, beside the floor picker.
+   Long instructions and enlarged text scroll inside the dock, leaving room
+   for the floor picker and for dragging the map. */
+@media (width < 520px), (max-width: 700px) and (orientation: portrait) {
+  [data-interface] .route-guidance-dock {
+    max-height: min(
+      56dvh,
+      calc(100dvh - 116px - var(--safe-top) - var(--safe-bottom))
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  [data-interface="next"] :is(.route-dock-controls, .route-dock-secondary) {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  [data-interface="next"] [data-route-navigation="false"] .route-dock-controls {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background: var(--paper);
+  }
+  [data-interface] [data-route-available="true"] .map-tools {
+    top: calc(60px + var(--safe-top));
+    left: calc(8px + var(--safe-left));
+    right: auto;
+    width: max-content;
+    max-width: calc(100% - 88px - var(--safe-left) - var(--safe-right));
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  [data-route-available="true"] .map-tools > * {
+    flex-shrink: 0;
+  }
+  [data-route-available="true"] .zoom-tools {
+    flex-direction: row;
+  }
+  [data-route-available="true"] .zoom-tools button + button {
+    border-top: 0;
+    border-left: 1px solid var(--line);
   }
 }
 @media (min-width: 520px) and (max-width: 1100px) and (max-height: 520px) {

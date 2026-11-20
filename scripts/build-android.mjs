@@ -85,9 +85,18 @@ function run() {
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
+  // AGP resolves sdk.dir against the Android project. A bundled SDK can use
+  // its portable relative path even when the checkout name contains Unicode.
+  const sdkProperty =
+    selected.source === "project" || selected.source === "local audit"
+      ? path
+          .relative(path.dirname(propertiesPath), selected.sdk)
+          .split(path.sep)
+          .join("/")
+      : selected.sdk;
   writeFileSync(
     propertiesPath,
-    sdkLocalProperties(existing, selected.sdk),
+    sdkLocalProperties(existing, sdkProperty),
     "utf8",
   );
   console.log(

@@ -7,6 +7,8 @@ __pycache__/
 # Large original scans remain local research assets. Keep source/maps for reproducible builds.
 source/lidar/*.glb
 analysis/stair-module-build/
+analysis/maps-geometry-qa.json
+analysis/routing-runtime-qa.json
 # Native build outputs; keep generated native source projects.
 .native-build/
 .native-tools/
@@ -44,4 +46,3 @@ keystore.properties
 
 # Generated only for portable source ZIPs.
 /HANDOFF_MANIFEST.json
-desktop-build/

@@ -97,6 +97,7 @@ function harness({
   now = Date.now,
   surveyStorage,
   native = true,
+  onChange = () => {},
 } = {}) {
   const saved = new Map();
   const storage = surveyStorage || {
@@ -202,6 +203,7 @@ function harness({
       stops: 0,
       emit: onPosition,
       fail: onError,
+      rejectStartup: ready.reject,
       ready() {
         ready.resolve(async () => {
           watch.stops++;
@@ -295,7 +297,7 @@ function harness({
     toast(text) {
       toasts.push(text);
     },
-    onChange() {},
+    onChange,
   });
   return {
     $,
@@ -679,6 +681,26 @@ test("failed map placement never leaves a misleading crosshair or banner", () =>
   assert.equal(h.$("#location-pick-banner").hidden, true);
 });
 
+test("a terminal GPS failure before the first fix notifies pending route requests", async () => {
+  for (const rejectedStartup of [false, true]) {
+    let notifications = 0;
+    const h = harness({
+      pendingStart: rejectedStartup,
+      onChange: () => notifications++,
+    });
+    h.controller.startTracking();
+    await turn();
+    const before = notifications;
+    const denied = Object.assign(new Error("Permission denied"), { code: 1 });
+    if (rejectedStartup) h.watches[0].rejectStartup(denied);
+    else h.watches[0].fail(denied);
+    await turn();
+    assert.equal(notifications, before + 1);
+    assert.equal(h.state.userLocation, null);
+    assert.equal(h.state.locationTracking.enabled, false);
+  }
+});
+
 test("permission denial and outside GPS preserve a useful manual point", async () => {
   const h = harness();
   h.controller.setPlace(room);
@@ -777,6 +799,25 @@ test("old GPS can still be recentered without becoming current or borrowing the 
   assert.equal(h.state.userLocation.timestamp, raw.timestamp);
   assert.equal(h.controller.routeOrigin(), null);
   assert.equal(h.state.userLocation.floorId, null);
+});
+
+test("a browser GPS outage republishes the previous observation and clears on the next fix", async () => {
+  const now = Date.now();
+  const h = harness({ now: () => now });
+  h.controller.startTracking();
+  await turn();
+  const watch = h.watches[0];
+  watch.emit(fix([10, -20], now - 1000));
+  watch.fail({ code: 2, message: "Position unavailable" });
+  assert.equal(h.state.userLocation.providerInterrupted, true);
+  assert.equal(h.state.userLocation.trackingStatus, "signal-lost");
+  assert.equal(h.state.userLocation.timestamp, now - 1000);
+  watch.emit(fix([11, -20], now));
+  assert.equal(h.state.userLocation.providerInterrupted, false);
+  assert.equal(h.state.userLocation.trackingStatus, "live");
+  watch.fail({ code: 1, message: "Permission denied" });
+  assert.equal(h.state.userLocation.providerInterrupted, false);
+  assert.equal(h.state.locationTracking.enabled, false);
 });
 
 test("reset after lost GPS clears correction but preserves old timestamps until a real fresh fix", async () => {

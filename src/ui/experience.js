@@ -1,6 +1,6 @@
 import { $, escape } from "./dom.js";
 import { icon } from "./icons.js";
-import { isCompactLandscape } from "./map-viewport.js";
+import { viewportLayout } from "./map-viewport.js";
 import { getBundledMapPackage, nativeShareLink } from "../mobile.js";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
@@ -45,16 +45,12 @@ export const writeSaved = (key, value) => {
 };
 export async function shareView(hash, toast) {
   const native = Capacitor.isNativePlatform();
-  const desktop = globalThis.window?.mireaDesktop;
-  const url =
-    native || desktop
-      ? nativeShareLink(hash)
-      : `${location.origin}${location.pathname}${location.search || ""}${hash}`;
+  const url = native
+    ? nativeShareLink(hash)
+    : `${location.origin}${location.pathname}${location.search || ""}${hash}`;
   const title = "МИРЭА · Вернадского, 78";
   try {
-    if (desktop?.shareLink) {
-      await desktop.shareLink(url);
-    } else if (native) {
+    if (native) {
       // The native plugin's url field supports http(s)/file, not our custom scheme.
       await Share.share({ title, text: url, dialogTitle: "Поделиться картой" });
     } else if (navigator.share) await navigator.share({ title, url });
@@ -74,6 +70,7 @@ export function bindExperience({
   state,
   scene,
   navigateRoom,
+  findSavedPlace = (id) => state.search.find((r) => r.id === id),
   toast,
   onRouteSnapChange,
   onOpenSearch,
@@ -85,8 +82,8 @@ export function bindExperience({
     drag = null,
     suppressDragClick = false;
   let desktopCollapsed = false;
-  const landscape = () => isCompactLandscape(innerWidth, innerHeight);
-  const mobile = () => innerWidth <= 700 || landscape();
+  const landscape = () => viewportLayout() === "landscape";
+  const mobile = () => viewportLayout() !== "desktop";
   const searchOnly = () =>
     !$("#explore-panel").hidden &&
     $("#route-panel").hidden &&
@@ -96,6 +93,7 @@ export function bindExperience({
     sidebar.style.removeProperty("--sheet-drag");
   };
   const visualViewport = window.visualViewport;
+  const touchScreen = matchMedia("(any-pointer: coarse)");
   let editingInput = null;
   let editingField = "";
   let editingPointer = null;
@@ -118,7 +116,7 @@ export function bindExperience({
   function holdEditingPointer(event) {
     if (
       !editingInput ||
-      !mobile() ||
+      sidebar.dataset.inputEditing !== "true" ||
       event.isPrimary === false ||
       (event.button != null && event.button !== 0)
     )
@@ -135,7 +133,7 @@ export function bindExperience({
     // Safari can blur an input with relatedTarget=null and dismiss its keyboard
     // between pointerdown and click. Keep the hit target in place until click;
     // this also holds the short-viewport grid during the keyboard animation.
-    if (editingPointer && sheetState === "expanded") return;
+    if (editingPointer) return;
     const layoutHeight = Math.max(
       innerHeight,
       document.documentElement.clientHeight || 0,
@@ -150,7 +148,16 @@ export function bindExperience({
     } else if (!editingInput) {
       restingHeight = Math.max(restingHeight, layoutHeight);
     }
-    const editing = Boolean(editingInput) && mobile();
+    const unzoomed = !visualViewport || visualViewport.scale === 1;
+    const visibleHeight = visualViewport?.height ?? layoutHeight;
+    const keyboardOpen = unzoomed && restingHeight - visibleHeight > 80;
+    // Large tablets keep the desktop sidebar with a hardware keyboard. Once
+    // an on-screen keyboard reduces the viewport, give its results the space.
+    const editing =
+      Boolean(editingInput) &&
+      (mobile() || (touchScreen.matches && keyboardOpen));
+    if (editing && sidebar.dataset.inputEditing !== "true")
+      content.scrollTop = 0;
     const collapsed = desktopCollapsed && !mobile();
     sidebar.dataset.desktopCollapsed = String(collapsed);
     if (!mobile()) {
@@ -165,25 +172,21 @@ export function bindExperience({
     handle.setAttribute(
       "aria-label",
       editing
-        ? "Завершить ввод"
+        ? "Готово — завершить ввод"
         : sheetState === "minimized" && mobile()
-          ? "Открыть поиск помещения"
+          ? "Аудитория или нужное место — открыть поиск"
           : sheetState === "expanded" || landscape()
             ? "Свернуть панель"
             : "Развернуть панель",
     );
-    const unzoomed = !visualViewport || visualViewport.scale === 1;
-    const visibleHeight = visualViewport?.height ?? layoutHeight;
     sidebar.dataset.shortViewport = String(
       editing && unzoomed && visibleHeight < 180,
     );
-    sidebar.dataset.keyboardOpen = String(
-      editing && unzoomed && restingHeight - visibleHeight > 80,
-    );
+    sidebar.dataset.keyboardOpen = String(editing && keyboardOpen);
     // Safari's overlay keyboard leaves fixed elements in the layout viewport.
     // Apply visual bounds in BOTH orientations; native adjustResize naturally
     // gives a zero bottom inset with the smaller available height.
-    if (sheetState !== "expanded" || !mobile() || !unzoomed) {
+    if ((!editing && (sheetState !== "expanded" || !mobile())) || !unzoomed) {
       sidebar.style.removeProperty("--sheet-viewport-top");
       sidebar.style.removeProperty("--sheet-viewport-bottom");
       sidebar.style.removeProperty("--sheet-viewport-height");
@@ -258,7 +261,7 @@ export function bindExperience({
     $("#desktop-search").focus({ preventScroll: true });
   };
   function finishInputEditing({ focusHandle = true } = {}) {
-    if (!editingInput || !mobile()) return false;
+    if (!editingInput || sidebar.dataset.inputEditing !== "true") return false;
     const input = editingInput;
     editingResults().hidden = true;
     input.setAttribute("aria-expanded", "false");
@@ -268,7 +271,8 @@ export function bindExperience({
     }
     setSheetState("peek");
     input.blur();
-    if (focusHandle) handle.focus({ preventScroll: true });
+    if (focusHandle)
+      (mobile() ? handle : $("#desktop-search")).focus({ preventScroll: true });
     return true;
   }
   handle.onclick = (event) => {
@@ -290,7 +294,7 @@ export function bindExperience({
     setSheetState(sheetState === "expanded" ? "peek" : "expanded");
   };
   handle.addEventListener("pointerdown", (e) => {
-    if (editingInput && mobile()) {
+    if (editingInput && sidebar.dataset.inputEditing === "true") {
       holdEditingPointer(e);
       return;
     }
@@ -366,9 +370,18 @@ export function bindExperience({
   });
   window.addEventListener("resize", () => {
     drag = null;
-    setSheetState(
-      !mobile() && sheetState === "minimized" ? "peek" : sheetState,
-    );
+    if (editingInput) {
+      if (mobile() && sheetState !== "expanded") setSheetState("expanded");
+      else updateVisibleBounds();
+      return;
+    }
+    if (desktopCollapsed && !mobile()) {
+      updateVisibleBounds();
+      return;
+    }
+    // A wide layout can show the sidebar while retaining the user's compact
+    // sheet position for the next rotation or split-screen resize.
+    setSheetState(sheetState);
   });
   sidebar.addEventListener(
     "keydown",
@@ -411,7 +424,11 @@ export function bindExperience({
   for (const control of [handle, $("#search-clear")]) {
     control.addEventListener("focusout", leaveEditingFocus);
     control.addEventListener("mousedown", (event) => {
-      if (editingInput && mobile() && event.button === 0)
+      if (
+        editingInput &&
+        sidebar.dataset.inputEditing === "true" &&
+        event.button === 0
+      )
         event.preventDefault();
     });
   }
@@ -464,15 +481,19 @@ export function bindExperience({
   setSheetState(mobile() ? "minimized" : "peek");
   const themeQuery = matchMedia("(prefers-color-scheme: dark)");
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+  // Earlier versions used a single opt-in for both matching and starting GPS.
+  const legacyAutoStart = readSaved("settings", { routeSnap: false }).routeSnap;
   const settings = readSaved("settings", {
     theme: "system",
     quality: "balanced",
     frameRate: "auto",
     motion: motionQuery.matches,
     headingFollow: true,
-    routeSnap: false,
+    routeSnap: true,
+    routeAutoStart: legacyAutoStart,
   });
   state.routeSnapEnabled = settings.routeSnap;
+  state.routeAutoStart = settings.routeAutoStart;
   if (!["system", "light", "dark"].includes(settings.theme))
     settings.theme = "system";
   if (!["auto", "low", "balanced", "high"].includes(settings.quality))
@@ -514,6 +535,7 @@ export function bindExperience({
   $("#motion-setting").checked = settings.motion;
   $("#heading-follow-setting").checked = settings.headingFollow;
   $("#route-snap-setting").checked = settings.routeSnap;
+  $("#route-auto-start-setting").checked = settings.routeAutoStart;
   $("#theme-setting").onchange = (e) => {
     settings.theme = e.target.value;
     applySettings();
@@ -542,6 +564,10 @@ export function bindExperience({
     writeSaved("settings", settings);
     onRouteSnapChange?.();
   };
+  $("#route-auto-start-setting").onchange = (e) => {
+    state.routeAutoStart = settings.routeAutoStart = e.target.checked;
+    writeSaved("settings", settings);
+  };
   themeQuery.addEventListener("change", applySettings);
   applyGraphics();
   applySettings();
@@ -567,10 +593,7 @@ export function bindExperience({
       ["Недавно", recent.filter((id) => !favorites.includes(id))],
     ]
       .map(([label, ids]) => {
-        const rooms = ids
-          .map((id) => state.search.find((r) => r.id === id))
-          .filter(Boolean)
-          .slice(0, 5);
+        const rooms = ids.map(findSavedPlace).filter(Boolean).slice(0, 5);
         return rooms.length
           ? `<div class="saved-heading">${icon(label === "Избранное" ? "star" : "pin", 13)}${label}</div><div class="saved-chips">${rooms.map((r) => `<button data-saved="${escape(r.id)}">${escape(r.label)}</button>`).join("")}</div>`
           : "";
@@ -579,7 +602,8 @@ export function bindExperience({
     for (const b of $("#saved-places").querySelectorAll("button"))
       b.onclick = () => {
         finishInputEditing({ focusHandle: false });
-        navigateRoom(state.search.find((r) => r.id === b.dataset.saved));
+        const place = findSavedPlace(b.dataset.saved);
+        if (place) navigateRoom(place);
       };
   }
   function remember(room) {

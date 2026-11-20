@@ -30,7 +30,7 @@ npm run check
 git diff
 ```
 
-Для изменений нативного кода дополнительно соберите затронутую платформу и укажите устройство или симулятор. Веб-проверка в GitHub Actions не заменяет Android/Xcode-компиляцию.
+Для изменений нативного кода дополнительно соберите Android APK и укажите устройство или эмулятор, на котором проверили изменение.
 
 ```sh
 git add .
@@ -49,7 +49,7 @@ git push -u origin feature/search-improvements
 | Сцена, камера, лестницы | `src/map/` |
 | Поиск, маршруты, данные | `src/data/` |
 | Системная геопозиция и компас | `src/location.js`, `src/heading.js` |
-| Нативные плагины | `android/`, `ios/` |
+| Нативные плагины | `android/` |
 | Исходные карты и фотографии | `public/data/`, `source/maps/` |
 | Подготовка данных и сборка | `scripts/` |
 | Проверки | `tests/` |
@@ -66,9 +66,7 @@ git push -u origin feature/search-improvements
 
 ## Мобильные сборки
 
-Сначала подготовьте окружение по [docs/MOBILE.md](docs/MOBILE.md), затем запустите `npm run mobile:doctor`. Общая команда на Mac — `npm run mobile:build:macos`; она выполняет одну синхронизацию и обе компиляции. Для физического iPhone следуйте [XCODE_IPHONE.md](XCODE_IPHONE.md).
-
-SDK, `node_modules`, кэши, файлы подписи и локальные сборки создаются на компьютере разработчика. APK и Simulator ZIP прикрепляются к Releases с датой, SHA-256 и ограничениями. Simulator App не является iPhone/TestFlight-сборкой.
+Подготовьте окружение по [инструкции Android](docs/MOBILE.md). Выполните `npm run mobile:doctor`, `npm run mobile:build:android` и `npm run mobile:check`. Для выпуска укажите дату испытаний, устройство, SHA-256 собранного APK и известные ограничения.
 
 ## Документация и проверки
 

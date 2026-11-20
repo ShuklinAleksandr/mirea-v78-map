@@ -171,14 +171,23 @@ test("projection changes release an existing shadow target and never enable anot
 
 test("shared indoor components stay whole with selected-wing focus bounds and reuse common prepared contours", () => {
   const view = harness();
-  const a = view.prepareFloorDisplay(floors[2], "А");
+  const b = view.prepareFloorDisplay(floors[2], "Б");
   const g = view.prepareFloorDisplay(floors[2], "Г");
   assert.equal(
     g,
-    a,
+    b,
     "same source component does not repeat contour/cutout derivation for each wing",
   );
+  const a = view.prepareFloorDisplay(floors[2], "А");
   assert.equal(a.preserveSharedComponents, true);
+  const hasApproach = (display) =>
+    display.slabs.some((slab) => slab.id === "v-78-floor2-area-2");
+  assert.ok(
+    hasApproach(a),
+    "entering А from Г must show the entrance approach",
+  );
+  assert.equal(hasApproach(g), false);
+  assert.equal(view.prepareFloorDisplay(floors[2], "Г"), g);
   for (const id of [
     "v-78-floor2-area-27",
     "v-78-floor2-area-41",

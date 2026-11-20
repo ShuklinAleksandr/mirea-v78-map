@@ -3,8 +3,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import regions from "../src/data/stair-partitions.json" with { type: "json" };
+import { getStairDisplayCutouts } from "../src/map/stairs.js";
+import { segmentCrossesSurveyInterior } from "../src/data/survey-routing.js";
 import { getStairPartitionView } from "../src/map/stair-partitions.js";
 import {
+  getStairOpeningBlockedEdges,
   getStairPartitionBlockedEdges,
   getStairPartitionRoutingReport,
 } from "../src/data/stair-partition-routing.js";
@@ -132,4 +135,55 @@ test("G-103-1 to G-209 retains an original valid route after excluding divider c
     result.transitions.map((t) => t.sourceEdgeId),
     ["v-78:edge:20714"],
   );
+});
+
+test("A-209 to Г-213 follows the hall floor around the A-154 stair opening in both directions", () => {
+  const floor = read("../public/data/campuses/v-78/v-78-floor2.json");
+  const [region] = regions.openings;
+  const opening = getStairDisplayCutouts(floor).find(
+    (cutout) => cutout.layoutId === region.layoutId,
+  );
+  assert.deepEqual(region.points, opening.points);
+  assert.equal(region.sourceSha256, opening.sourceSha256);
+  assert.deepEqual(opening.sourcePolygonIds, [region.areaId]);
+  const blocked = getStairOpeningBlockedEdges(graph);
+  assert.equal(blocked.size, 46);
+  for (const edge of ["v-78:edge:29560", "v-78:edge:29589"])
+    assert.ok(
+      blocked.has(edge),
+      "the previous horizontal route crossed the opening",
+    );
+  assert.equal(
+    getStairOpeningBlockedEdges({ ...graph, campusId: "v-86" }).size,
+    0,
+  );
+  const a209 = "v-78--floor-2--a01",
+    g213 = "v-78--floor-1--6ds";
+  for (const [from, to] of [
+    [a209, g213],
+    [g213, a209],
+  ]) {
+    const route = findRoute(graph, from, to);
+    assert.equal(route.ok, true);
+    for (const section of route.segments.filter((s) => s.floorId === floor.id))
+      for (let i = 1; i < section.points.length; i++)
+        assert.equal(
+          segmentCrossesSurveyInterior(
+            section.points[i - 1],
+            section.points[i],
+            opening.points,
+          ),
+          false,
+        );
+  }
+  const portal = "v-78:floor-2:9zz:portal:adb";
+  const approaches = graph.edges.filter(
+    (edge) =>
+      edge.eligible &&
+      edge.kind === "corridor" &&
+      [edge.from, edge.to].includes(portal) &&
+      !blocked.has(edge.id),
+  );
+  assert.equal(approaches.length, 3);
+  assert.equal(blocked.has("v-78:edge:20725"), false);
 });

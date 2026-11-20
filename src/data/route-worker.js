@@ -1,5 +1,4 @@
 import { loadRouting } from "./routing.js";
-import { findNavigationRoute } from "./entrance-route.js";
 import { findIRouteOptions } from "./i-route-options.js";
 import { getJSON } from "./client.js";
 import { indexedRoomGroup } from "./indexed-room-neighbors.js";
@@ -20,7 +19,19 @@ self.onmessage = async ({ data }) => {
         return getJSON(`/data/campuses/${graph.campusId}/${id}.json`);
       }),
     );
-    let result = findNavigationRoute(graph, data.from, data.to, { floors });
+    const walkingFloors = (
+      await Promise.all(
+        [...new Set(data.walkingFloorIds)]
+          .filter((id) => Object.hasOwn(graph.floors || {}, id))
+          .map((id) =>
+            getJSON(`/data/campuses/${graph.campusId}/${id}.json`).catch(
+              () => null,
+            ),
+          ),
+      )
+    ).filter(Boolean);
+    const options = { floors, walkingFloors };
+    let result = findIRouteOptions(graph, data.from, data.to, options);
     if (!result.ok && result.code === "no-path") {
       for (const endpoint of [data.to, data.from]) {
         const room = graph.rooms[endpoint?.roomId || endpoint?.id || endpoint];
@@ -41,10 +52,9 @@ self.onmessage = async ({ data }) => {
           // with a nearest room number or an invented connector.
         }
       }
-      result = findNavigationRoute(graph, data.from, data.to, { floors });
+      if (floors.length > ids.length)
+        result = findIRouteOptions(graph, data.from, data.to, options);
     }
-    if (result.ok)
-      result = findIRouteOptions(graph, data.from, data.to, { floors });
     self.postMessage({
       id: data.id,
       result,

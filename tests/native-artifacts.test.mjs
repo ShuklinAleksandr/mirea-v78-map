@@ -4,7 +4,6 @@ import { spawnSync } from "node:child_process";
 import {
   androidZipFilenamePython,
   compareAssetInventories,
-  inspectSimulatorMachO,
 } from "../scripts/verify-native-artifacts.mjs";
 
 function runZipRegression(source) {
@@ -137,53 +136,4 @@ test("Capacitor extras pass only when their hashes match the synchronized native
     compareAssetInventories(dist, [...dist, extraData], [extraData]).ok,
     false,
   );
-});
-
-function executable(platform = 7, cpu = 16777228) {
-  const data = Buffer.alloc(56);
-  data.writeUInt32LE(0xfeedfacf, 0);
-  data.writeUInt32LE(cpu, 4);
-  data.writeUInt32LE(2, 12);
-  data.writeUInt32LE(1, 16);
-  data.writeUInt32LE(24, 20);
-  data.writeUInt32LE(0x32, 32);
-  data.writeUInt32LE(24, 36);
-  data.writeUInt32LE(platform, 40);
-  data.writeUInt32LE(15 << 16, 44);
-  data.writeUInt32LE(26 << 16, 48);
-  return data;
-}
-
-test("Mach-O load commands distinguish Simulator from a physical iPhone executable", () => {
-  const inspected = inspectSimulatorMachO(executable());
-  assert.equal(inspected.slices[0].architecture, "arm64");
-  assert.equal(inspected.slices[0].minimumOS, "15.0.0");
-  assert.throws(() => inspectSimulatorMachO(executable(2)), /expected 7/);
-  assert.throws(
-    () => inspectSimulatorMachO(Buffer.from("not an executable")),
-    /Mach-O/,
-  );
-  const malformed = executable();
-  malformed.writeUInt32LE(1000, 36);
-  assert.throws(() => inspectSimulatorMachO(malformed), /load-command size/);
-});
-
-test("all universal executable slices must target Simulator", () => {
-  const arm = executable();
-  const intel = executable(7, 16777223);
-  const data = Buffer.alloc(48 + arm.length + intel.length);
-  data.writeUInt32BE(0xcafebabe, 0);
-  data.writeUInt32BE(2, 4);
-  data.writeUInt32BE(48, 16);
-  data.writeUInt32BE(arm.length, 20);
-  data.writeUInt32BE(48 + arm.length, 36);
-  data.writeUInt32BE(intel.length, 40);
-  arm.copy(data, 48);
-  intel.copy(data, 48 + arm.length);
-  assert.deepEqual(
-    inspectSimulatorMachO(data).slices.map((slice) => slice.architecture),
-    ["arm64", "x86_64"],
-  );
-  executable(2, 16777223).copy(data, 48 + arm.length);
-  assert.throws(() => inspectSimulatorMachO(data), /expected 7/);
 });

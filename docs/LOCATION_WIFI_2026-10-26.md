@@ -42,7 +42,7 @@ Android: Pixel 7 AVD `sdk_gphone64_arm64`, Android 16 / API 36, WebView 133.0.69
 
 ## Границы результата и передача
 
-Подписанной сборки для настоящего iPhone, IPA и TestFlight-архива нет. Для iPhone нужен Mac владельца, Team, development-подпись и устройство: [XCODE_IPHONE.md](../XCODE_IPHONE.md). Для TestFlight отдельно нужны программа владельца, App Store Connect и подписанный device-архив. APK отладочный, App только для Simulator.
+Подписанной сборки для настоящего iPhone, IPA и TestFlight-архива нет. Для iPhone нужен Mac владельца, Team, development-подпись и устройство: [XCODE_IPHONE.md](https://github.com/ShuklinAleksandr/mirea-v78-map/blob/8a910d3aecf92c8e2f8df6184e7740d8470cfead/XCODE_IPHONE.md). Для TestFlight отдельно нужны программа владельца, App Store Connect и подписанный device-архив. APK отладочный, App только для Simulator.
 
 Нужны реальные Wi-Fi-замеры в вузе, независимый тест зоны/этажа, проверка всех обязательных проходов и полное испытание на физических телефонах, включая жесты, память, фон и safe areas. Старые ограничения геометрии, цоколя и связности сохранены. Новая сборка их не устраняет.
 

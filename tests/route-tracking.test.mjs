@@ -6,6 +6,7 @@ import { createRouteTrackingSurfaceGuard } from "../src/data/route-tracking-surf
 import {
   createRouteGuidance,
   sampleRouteGuidance,
+  sampleRouteCamera,
 } from "../src/map/route-guidance.js";
 import { findRoute } from "../src/data/routing.js";
 
@@ -119,6 +120,19 @@ test("duplicate and out-of-order fixes are not confirmations and do not erase va
   assert.deepEqual(observe(tracker, [0, 0], 1), before);
 });
 
+test("a future GPS timestamp cannot block the following valid positions", () => {
+  const tracker = createRouteTracker(fixture());
+  observe(tracker, [0, 0], 0);
+  observe(tracker, [2, 0], 1);
+  const future = tracker.update(gps([6, 0], 8), {
+    now: T + 2_000,
+    floorId: "f1",
+  });
+  assert.equal(future.status, "stale");
+  assert.equal(observe(tracker, [4, 0], 3).status, "acquiring");
+  assert.equal(observe(tracker, [6, 0], 4).status, "tracking");
+});
+
 test("walking back through a turn keeps the marker on the line and resumes instructions from the earlier position", () => {
   const tracker = createRouteTracker(fixture());
   const fix = (point, index) =>
@@ -134,6 +148,7 @@ test("walking back through a turn keeps the marker on the line and resumes instr
   const paused = fix([20, 4], 16);
   assert.equal(paused.status, "wrong-way");
   assert.deepEqual(paused.matchedPoint, [20, 4]);
+  assert.equal(paused.matchedDistance, 24);
   assert.equal(fix([20, 2], 17).status, "wrong-way");
   const beforeTurn = fix([18, 0], 18);
   assert.equal(beforeTurn.status, "wrong-way");
@@ -181,6 +196,31 @@ test("stale or paused GPS holds even when its timestamp is repeated by a UI refr
     observe(tracker2, [2, 0], 1, { trackingStatus: "stopped" }).status,
     "stale",
   );
+});
+
+test("temporary provider errors between distinct fixes pause the status without blocking walking", () => {
+  const tracker = createRouteTracker(fixture());
+  const options = { pauseOnReverse: true, allowPoint: () => true };
+  for (let i = 0; i < 5; i++) {
+    const point = [2 * i, 1];
+    const fix = observe(tracker, point, i, {}, options);
+    assert.equal(fix.status, i ? "tracking" : "acquiring");
+    if (i) assert.deepEqual(fix.matchedPoint, [2 * i, 0]);
+    const lost = observe(
+      tracker,
+      point,
+      i,
+      {
+        trackingStatus: "signal-lost",
+        providerInterrupted: true,
+      },
+      options,
+    );
+    assert.equal(lost.status, "stale");
+    assert.equal(lost.distance, fix.distance);
+    assert.equal(lost.matchedPoint, null);
+  }
+  assert.equal(tracker.snapshot().distance, 6);
 });
 
 test("poor accuracy breaks pending confirmation and a static manual point never walks", () => {
@@ -256,6 +296,34 @@ test("a rejected jump cannot promote itself by repeating immediately after evide
   assert.equal(observe(tracker, [4, 0], 6).status, "tracking");
 });
 
+test("tracking reacquires a walker after a short GPS outage on a long corridor", () => {
+  const tracker = createRouteTracker(
+    fixture([
+      [0, 0],
+      [120, 0],
+    ]),
+  );
+  const options = { pauseOnReverse: true, allowPoint: () => true };
+  observe(tracker, [0, 0], 0, {}, options);
+  const before = observe(tracker, [3, 0], 3, {}, options);
+  for (const tick of [6, 9, 12, 15, 18, 21]) {
+    const fix = observe(
+      tracker,
+      [tick * 1.5, 1],
+      tick,
+      { accuracyMeters: 30 },
+      options,
+    );
+    assert.equal(fix.status, "low-accuracy");
+    assert.equal(fix.distance, before.distance);
+  }
+  assert.equal(observe(tracker, [36, 0], 24, {}, options).status, "acquiring");
+  const resumed = observe(tracker, [40, 0], 27, {}, options);
+  assert.equal(resumed.status, "tracking");
+  assert.equal(resumed.distance, 36);
+  assert.deepEqual(resumed.matchedPoint, [40, 0]);
+});
+
 test("a nearby later crossing or parallel return branch cannot teleport progress", () => {
   const crossing = createRouteTracker(
     fixture([
@@ -285,6 +353,25 @@ test("a nearby later crossing or parallel return branch cannot teleport progress
   assert.equal(result.distance, 0);
   assert.equal(result.arrived, false);
   assert.equal(result.stepIndex, 2);
+});
+
+test("lateral drift cannot skip the turn onto the parallel return of a short hairpin", () => {
+  const tracker = createRouteTracker(
+    fixture([
+      [0, 0],
+      [8, 0],
+      [8, 2],
+      [0, 2],
+    ]),
+  );
+  const options = { pauseOnReverse: true, allowPoint: () => true };
+  observe(tracker, [3, 0], 0, {}, options);
+  observe(tracker, [3, 0], 3, {}, options);
+  for (const tick of [6, 9, 12]) {
+    const fix = observe(tracker, [3, 2], tick, {}, options);
+    assert.deepEqual(fix.matchedPoint, [3, 0]);
+    assert.equal(fix.arrived, false);
+  }
 });
 
 test("GPS needs an explicit map-floor context and cannot override a manual own-floor mismatch", () => {
@@ -667,6 +754,172 @@ test("real G103-1 to G209 replays each source section without automatically cros
       s < guide.sections.length - 1 ? "floor-change" : "arrived",
     );
   }
+});
+
+test("a walker receiving GPS every three seconds can pass short bends after the Г-209 stair hand-off", () => {
+  const graph = JSON.parse(
+    readFileSync(new URL("../public/data/routing/v-78.json", import.meta.url)),
+  );
+  const floor = JSON.parse(
+    readFileSync(
+      new URL("../public/data/campuses/v-78/v-78-floor1.json", import.meta.url),
+    ),
+  );
+  const route = findRoute(graph, "v-78--floor-0--200", "v-78--floor-1--6dn");
+  const guide = createRouteGuidance(route);
+  const tracker = createRouteTracker(route);
+  tracker.seekStep(
+    guide.anchors.find((anchor) => anchor.sectionIndex === 1).stepIndex,
+  );
+  const options = {
+    floorId: floor.id,
+    pauseOnReverse: true,
+    allowPoint: createRouteTrackingSurfaceGuard(floor),
+  };
+  for (const [i, d] of [0, 4.5, 9, 13.5, 18, 22.5].entries()) {
+    const point = sampleRouteGuidance(guide, 1, d).position;
+    const fix = observe(tracker, point, 3 * i, {}, options);
+    if (i === 0) assert.equal(fix.status, "acquiring");
+    else {
+      assert.ok(["tracking", "arrived"].includes(fix.status), fix.reason);
+      assert.ok(
+        Math.hypot(
+          point[0] - fix.matchedPoint[0],
+          point[1] - fix.matchedPoint[1],
+        ) < 0.01,
+      );
+    }
+  }
+  assert.equal(tracker.snapshot().arrived, true);
+});
+
+test("guidance, camera and GPS all use the straightened corridor and its verified floor", () => {
+  const floor = {
+    id: "f1",
+    campusId: "v-78",
+    units: "meters",
+    buildingLevels: { А: 1 },
+    polygons: [
+      {
+        id: "hall",
+        kind: "corridor",
+        points: [
+          [-3, -4],
+          [27, -4],
+          [27, 4],
+          [-3, 4],
+        ],
+      },
+    ],
+    walls: [],
+    doors: [],
+  };
+  const sourcePoints = [
+    [0, 0],
+    [4, 2],
+    [8, -2],
+    [12, 2],
+    [16, -2],
+    [20, 2],
+    [24, 0],
+  ];
+  const nodes = sourcePoints.map((position, i) => ({
+    id: "waypoint-" + i,
+    floorId: floor.id,
+    areaId: "hall",
+    kind: "waypoint",
+    building: "А",
+    physicalLevel: 1,
+    position,
+  }));
+  const graph = {
+    campusId: floor.campusId,
+    status: "available",
+    units: floor.units,
+    nodes,
+    rooms: {
+      from: {
+        nodeId: nodes[0].id,
+        label: "Start",
+        floorId: floor.id,
+        connected: true,
+      },
+      to: {
+        nodeId: nodes.at(-1).id,
+        label: "Finish",
+        floorId: floor.id,
+        connected: true,
+      },
+    },
+    edges: nodes.slice(1).map((node, i) => ({
+      id: "e" + i,
+      from: nodes[i].id,
+      to: node.id,
+      kind: "corridor",
+      eligible: true,
+      bidirectional: true,
+      cost: Math.hypot(
+        node.position[0] - nodes[i].position[0],
+        node.position[1] - nodes[i].position[1],
+      ),
+    })),
+  };
+  const floors = [floor];
+  const route = findRoute(graph, "from", "to", {
+    floors,
+    walkingFloors: floors,
+  });
+  assert.equal(route.ok, true);
+  assert.equal(route.segments[0].straightened, true);
+  assert.deepEqual(
+    route.graphNodes.map((node) => node.position),
+    sourcePoints,
+  );
+  assert.deepEqual(
+    route.steps.map((step) => step.kind),
+    ["start", "walk", "arrive"],
+  );
+  const guide = createRouteGuidance(route);
+  assert.deepEqual(guide.sections[0].points, [
+    [0, 0],
+    [24, 0],
+  ]);
+  assert.equal(route.distanceMeters, guide.sections[0].length);
+  const tracker = createRouteTracker(route);
+  const options = {
+    floorId: floor.id,
+    floorBuildingLevels: floor.buildingLevels,
+    pauseOnReverse: true,
+    allowPoint: createRouteTrackingSurfaceGuard(floor),
+  };
+  const confirmedFloor = {
+    floorId: floor.id,
+    floorEvidence: "manual",
+    building: "А",
+    physicalLevel: 1,
+  };
+  for (let i = 0; i < 10; i++) {
+    const x = Math.min(24, i * 3);
+    const sample = sampleRouteGuidance(guide, 0, x);
+    assert.deepEqual(sample.position, [x, 0]);
+    assert.equal(
+      sampleRouteCamera(guide.sections[0].points, x).bearing,
+      -Math.PI / 2,
+    );
+    const fix = observe(
+      tracker,
+      [x, i % 2 ? 1 : -1],
+      i * 2,
+      confirmedFloor,
+      options,
+    );
+    if (i) {
+      assert.deepEqual(fix.matchedPoint, [x, 0]);
+      assert.equal(fix.matchedDistance, x);
+      assert.equal(fix.stepIndex, 2);
+    }
+  }
+  assert.equal(tracker.snapshot().arrived, true);
 });
 
 test("the А-209 to Г-213 corridor continues along its line during bounded lateral GPS drift", () => {

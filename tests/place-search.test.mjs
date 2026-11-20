@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { findPlaces } from "../src/data/place-search.js";
+import { findPlaces, PLACE_CATEGORIES } from "../src/data/place-search.js";
 
 const source = JSON.parse(
   readFileSync(new URL("../public/data/search-index.json", import.meta.url)),
@@ -34,6 +34,16 @@ test("useful place categories use verified types instead of guesses from room nu
     findPlaces(records, { category: "toilet", query: "Г-209" }),
     [],
   );
+});
+
+test("typing the displayed category name finds the same places as its button", () => {
+  for (const { id, label } of PLACE_CATEGORIES) {
+    assert.deepEqual(
+      findPlaces(records, { query: label }),
+      findPlaces(records, { category: id }),
+      label,
+    );
+  }
 });
 
 test("the current floor is prioritized without pretending that the phone location is known", () => {

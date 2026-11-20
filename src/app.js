@@ -1,3 +1,5 @@
+import { resolveSavedMapPlace } from "./data/saved-map-place.js";
+import { hasRouteEndpoint } from "./data/route-endpoint-availability.js";
 import { $, escape } from "./ui/dom.js";
 import { icon } from "./ui/icons.js";
 import { layout } from "./ui/layout.js";
@@ -48,7 +50,7 @@ import { entranceHint } from "./data/entrance-hints.js";
 import { pickLocationSurface } from "./map/location-view.js";
 import { getBuildingFloorView } from "./map/building-view.js";
 import {
-  isCompactLandscape,
+  viewportLayout,
   landscapeMapPadding,
   portraitMapPadding,
   desktopMapPadding,
@@ -146,6 +148,7 @@ try {
 if (scene) {
   bindCleanMap(scene, () => userPosition?.cancelPicking());
   experience = bindExperience({
+    findSavedPlace,
     state,
     scene,
     navigateRoom,
@@ -155,6 +158,7 @@ if (scene) {
   });
   routes = bindRoutes({
     state,
+    findSavedPlace,
     scene,
     loadCampus,
     chooseFloor,
@@ -485,6 +489,10 @@ function updateUI() {
   const modeToggle = $("#mode-toggle");
   modeToggle.setAttribute("aria-pressed", scene.plan);
   modeToggle.textContent = scene.plan ? "2D" : "3D";
+  modeToggle.setAttribute(
+    "aria-label",
+    scene.plan ? "2D, переключить на 3D" : "3D, переключить на 2D",
+  );
 
   const touch = matchMedia("(pointer: coarse)").matches;
   $("#interaction-hint").textContent = touch
@@ -564,8 +572,7 @@ async function loadCampus(id, { navigationToken = null } = {}) {
   }
 }
 function revealMap() {
-  if (innerWidth <= 700 || isCompactLandscape(innerWidth, innerHeight))
-    experience?.minimize?.();
+  if (viewportLayout() !== "desktop") experience?.minimize?.();
 }
 function defaultBuildingFloor(floors, building = state.building) {
   if (!building) return null;
@@ -691,8 +698,8 @@ function dismissRoom() {
 function roomPadding() {
   if (document.body?.dataset.cleanMap === "true")
     return { top: 64, bottom: 16, left: 16, right: 16 };
-  if (isCompactLandscape(innerWidth, innerHeight)) return landscapeMapPadding();
-  if (innerWidth <= 700) return portraitMapPadding();
+  if (viewportLayout() === "landscape") return landscapeMapPadding();
+  if (viewportLayout() === "portrait") return portraitMapPadding();
   return desktopMapPadding();
 }
 const kindNames = {
@@ -850,18 +857,26 @@ function selectRoom(room, focus = true) {
       selectRoom(nearbyStairs[+button.dataset.stairVariant], true);
   for (const b of card.querySelectorAll("[data-target]"))
     b.onclick = () => openStairTarget(availableTargets[+b.dataset.target]);
-  const indexed = state.search?.find(
+  const searchRecord = state.search?.find(
     (r) => r.id === room.roomId || r.id === room.id,
-  ) || { ...room, campusId: state.campus.id, floorId: state.floor.id };
+  );
+  const indexed = searchRecord || {
+    ...room,
+    campusId: state.campus.id,
+    floorId: state.floor.id,
+  };
   if (typeof experience !== "undefined" && experience) {
     experience.remember(indexed);
     const actions = document.createElement("div");
     actions.className = "room-actions";
     const displayOnly =
       room.routingStatus === "display-only-no-source-transition";
-    actions.innerHTML = displayOnly
-      ? ""
-      : '<button id="room-from">Я здесь</button><button id="room-to">Маршрут сюда</button>';
+    const canRoute = hasRouteEndpoint(indexed, searchRecord, state.floor);
+    actions.innerHTML =
+      (displayOnly ? "" : '<button id="room-from">Я здесь</button>') +
+      (canRoute
+        ? '<button id="room-to">Маршрут сюда</button>'
+        : "<small>У объекта нет подтверждённой точки маршрута.</small>");
     card.querySelector(".room-location").after(actions);
     const utilities = document.createElement("div");
     utilities.className = "room-utilities";
@@ -891,12 +906,11 @@ function selectRoom(room, focus = true) {
           scene.focusUserLocation();
         }
       };
-    if (!displayOnly)
+    if (canRoute)
       $("#room-to").onclick = () => {
         if (
           !routes.getEndpoints().from &&
-          (innerWidth <= 700 ||
-            isCompactLandscape(innerWidth, innerHeight) ||
+          (viewportLayout() !== "desktop" ||
             isCurrentUserLocation(state.userLocation))
         )
           routes.useCurrentLocation?.({ open: false, quiet: true });
@@ -912,7 +926,10 @@ function selectRoom(room, focus = true) {
     };
     $("#room-share").onclick = () => {
       saveView();
-      shareView(location.hash, toast);
+      const roomParams = new URLSearchParams(location.hash.slice(1));
+      roomParams.delete("from");
+      roomParams.delete("to");
+      shareView(`#${roomParams}`, toast);
     };
     experience.expand(false);
     saveView();
@@ -921,6 +938,10 @@ function selectRoom(room, focus = true) {
   scene.selectRoom(room, { focus, padding: roomPadding() });
   updateUI();
 }
+function findSavedPlace(id) {
+  return resolveSavedMapPlace(id, state.search, state.floorData, state.floor);
+}
+
 async function navigateRoom(r) {
   const token = ++state.loading;
   $("#results").hidden = true;
@@ -1018,15 +1039,6 @@ new ResizeObserver(() => {
   if (state.selected && state.mode === "floor")
     scene.selectRoom(state.selected, { focus: true, padding: roomPadding() });
 }).observe($(".sidebar"));
-document.addEventListener("click", (e) => {
-  if (
-    !e.target.closest(
-      ".search-wrap, #place-categories, #sheet-toggle, #route-back-search, #desktop-search",
-    )
-  ) {
-    searchUI.close();
-  }
-});
 
 function restoreInitialCamera(view) {
   const source = state.floorData.find((floor) => floor.id === view.floorId);
@@ -1082,19 +1094,9 @@ async function boot() {
     updateUI();
     searchUI.renderCategories();
     experience.renderSaved();
-    const initialRoom =
-      state.search.find((r) => r.id === initial.get("room")) ||
-      (state.floor &&
-        getMapStairMarkers(state.floor).find(
-          (marker) =>
-            marker.id === initial.get("room") ||
-            marker.sourceIds?.includes(initial.get("room")) ||
-            marker.graphAnchors?.some(
-              (anchor) => anchor.id === initial.get("room"),
-            ),
-        ));
-    if (initialRoom) await navigateRoom(initialRoom);
+    const initialRoom = findSavedPlace(initial.get("room"));
     await routes.restore(initial);
+    if (initialRoom) await navigateRoom(initialRoom);
     saveView({ mainEntrance });
     if (data.unavailable.length)
       toast(

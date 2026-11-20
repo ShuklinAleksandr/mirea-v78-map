@@ -72,92 +72,6 @@ export function compareAssetInventories(expected, actual, nativeSource = []) {
   };
 }
 
-const packedVersion = (value) =>
-  `${value >>> 16}.${(value >>> 8) & 255}.${value & 255}`;
-
-/** Read the executable's own load commands rather than trusting its filename. */
-export function inspectSimulatorMachO(data) {
-  const fail = (message) => {
-    throw new Error(`Invalid iOS Simulator executable: ${message}`);
-  };
-  const slices = [];
-  function inspectSlice(start, size) {
-    if (start < 0 || size < 28 || start + size > data.length)
-      fail("Mach-O slice is out of bounds");
-    const slice = data.subarray(start, start + size);
-    const little = [0xfeedface, 0xfeedfacf].includes(slice.readUInt32LE(0));
-    const magic = little ? slice.readUInt32LE(0) : slice.readUInt32BE(0);
-    if (![0xfeedface, 0xfeedfacf].includes(magic)) fail("not a Mach-O file");
-    const read = (offset) =>
-      little ? slice.readUInt32LE(offset) : slice.readUInt32BE(offset);
-    const headerSize = magic === 0xfeedfacf ? 32 : 28;
-    if (slice.length < headerSize) fail("truncated Mach-O header");
-    if (read(12) !== 2) fail("Mach-O is not an executable (MH_EXECUTE)");
-    const commands = read(16);
-    const commandsEnd = headerSize + read(20);
-    if (commandsEnd > slice.length) fail("load commands are out of bounds");
-    let offset = headerSize;
-    let build;
-    for (let index = 0; index < commands; index++) {
-      if (offset + 8 > commandsEnd) fail("truncated load command");
-      const command = read(offset);
-      const commandSize = read(offset + 4);
-      if (commandSize < 8 || offset + commandSize > commandsEnd)
-        fail("invalid load-command size");
-      if (command === 0x32) {
-        if (commandSize < 24) fail("truncated LC_BUILD_VERSION");
-        if (build) fail("duplicate LC_BUILD_VERSION");
-        build = {
-          platform: read(offset + 8),
-          minimumOS: packedVersion(read(offset + 12)),
-          sdk: packedVersion(read(offset + 16)),
-        };
-      }
-      offset += commandSize;
-    }
-    if (offset !== commandsEnd) fail("load-command count does not match size");
-    if (build?.platform !== 7)
-      fail(
-        `LC_BUILD_VERSION platform is ${build?.platform ?? "missing"}, expected 7 (iOS Simulator)`,
-      );
-    const cpu = read(4);
-    const architecture = { 16777223: "x86_64", 16777228: "arm64" }[cpu];
-    if (!architecture) fail(`unsupported Simulator CPU type ${cpu}`);
-    slices.push({ architecture, cpuType: cpu, bytes: size, ...build });
-  }
-  if (data.length < 4) fail("file is too short");
-  let fatMagic = data.readUInt32BE(0);
-  let fatLittle = false;
-  if (![0xcafebabe, 0xcafebabf].includes(fatMagic)) {
-    fatMagic = data.readUInt32LE(0);
-    fatLittle = true;
-  }
-  if ([0xcafebabe, 0xcafebabf].includes(fatMagic)) {
-    if (data.length < 8) fail("truncated universal header");
-    const read = (offset) =>
-      fatLittle ? data.readUInt32LE(offset) : data.readUInt32BE(offset);
-    const count = read(4);
-    const entrySize = fatMagic === 0xcafebabf ? 32 : 20;
-    if (!count || 8 + count * entrySize > data.length)
-      fail("invalid universal architecture table");
-    for (let index = 0; index < count; index++) {
-      const offset = 8 + index * entrySize;
-      const wide = (location) =>
-        Number(
-          fatLittle
-            ? data.readBigUInt64LE(location)
-            : data.readBigUInt64BE(location),
-        );
-      const start = entrySize === 32 ? wide(offset + 8) : read(offset + 8);
-      const size = entrySize === 32 ? wide(offset + 16) : read(offset + 12);
-      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(size))
-        fail("universal slice exceeds safe integer range");
-      inspectSlice(start, size);
-    }
-  } else inspectSlice(0, data.length);
-  return { format: "Mach-O", platform: "iOS Simulator", slices };
-}
-
 // AAPT APK entries use UTF-8 names even when the ZIP EFS flag is absent.
 // Recover those exact bytes from Python's lossless CP437 fallback, then decode
 // strictly as UTF-8. Do not normalize names or substitute replacement characters.
@@ -249,7 +163,7 @@ async function fileEvidence(filename) {
   };
 }
 
-export async function verifyNativeArtifacts({ project, apkPath, appPath }) {
+export async function verifyNativeArtifacts({ project, apkPath }) {
   const dist = path.join(project, "dist");
   const evidence = {
     schemaVersion: 1,
@@ -293,62 +207,8 @@ export async function verifyNativeArtifacts({ project, apkPath, appPath }) {
   } catch (error) {
     evidence.errors.push(`android: ${error.message}`);
   }
-  try {
-    const plist = runJSON("plutil", [
-      "-convert",
-      "json",
-      "-o",
-      "-",
-      path.join(appPath, "Info.plist"),
-    ]);
-    if (
-      !plist.CFBundleSupportedPlatforms?.includes("iPhoneSimulator") ||
-      plist.CFBundleSupportedPlatforms?.includes("iPhoneOS") ||
-      (plist.DTPlatformName && plist.DTPlatformName !== "iphonesimulator") ||
-      plist.CFBundlePackageType !== "APPL"
-    )
-      throw new Error(
-        "Info.plist does not describe an iOS Simulator application",
-      );
-    const executable = plist.CFBundleExecutable;
-    if (
-      typeof executable !== "string" ||
-      !executable ||
-      path.basename(executable) !== executable ||
-      [".", ".."].includes(executable)
-    )
-      throw new Error("Invalid CFBundleExecutable in Info.plist");
-    const config = JSON.parse(
-      await readFile(path.join(project, "capacitor.config.json"), "utf8"),
-    );
-    if (plist.CFBundleIdentifier !== config.appId)
-      throw new Error(
-        "Built App bundle identifier differs from capacitor.config.json",
-      );
-    const binaryPath = path.join(appPath, executable);
-    const binary = await fileEvidence(binaryPath);
-    const format = inspectSimulatorMachO(await readFile(binaryPath));
-    const assets = await directoryInventory(path.join(appPath, "public"));
-    const nativeSource = await directoryInventory(
-      path.join(project, "ios/App/App/public"),
-    );
-    evidence.ios = {
-      path: appPath,
-      format,
-      bundleIdentifier: plist.CFBundleIdentifier,
-      supportedPlatforms: plist.CFBundleSupportedPlatforms,
-      minimumOS: plist.MinimumOSVersion,
-      executable: binary,
-      assets,
-      comparison: compareAssetInventories(expected, assets, nativeSource),
-    };
-  } catch (error) {
-    evidence.errors.push(`ios: ${error.message}`);
-  }
   evidence.ok =
-    !evidence.errors.length &&
-    evidence.android?.comparison.ok === true &&
-    evidence.ios?.comparison.ok === true;
+    !evidence.errors.length && evidence.android?.comparison.ok === true;
   return evidence;
 }
 
@@ -359,12 +219,12 @@ async function main() {
     const option = args[index];
     if (option === "--help") {
       console.log(
-        "Usage: node scripts/verify-native-artifacts.mjs [--project DIR] [--apk FILE] [--app DIR] [--output FILE]",
+        "Usage: node scripts/verify-native-artifacts.mjs [--project DIR] [--apk FILE] [--output FILE]",
       );
       return;
     }
     if (
-      !["--project", "--apk", "--app", "--output"].includes(option) ||
+      !["--project", "--apk", "--output"].includes(option) ||
       !args[index + 1]
     )
       throw new Error(`Unknown or incomplete option: ${option}`);
@@ -377,13 +237,6 @@ async function main() {
     options.apk ||
       path.join(project, "android/app/build/outputs/apk/debug/app-debug.apk"),
   );
-  const appPath = path.resolve(
-    options.app ||
-      path.join(
-        project,
-        ".native-build/ios/Build/Products/Debug-iphonesimulator/App.app",
-      ),
-  );
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const output = path.resolve(
     options.output ||
@@ -393,19 +246,17 @@ async function main() {
         `native-artifacts-${runId}.json`,
       ),
   );
-  const evidence = await verifyNativeArtifacts({ project, apkPath, appPath });
+  const evidence = await verifyNativeArtifacts({ project, apkPath });
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, `${JSON.stringify(evidence, null, 2)}\n`);
   console.log(
     `Native artifact verification ${evidence.ok ? "PASSED" : "FAILED"}: ${output}`,
   );
-  for (const platform of ["android", "ios"]) {
-    const comparison = evidence[platform]?.comparison;
-    if (comparison)
-      console.log(
-        `${platform}: ${comparison.matching}/${comparison.expectedFiles} dist files match; ${comparison.missing.length} missing, ${comparison.changed.length} changed, ${comparison.extra.length} unexpected, ${comparison.allowedExtras.length} verified Capacitor extras`,
-      );
-  }
+  const comparison = evidence.android?.comparison;
+  if (comparison)
+    console.log(
+      `Android: ${comparison.matching}/${comparison.expectedFiles} dist files match; ${comparison.missing.length} missing, ${comparison.changed.length} changed, ${comparison.extra.length} unexpected, ${comparison.allowedExtras.length} verified Capacitor extras`,
+    );
   for (const error of evidence.errors) console.error(error);
   if (!evidence.ok) process.exitCode = 1;
 }

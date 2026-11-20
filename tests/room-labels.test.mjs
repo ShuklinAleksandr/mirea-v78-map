@@ -187,6 +187,50 @@ function badge(kind, id, x, z, text = id) {
     el: { textContent: text, style: {}, classList: { toggle() {} } },
   };
 }
+
+test("tablet stair names move clear of the desktop help button and return when it is hidden", (t) => {
+  const view = labelHarness(true, 1024, 768);
+  view.camera.zoom = 10;
+  view.camera.updateProjectionMatrix();
+  const cx = 444,
+    cy = 730;
+  const point = new THREE.Vector3(
+    (2 * cx) / 1024 - 1,
+    1 - (2 * cy) / 768,
+    0,
+  ).unproject(view.camera);
+  const stair = badge(
+    "stairs",
+    "library-stair",
+    point.x,
+    point.z,
+    "Спуск к библиотеке · корпус И",
+  );
+  view.roomLabels = [stair];
+  delete view.labelObstacles;
+  let width = 120;
+  const help = {
+    getBoundingClientRect: () => ({ x: 380, y: 712, width, height: 36 }),
+  };
+  const original = globalThis.document;
+  globalThis.document = {
+    querySelectorAll: (selectors) =>
+      selectors.split(",").includes("#desktop-help-open") ? [help] : [],
+  };
+  t.after(() => {
+    if (original) globalThis.document = original;
+    else delete globalThis.document;
+  });
+  const position = () =>
+    Number(stair.el.style.transform.match(/,([\d.]+)px\)/)[1]);
+  view.updateLabels();
+  assert.equal(stair.el.style.display, "block");
+  assert.ok(position() + 12 <= 712);
+  width = 0;
+  view.updateLabels();
+  assert.ok(Math.abs(position() - cy) < 1e-6);
+});
+
 for (const plan of [true, false]) {
   test(`${plan ? "2D" : "3D"}: far zoom hides detail even with a building selected, preserving selected point and building names`, () => {
     const view = labelHarness(plan);

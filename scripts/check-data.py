@@ -38,5 +38,7 @@ for campus in manifest['campuses']:
 assert all(r['floorId'] in floor_ids for r in search)
 assert len({r['id'] for r in search})==len(search)
 report['totals']=dict(totals)
-(ROOT/'analysis/maps-geometry-qa.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+destination = ROOT / 'analysis/maps-geometry-qa.json'
+destination.parent.mkdir(parents=True, exist_ok=True)
+destination.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
 print(f'PASS: 4 campuses, 23 floors, {len(search)} objects; {dict(totals)}; no blocked doorways or invalid polygons.')

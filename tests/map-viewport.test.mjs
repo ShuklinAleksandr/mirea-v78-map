@@ -80,6 +80,33 @@ test("portrait preserves measured safe top and bottom while a longer picker cann
   );
 });
 
+test("portrait route framing clears the second toolbar row across phone sizes", () => {
+  for (const [width, height] of [
+    [320, 480],
+    [390, 844],
+  ]) {
+    const padding = measuredPortraitPadding(width, height, {
+      top: rect(60, 8, 136, 44),
+      tools: rect(8, 60, 194, 44),
+      floorPicker: rect(width - 72, 60, 64, 44),
+      dock: rect(8, height - 208, width - 16, 200),
+    });
+    assert.deepEqual(padding, { left: 16, top: 116, right: 16, bottom: 220 });
+  }
+});
+
+test("a 512×300 route uses the free space between controls when the dock meets the toolbar row", () => {
+  const padding = measuredPortraitPadding(512, 300, {
+    top: rect(60, 8, 136, 44),
+    back: rect(8, 8, 44, 44),
+    settings: rect(460, 8, 44, 44),
+    tools: rect(8, 60, 194, 44),
+    floorPicker: rect(440, 60, 64, 44),
+    dock: rect(8, 124, 496, 168),
+  });
+  assert.deepEqual(padding, { left: 214, right: 84, top: 16, bottom: 188 });
+});
+
 test("portrait camera fits above the actual open card, route dock or point confirmation", () => {
   assert.deepEqual(
     measuredPortraitPadding(380, 844, {

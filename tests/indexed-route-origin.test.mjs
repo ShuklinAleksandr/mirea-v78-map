@@ -35,6 +35,39 @@ const doorway = (node) => {
   );
 };
 
+test("indexed neighbours can use both sides of a shared source door in either direction", () => {
+  const indexed = id("Г-100.2");
+  const via = id("Г-100");
+  const destination = id("Г-100а");
+  for (const [from, to] of [
+    [indexed, destination],
+    [destination, indexed],
+  ]) {
+    const route = findNavigationRoute(graph, from, to, options);
+    assert.equal(route.ok, true);
+    assert.equal(route.partial, true);
+    const fallback = from === indexed ? route.firstLeg : route.lastLeg;
+    assert.equal(fallback.viaRoomId, via);
+    assert.equal(route.nodes.length, 2);
+    const [a, b] = route.nodes;
+    assert.notDeepEqual(a.position, b.position);
+    assert.deepEqual(a.sourceNodeIds, [a.id, b.id]);
+    assert.deepEqual(b.sourceNodeIds, [b.id, a.id]);
+    assert.equal(a.sourceDoorEdgeId, b.sourceDoorEdgeId);
+    const edge = route.edges.find((edge) => edge.id === a.sourceDoorEdgeId);
+    assert.equal(edge.kind, "door");
+    assert.ok(
+      (edge.from === a.id && edge.to === b.id) ||
+        (edge.bidirectional && edge.from === b.id && edge.to === a.id),
+    );
+    assert.ok(
+      [a, b].every(
+        (n) => n.position === graph.nodes.find((g) => g.id === n.id).position,
+      ),
+    );
+  }
+});
+
 test("А177.1 and А177 share only a real-door waypoint when there is no measured route between them", () => {
   for (const [from, to] of [
     [origin, neighbor],
@@ -275,6 +308,34 @@ test("the actual route worker loads both indexed endpoint plans after no-path an
       "/data/campuses/v-78/v-78-floor1.json",
       "/data/campuses/v-78/v-78-floor2.json",
     ]);
+    for (const [from, to] of [
+      ["Главный вход", "И-205-а"],
+      ["Г-100.2", "Г-100а"],
+      ["Г-100а", "Г-100.2"],
+    ]) {
+      await self.onmessage({
+        data: {
+          id: messages.length + 1,
+          from: { id: id(from), campusId: "v-78" },
+          to: { id: id(to), campusId: "v-78" },
+          walkingFloorIds: floors.map((floor) => floor.id),
+        },
+      });
+      const result = messages.at(-1).result;
+      assert.deepEqual(
+        result,
+        findIRouteOptions(graph, id(from), id(to), {
+          floors,
+          walkingFloors: floors,
+        }),
+      );
+      if (from === "Главный вход") {
+        assert.equal(result.routeOptions.length, 2);
+        assert.ok(result.segments.some((s) => s.straightened));
+      } else {
+        assert.equal(result.partial, true);
+      }
+    }
   } finally {
     globalThis.fetch = previousFetch;
     if (previousSelf === undefined) delete globalThis.self;

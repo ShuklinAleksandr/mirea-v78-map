@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFileSync } from "node:fs";
-import { isCompactLandscape } from "../src/ui/map-viewport.js";
+import { viewportLayout } from "../src/ui/map-viewport.js";
 
 test("desktop shortcuts open search and control the map without stealing text editing or dialog keys", () => {
   const actions = [];
@@ -30,7 +30,11 @@ test("desktop shortcuts open search and control the map without stealing text ed
   const context = {
     $,
     document,
-    isCompactLandscape,
+    viewportLayout: () =>
+      viewportLayout({
+        innerWidth: context.innerWidth,
+        innerHeight: context.innerHeight,
+      }),
     innerWidth: 1280,
     innerHeight: 720,
   };

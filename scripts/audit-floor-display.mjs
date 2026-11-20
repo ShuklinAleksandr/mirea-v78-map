@@ -152,16 +152,16 @@ for (const floor of floors)
       (sum, slab) => sum + triangulationError(slab),
       0,
     );
-    for (let i = 0; i < prepared.slabs.length; i++)
-      for (const hole of prepared.renderFloor.footprints[i].holes || []) {
+    for (const footprint of prepared.renderFloor.footprints)
+      for (const hole of footprint.holes || []) {
         preservedHoles++;
-        const slab = prepared.slabs[i];
-        coveredHoleArea += area(
-          polygonClipping.intersection(
-            [slab.points, ...(slab.holes || [])],
-            [hole],
-          ),
-        );
+        for (const slab of prepared.slabs)
+          coveredHoleArea += area(
+            polygonClipping.intersection(
+              [slab.points, ...(slab.holes || [])],
+              [hole],
+            ),
+          );
       }
     view.model.traverse((object) => {
       const g = object.geometry,

@@ -28,6 +28,7 @@ function observation(index, status = "tracking", extra = {}) {
       reason: null,
       floorId: "floor2",
       matchedPoint: status === "tracking" ? [index, 0] : null,
+      matchedDistance: status === "tracking" ? index : null,
       locationTimestamp: timestamp,
       distance: index,
       stepIndex: 1,
@@ -47,6 +48,7 @@ test("a brief loss shows the last confirmed point without changing the GPS or ro
     const original = structuredClone(input);
     const match = display.update(input);
     assert.deepEqual(match.point, [1, 0]);
+    assert.equal(match.matchedDistance, 1);
     assert.equal(match.held, true);
     assert.equal(match.status, "uncertain");
     assert.equal(match.confirmedAt, T + 1_000);
@@ -108,11 +110,15 @@ test("confirmed reverse movement and stair/end boundaries retain their actual ma
     const display = createRouteLocationDisplay();
     const point = [3, 2];
     const match = display.update(
-      observation(1, status, { progress: { matchedPoint: point } }),
+      observation(1, status, {
+        progress: { matchedPoint: point, matchedDistance: 19, distance: 23 },
+      }),
     );
     assert.equal(match.held, false);
     assert.equal(match.status, status);
-    assert.deepEqual(display.update(observation(2, "stale")).point, point);
+    const held = display.update(observation(2, "stale"));
+    assert.deepEqual(held.point, point);
+    assert.equal(held.matchedDistance, 19);
   }
 });
 

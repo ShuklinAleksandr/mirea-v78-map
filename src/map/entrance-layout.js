@@ -240,6 +240,7 @@ export function getEntranceLayout(floor) {
     floorId: FLOOR_ID,
     sourcePolygonIds: [ENTRANCE_ID, LEFT_ROOM_ID, HALL_ID],
     sourceDoorIds: sourceDoors.map((door) => door.id),
+    furnitureFootprints: hallFurniture,
     openSegments: [front, inner],
     front,
     inner,

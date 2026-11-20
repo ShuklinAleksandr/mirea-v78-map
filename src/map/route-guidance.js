@@ -9,7 +9,7 @@ const distance = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const cameraSections = new WeakMap();
 
-function pointAt(section, requested) {
+export function pointAlongRouteSection(section, requested) {
   const value = clamp(
     Number.isFinite(requested) ? requested : 0,
     0,
@@ -45,12 +45,15 @@ export function sampleRouteCamera(points, requested, direction = 1) {
   if (section.length < EPSILON) return null;
   const travelled = clamp(requested, 0, section.length);
   const sign = direction < 0 ? -1 : 1;
-  let behind = pointAt(section, travelled - sign * 0.75).position;
-  let ahead = pointAt(section, travelled + sign * 3).position;
+  let behind = pointAlongRouteSection(
+    section,
+    travelled - sign * 0.75,
+  ).position;
+  let ahead = pointAlongRouteSection(section, travelled + sign * 3).position;
   if (distance(behind, ahead) < 0.05) {
     // A tight hairpin can cancel the wider look-ahead chord.
-    behind = pointAt(section, travelled - sign * 0.05).position;
-    ahead = pointAt(section, travelled + sign * 0.05).position;
+    behind = pointAlongRouteSection(section, travelled - sign * 0.05).position;
+    ahead = pointAlongRouteSection(section, travelled + sign * 0.05).position;
   }
   if (distance(behind, ahead) < EPSILON) return null;
   return {
@@ -59,18 +62,19 @@ export function sampleRouteCamera(points, requested, direction = 1) {
   };
 }
 
-function nearestAnchor(section, point) {
-  if (!isPoint(point)) return { distance: 0, error: 0 };
-  let best = { distance: 0, error: distance(section.points[0], point) };
+function nearestAnchor(section, point, minimum = 0) {
+  const start = pointAlongRouteSection(section, minimum).position;
+  if (!isPoint(point)) return { distance: minimum, error: 0 };
+  let best = { distance: minimum, error: distance(start, point) };
   for (let i = 1; i < section.points.length; i++) {
     const a = section.points[i - 1],
       b = section.points[i];
-    const length = distance(a, b);
-    if (length < EPSILON) continue;
+    const length = section.distances[i] - section.distances[i - 1];
+    if (length < EPSILON || section.distances[i] < minimum) continue;
     const t = clamp(
       ((point[0] - a[0]) * (b[0] - a[0]) + (point[1] - a[1]) * (b[1] - a[1])) /
         length ** 2,
-      0,
+      Math.max(0, (minimum - section.distances[i - 1]) / length),
       1,
     );
     const projected = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
@@ -122,7 +126,20 @@ export function createRouteGuidance(route) {
     let best = null;
     for (let i = cursor; i < sections.length; i++) {
       if (sections[i].floorId !== step.floorId) continue;
-      const anchor = nearestAnchor(sections[i], step.position);
+      const section = sections[i];
+      const previous = anchors.at(-1);
+      const minimum = previous?.sectionIndex === i ? previous.distance : 0;
+      // Instructions are ordered along the walk. If a later turn shares an
+      // earlier junction's coordinates, bind it to this visit. Stair hand-offs
+      // and arrival belong to the end of their section even on a closed loop.
+      const endpoint =
+        isPoint(step.position) &&
+        (step.targetFloorId ||
+          ["arrive", "manual-entry"].includes(step.kind)) &&
+        distance(step.position, section.points.at(-1)) < EPSILON;
+      const anchor = endpoint
+        ? { distance: section.length, error: 0 }
+        : nearestAnchor(section, step.position, minimum);
       if (!best || anchor.error < best.error - EPSILON)
         best = { ...anchor, sectionIndex: i, stepIndex };
     }
@@ -149,11 +166,11 @@ export function sampleRouteGuidance(
   );
   const from = Math.max(0, travelled - Math.max(0, lookBehind));
   const to = Math.min(section.length, travelled + Math.max(1, lookAhead));
-  const cameraPoints = [pointAt(section, from).position];
+  const cameraPoints = [pointAlongRouteSection(section, from).position];
   for (let i = 1; i < section.points.length - 1; i++)
     if (section.distances[i] > from && section.distances[i] < to)
       cameraPoints.push([...section.points[i]]);
-  const last = pointAt(section, to).position;
+  const last = pointAlongRouteSection(section, to).position;
   if (distance(last, cameraPoints.at(-1)) > EPSILON) cameraPoints.push(last);
   const localAnchors = (guide.anchors || []).filter(
     (anchor) =>
@@ -164,7 +181,7 @@ export function sampleRouteGuidance(
     floorId: section.floorId,
     sourceSegmentIndex: section.sourceSegmentIndex,
     sectionIndex,
-    ...pointAt(section, travelled),
+    ...pointAlongRouteSection(section, travelled),
     cameraPoints,
     distance: travelled,
     length: section.length,

@@ -216,9 +216,6 @@ function run() {
   inspect("Node (requires 22.12+)", process.execPath, ["--version"]);
   const java = androidJavaCommand();
   inspect("Java (requires 21+)", java, ["-version"], isSupportedJava);
-  if (process.platform === "darwin")
-    inspect("Xcode (requires 26+)", "xcodebuild", ["-version"]);
-  else console.log("! iOS builds require macOS and Xcode 26+");
   const project = path.resolve(import.meta.dirname, "..");
   let requirements;
   try {

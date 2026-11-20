@@ -1,23 +1,30 @@
 import partitions from "./stair-partitions.json" with { type: "json" };
 import { segmentCrossesSurveyInterior } from "./survey-routing.js";
 
-/** Existing connections only. Confirmed dividers exclude crossing horizontal
- * edges at runtime, never add an alternative or rewrite the archived graph. */
-export function getStairPartitionRoutingReport(graph) {
-  const blocked = new Set();
-  const regions = [];
+// Apply reviewed geometry only to the source package it was checked against.
+function activeRegions(graph, regions) {
   if (
     graph?.campusId !== partitions.campusId ||
     graph.source?.stairLayoutsSha256 !== partitions.sourceStairLayoutsSha256 ||
     !Array.isArray(graph.nodes) ||
     !Array.isArray(graph.edges)
   )
-    return { blockedEdgeIds: [], regions };
-  const active = partitions.regions.filter(
+    return [];
+  return regions.filter(
     (region) =>
       graph.source?.geometrySha256?.[region.floorId] ===
       partitions.sourceGeometrySha256[region.floorId],
   );
+}
+
+export function currentStairBarriers(graph) {
+  return activeRegions(graph, [...partitions.regions, ...partitions.openings]);
+}
+
+function regionRoutingReport(graph, active) {
+  const blocked = new Set();
+  const regions = [];
+  if (!active.length) return { blockedEdgeIds: [], regions };
   const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
   for (const region of active) {
     const blockedEdgeIds = [];
@@ -44,6 +51,25 @@ export function getStairPartitionRoutingReport(graph) {
     });
   }
   return { blockedEdgeIds: [...blocked], regions };
+}
+
+export function getStairPartitionRoutingReport(graph) {
+  return regionRoutingReport(graph, activeRegions(graph, partitions.regions));
+}
+
+export function getStairOpeningBlockedEdges(graph) {
+  return new Set(
+    regionRoutingReport(
+      graph,
+      activeRegions(graph, partitions.openings),
+    ).blockedEdgeIds,
+  );
+}
+
+export function getStairBlockedEdges(graph) {
+  return new Set(
+    regionRoutingReport(graph, currentStairBarriers(graph)).blockedEdgeIds,
+  );
 }
 
 export function getStairPartitionBlockedEdges(graph) {

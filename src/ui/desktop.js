@@ -1,5 +1,5 @@
 import { $ } from "./dom.js";
-import { isCompactLandscape } from "./map-viewport.js";
+import { viewportLayout } from "./map-viewport.js";
 import "./desktop.css";
 
 export function bindDesktopNavigation({ experience, dismissRoom }) {
@@ -22,8 +22,7 @@ export function bindDesktopNavigation({ experience, dismissRoom }) {
     const editing = active?.matches(
       "input, textarea, select, [contenteditable]:not([contenteditable='false'])",
     );
-    const desktop =
-      innerWidth > 700 && !isCompactLandscape(innerWidth, innerHeight);
+    const desktop = viewportLayout() === "desktop";
     const searchShortcut =
       !event.altKey &&
       ((desktop &&

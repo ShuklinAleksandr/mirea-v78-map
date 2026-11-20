@@ -2,7 +2,10 @@ import { isCurrentUserLocation } from "./user-location.js";
 import { getHallAdjacencyView } from "../map/hall-adjacency.js";
 import { withLibraryPassageFloor } from "./library-passage.js";
 import { getSurveyBlockedEdges } from "./survey-routing.js";
-import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
+import {
+  currentStairBarriers,
+  getStairBlockedEdges,
+} from "./stair-partition-routing.js";
 import {
   routeTrackingMatchRadius,
   ROUTE_TRACKING_MAX_ACCURACY_METERS,
@@ -132,6 +135,7 @@ export function attachCurrentRouteEndpoint(
   endpoint,
   sourceFloor,
   key = "from",
+  blockedEdgeIds = [],
 ) {
   if (endpoint?.kind !== "user-location") return { ok: true, graph, endpoint };
   const selected = makeCurrentRouteEndpoint(endpoint.location, {
@@ -206,6 +210,17 @@ export function attachCurrentRouteEndpoint(
   const protectedAreas = (floor.polygons || []).filter(
     (p) => p !== area && ["stairs", "elevator", "lift"].includes(p.kind),
   );
+  protectedAreas.push(
+    ...currentStairBarriers(graph).filter(
+      (region) =>
+        region.floorId === location.floorId && region.areaId === areaId,
+    ),
+  );
+  if (protectedAreas.some((p) => inside(location.point, p)))
+    return noAttachment(
+      "location-connector-unavailable",
+      "Выберите точку на площадке или в коридоре рядом с лестницей.",
+    );
   const clear = (node) => {
     if (!inside(node.position, area)) return false;
     if (distance(location.point, node.position) < EPS) return true;
@@ -221,7 +236,6 @@ export function attachCurrentRouteEndpoint(
       return false;
     return !protectedAreas.some(
       (p) =>
-        inside(location.point, p) ||
         inside(node.position, p) ||
         ringEdges(p.points).some(([a, b]) =>
           intersects(location.point, node.position, a, b),
@@ -230,8 +244,9 @@ export function attachCurrentRouteEndpoint(
   };
   const sourceNodes = new Map(graph.nodes.map((node) => [node.id, node]));
   const blocked = new Set([
+    ...blockedEdgeIds,
     ...getSurveyBlockedEdges(graph),
-    ...getStairPartitionBlockedEdges(graph),
+    ...getStairBlockedEdges(graph),
   ]);
   const candidates = [];
   const maxGap = snapToRoute ? routeTrackingMatchRadius(location) : 12;
@@ -325,6 +340,8 @@ export function attachCurrentRouteEndpoint(
     ...node,
     id: projectionId,
     position: target.position,
+    sourceEdgeId: target.edge.id,
+    sourceFraction: target.fraction,
     endpointKind: snapToRoute ? "user-location" : "source-edge-projection",
   };
   const connector = {
@@ -358,6 +375,25 @@ export function attachCurrentRouteEndpoint(
     partial(target.a.id, projectionId, target.fraction, "before"),
     partial(projectionId, target.b.id, 1 - target.fraction, "after"),
   ];
+  // Both snapshots may lie inside the same source edge. Join their
+  // projections along that edge, preserving its direction and cost.
+  const other = graph.nodes.find(
+    (item) =>
+      item.sourceEdgeId === target.edge.id &&
+      Number.isFinite(item.sourceFraction),
+  );
+  if (other) {
+    const delta = target.fraction - other.sourceFraction;
+    connectors.push({
+      ...partial(
+        delta >= 0 ? other.id : projectionId,
+        delta >= 0 ? projectionId : other.id,
+        Math.abs(delta),
+        "between",
+      ),
+      bidirectional: target.edge.bidirectional || delta === 0,
+    });
+  }
   const record = {
     nodeId: snapToRoute ? projectionId : nodeId,
     label: endpoint.label,

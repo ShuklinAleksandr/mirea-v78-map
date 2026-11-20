@@ -289,8 +289,8 @@ test("category search rows expose facility location and a separate numbered land
     innerHTML: "",
     attributes: {},
     listeners: {},
-    replaceChildren() {
-      this.children = [];
+    replaceChildren(...children) {
+      this.children = children;
       this.innerHTML = "";
     },
     append(child) {
@@ -329,7 +329,7 @@ test("category search rows expose facility location and a separate numbered land
     presentPlaceIdentity,
     placeLandmarks: generated,
     URL,
-    document: { createElement: element },
+    document: Object.assign(new EventTarget(), { createElement: element }),
   };
   const source = readFileSync(
     new URL("../src/ui/search.js", import.meta.url),
@@ -346,7 +346,9 @@ test("category search rows expose facility location and a separate numbered land
   $("#search").value = "еда";
   await search.refresh();
   const rows = () =>
-    $("#results").children.filter((row) => row.className === "place-result");
+    $("#results")
+      .querySelectorAll("button")
+      .filter((row) => row.className === "place-result");
   assert.equal(
     rows().length,
     5,

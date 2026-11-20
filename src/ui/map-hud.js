@@ -1,5 +1,5 @@
 import { $ } from "./dom.js";
-import { isCompactLandscape } from "./map-viewport.js";
+import { viewportLayout } from "./map-viewport.js";
 import "./map-hud.css";
 
 const idleDelay = 6000;
@@ -7,6 +7,7 @@ const idleDelay = 6000;
 export function bindMapHud(onVisibilityChange) {
   const body = document.body;
   const sidebar = $(".sidebar");
+  const routePanel = $("#route-panel");
   const loading = $("#loading");
   const error = $("#error");
   const reveal = $("#map-hud-reveal");
@@ -26,13 +27,14 @@ export function bindMapHud(onVisibilityChange) {
   function keepVisible() {
     const active = document.activeElement;
     return (
-      (innerWidth > 700 && !isCompactLandscape(innerWidth, innerHeight)) ||
+      viewportLayout() === "desktop" ||
       !loading.hidden ||
       !error.hidden ||
       body.dataset.cleanMap === "true" ||
       body.dataset.locationPicking === "true" ||
       body.dataset.routeAvailable === "true" ||
       sidebar.classList.contains("expanded") ||
+      (!routePanel.hidden && !sidebar.classList.contains("minimized")) ||
       sidebar.dataset.inputEditing === "true" ||
       sidebar.dataset.place === "true" ||
       dialogs.some((dialog) => dialog.open) ||
@@ -77,7 +79,8 @@ export function bindMapHud(onVisibilityChange) {
   ]);
   observe(sidebar, ["class", "data-input-editing", "data-place"]);
   for (const dialog of dialogs) observe(dialog, ["open"]);
-  for (const element of [loading, error]) observe(element, ["hidden"]);
+  for (const element of [loading, error, routePanel])
+    observe(element, ["hidden"]);
 
   document.addEventListener(
     "pointerdown",

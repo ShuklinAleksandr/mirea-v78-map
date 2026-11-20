@@ -7,7 +7,7 @@ export const PLACE_CATEGORIES = [
   { id: "toilet", label: "Туалеты", terms: "туалет туалеты санузел уборная" },
   { id: "cloakroom", label: "Гардероб", terms: "гардероб гардеробы одежда" },
   { id: "medical", label: "Медпункт", terms: "медпункт врач помощь" },
-  { id: "entrance", label: "Входы", terms: "вход выход" },
+  { id: "entrance", label: "Входы", terms: "вход входы выход выходы" },
 ];
 
 export const PLACE_CATEGORY_COLORS = {

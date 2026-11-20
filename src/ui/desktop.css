@@ -3,7 +3,7 @@
   display: none;
 }
 
-@media (min-width: 701px) and (min-height: 521px), (min-width: 1101px) {
+@media (width > 700px) and (height > 520px), (width > 1100px) {
   #app {
     --desktop-panel-width: clamp(300px, 28vw, 360px);
     --desktop-map-left: calc(var(--desktop-panel-width) + 40px);

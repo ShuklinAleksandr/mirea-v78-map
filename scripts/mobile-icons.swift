@@ -37,10 +37,6 @@ func render(_ size: Int, splash: Bool = false, transparent: Bool = false) -> Dat
 func write(_ path: String, _ size: Int, splash: Bool = false, transparent: Bool = false) throws {
     try render(size, splash: splash, transparent: transparent).write(to: root.appendingPathComponent(path))
 }
-try write("ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png", 1024)
-for name in ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"] {
-    try write("ios/App/App/Assets.xcassets/Splash.imageset/\(name)", 2732, splash: true)
-}
 for (density, size, foregroundSize) in [("mdpi",48,108), ("hdpi",72,162), ("xhdpi",96,216), ("xxhdpi",144,324), ("xxxhdpi",192,432)] {
     let folder = "android/app/src/main/res/mipmap-\(density)"
     try write("\(folder)/ic_launcher.png", size)

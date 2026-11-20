@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import {
+  createRouteGuidance,
+  sampleRouteGuidance,
+} from "../src/map/route-guidance.js";
 import { roundWalkingRoute } from "../src/map/route-rounding.js";
 import {
   createRouteLayer,
@@ -236,6 +240,30 @@ test("adjacent short legs never overlap their fillets or turn back on themselves
   );
 });
 
+test("a straightened walking line is shared by guidance, traveled and remaining strokes", () => {
+  const { route, segment, floor } = fixture();
+  segment.straightened = true;
+  const guide = createRouteGuidance(route);
+  const sample = sampleRouteGuidance(guide, 0, 10);
+  const layer = createRouteLayer(route, "floor", { floor });
+  try {
+    assert.deepEqual(layer.paths[0].points, guide.sections[0].points);
+    assert.deepEqual(sample.position, [10, 0]);
+    layer.setProgress(sample);
+    const stroke = (name) =>
+      layer.group.children.find((item) => item.name === name);
+    const end = stroke("Traveled route").geometry.getAttribute("instanceEnd");
+    const start = stroke("Route path").geometry.getAttribute("instanceStart");
+    assert.deepEqual(
+      [end.getX(end.count - 1), end.getZ(end.count - 1)],
+      sample.position,
+    );
+    assert.deepEqual([start.getX(0), start.getZ(0)], sample.position);
+  } finally {
+    disposeRouteLayer(layer);
+  }
+});
+
 test("route layers use the fillet for both strokes while preserving observed stair geometry", () => {
   const f = fixture();
   const stair = {
@@ -363,18 +391,17 @@ test("ordinary V78 destinations retain useful smoothing with actual stair footpr
     for (const raw of route.segments) {
       const segment = visibleRouteSegments({ segments: [raw] }, raw.floorId)[0];
       const { floor, exclusions } = floors.get(raw.floorId);
-      roundedCorners += roundWalkingRoute(
-        segment,
-        route,
-        floor,
-        [],
-        exclusions,
-      ).roundedCorners;
+      const rounded = roundWalkingRoute(segment, route, floor, [], exclusions);
+      roundedCorners += rounded.roundedCorners;
+      if (target === "Г-416") {
+        // The detour around the А-154 opening uses only doors and stair landings.
+        assert.ok(
+          segment.nodes.every((node) => ["door", "stairs"].includes(node.kind)),
+        );
+        assert.deepEqual(rounded.points, segment.points);
+      }
     }
-    assert.ok(
-      roundedCorners > 0,
-      `No visible improvement on the route to ${target}`,
-    );
+    if (target !== "Г-416") assert.ok(roundedCorners > 0, target);
     assert.deepEqual(route, source, target);
   }
 });

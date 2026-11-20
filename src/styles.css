@@ -7,7 +7,7 @@
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   --ink: #192433;
-  --muted: #707d8f;
+  --muted: #58687c;
   --green: #2768ee;
   --paper: #fff;
   --surface: #f2f5fa;
@@ -783,11 +783,13 @@ summary:focus-visible {
 }
 #route-choice-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   padding: 4px 0;
 }
 .route-choice {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -798,6 +800,11 @@ summary:focus-visible {
   background: var(--surface);
   color: var(--text);
   text-align: left;
+}
+.route-choice > span {
+  flex: 1 1 15ch;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .route-choice b,
 .route-choice small {
@@ -1022,7 +1029,7 @@ summary:focus-visible {
 }
 .room-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9ch), 1fr));
   gap: 8px;
 }
 .room-actions button {
@@ -1037,6 +1044,7 @@ summary:focus-visible {
 }
 .room-utilities {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   margin-top: 8px;
 }
@@ -1160,6 +1168,8 @@ dialog::backdrop {
   border-bottom: 1px solid var(--line);
 }
 .dialog-heading h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 20px;
   margin: 0;
 }
@@ -1287,9 +1297,10 @@ dialog::backdrop {
 }
 .settings-content > label:not(.toggle-row) {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 15px;
+  gap: 8px 15px;
   padding: 16px 0;
   font-size: 14px;
   border-bottom: 1px solid var(--line);
@@ -1299,7 +1310,7 @@ dialog::backdrop {
   border-radius: 10px;
   background: var(--surface);
   padding: 10px;
-  max-width: 55%;
+  max-width: 100%;
   font-size: 12px;
 }
 .settings-note {
@@ -1868,6 +1879,13 @@ dialog::backdrop {
 }
 .settings-content .toggle-row {
   font-size: 14px;
+}
+.settings-content :is(.toggle-row > span:not(.switch), .secondary-button) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.settings-content .switch {
+  flex-shrink: 0;
 }
 .settings-layers {
   border-top: 1px solid var(--line);

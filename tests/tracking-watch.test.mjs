@@ -57,13 +57,16 @@ test("foreground browser watch streams new observations and clears ID zero exact
   );
   assert.equal(fixes[1].floorId, null);
   fail({ code: 2, message: "Provider temporarily unavailable" });
+  // A sensor timestamp ahead of the live navigation clock is not a watermark.
+  emit(position(now + 13_000));
   emit(position(now + 5000));
   assert.equal(
     fixes.length,
     3,
     "temporary sensor error does not kill the watch",
   );
-  assert.equal(errors.length, 1);
+  assert.equal(fixes.at(-1).timestamp, now + 5000);
+  assert.equal(errors.length, 2);
   await stop();
   await stop();
   emit(position(now + 6000));

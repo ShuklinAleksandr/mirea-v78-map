@@ -1,7 +1,11 @@
 import { getJSON } from "./client.js";
 import { attachCurrentRouteEndpoint } from "./current-route-origin.js";
 import { getSurveyBlockedEdges } from "./survey-routing.js";
-import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
+import { simplifyWalkingSegment } from "./route-simplification.js";
+import {
+  getStairOpeningBlockedEdges,
+  getStairPartitionBlockedEdges,
+} from "./stair-partition-routing.js";
 import { withAIOutdoorInstructions } from "./outdoor-passage.js";
 import { withLibraryPassageGraph } from "./library-passage.js";
 
@@ -11,6 +15,12 @@ import {
 } from "./stair-routing.js";
 
 const prepared = new WeakMap();
+const publicRoomKinds = new Set([
+  "entrance",
+  "circulation",
+  "corridor",
+  "hall",
+]);
 const verticalKinds = new Set(["stairs", "elevator", "lift"]);
 const failure = (code, message) => ({ ok: false, code, message });
 const pointDistance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -22,35 +32,119 @@ export function loadRouting(campusId) {
   return getJSON(`/data/routing/${campusId}.json`);
 }
 
+function rootOf(components, i) {
+  while (components[i] !== i) {
+    components[i] = components[components[i]];
+    i = components[i];
+  }
+  return i;
+}
+
 function prepare(graph) {
   if (prepared.has(graph)) return prepared.get(graph);
   const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
-  const adjacency = new Map(graph.nodes.map((node) => [node.id, []]));
+  const count = graph.nodes.length;
+  const indices = new Map(graph.nodes.map((node, index) => [node.id, index]));
+  const adjacency = Array.from({ length: count }, () => []);
+  const restrictedArea = graph.nodes.map(({ areaId }) =>
+    graph.rooms[areaId] && !publicRoomKinds.has(graph.rooms[areaId].kind)
+      ? areaId
+      : null,
+  );
+  const components = Int32Array.from({ length: count }, (_, i) => i);
   const surveyBlockedEdges = getSurveyBlockedEdges(graph);
+  const stairOpeningBlockedEdges = getStairOpeningBlockedEdges(graph);
   const stairPartitionBlockedEdges = getStairPartitionBlockedEdges(graph);
   for (const edge of graph.edges) {
     if (
       !edge.eligible ||
       surveyBlockedEdges.has(edge.id) ||
       stairPartitionBlockedEdges.has(edge.id) ||
+      stairOpeningBlockedEdges.has(edge.id) ||
       !nodes.has(edge.from) ||
       !nodes.has(edge.to) ||
       !Number.isFinite(edge.cost) ||
       edge.cost < 0
     )
       continue;
-    adjacency.get(edge.from).push({ to: edge.to, edge });
-    if (edge.bidirectional)
-      adjacency.get(edge.to).push({ to: edge.from, edge });
+    const from = indices.get(edge.from),
+      to = indices.get(edge.to);
+    const penalty = staircasePreferencePenalty(graph, edge);
+    adjacency[from].push({ to, edge, penalty });
+    if (edge.bidirectional) adjacency[to].push({ to: from, edge, penalty });
+    // Contract edges within public circulation or within one private room.
+    // A route between these components can use only endpoint-room entrances.
+    if (restrictedArea[from] === restrictedArea[to])
+      components[rootOf(components, from)] = rootOf(components, to);
+  }
+  for (let i = 0; i < count; i++) components[i] = rootOf(components, i);
+  const doorsByArea = new Map();
+  for (let from = 0; from < count; from++) {
+    for (const { to } of adjacency[from]) {
+      const a = components[from],
+        b = components[to];
+      if (a === b) continue;
+      for (const area of [restrictedArea[from], restrictedArea[to]]) {
+        if (area == null) continue;
+        let links = doorsByArea.get(area);
+        if (!links) doorsByArea.set(area, (links = []));
+        if (
+          !links.some(([x, y]) => (x === a && y === b) || (x === b && y === a))
+        )
+          links.push([a, b]);
+      }
+    }
   }
   const result = {
     nodes,
+    indices,
     adjacency,
+    components,
+    doorsByArea,
+    restrictedArea,
+    edgesById: new Map(graph.edges.map((edge) => [edge.id, edge])),
+    isolated: null,
+    // Searches are synchronous. Reuse graph-sized arrays; the generation
+    // distinguishes initialized entries without clearing them for every route.
+    generation: 0,
+    seen: new Uint32Array(count),
+    costs: new Float64Array(count),
+    previous: new Int32Array(count),
+    previousEdges: new Array(count),
     surveyBlockedEdgeIds: [...surveyBlockedEdges],
     stairPartitionBlockedEdgeIds: [...stairPartitionBlockedEdges],
+    stairOpeningBlockedEdgeIds: [...stairOpeningBlockedEdges],
   };
   prepared.set(graph, result);
   return result;
+}
+
+// This undirected test can reject disconnected endpoints cheaply. Every edge
+// Dijkstra may use either stays in one component or occurs in an endpoint's
+// connector list. Directed edges and temporary closures are enforced later.
+function canReachEndpoint(index, start, target, allowedAreas) {
+  const a = index.components[start],
+    b = index.components[target];
+  if (a === b) return true;
+  // Dijkstra may leave its starting node even if it is in an unlisted area.
+  if (
+    index.restrictedArea[start] &&
+    !allowedAreas.includes(index.restrictedArea[start])
+  )
+    return true;
+  const links = [];
+  for (const area of new Set(allowedAreas))
+    if (index.doorsByArea.has(area)) links.push(...index.doorsByArea.get(area));
+  const reached = new Set([a]);
+  let previousSize;
+  do {
+    previousSize = reached.size;
+    for (const [from, to] of links) {
+      if (reached.has(from)) reached.add(to);
+      else if (reached.has(to)) reached.add(from);
+    }
+  } while (!reached.has(b) && reached.size > previousSize);
+  return reached.has(b);
 }
 
 /** Diagnose only a truly isolated destination in the retained source graph.
@@ -58,34 +152,38 @@ function prepare(graph) {
  * exits here: their existence must not be misreported as a missing entrance.
  * Internal edges are walked undirected for this diagnostic, never for routing.
  */
-function isolatedRoomComponentSize(graph, roomId, anchorId) {
-  const own = new Set(
-    graph.nodes.filter((node) => node.areaId === roomId).map((node) => node.id),
-  );
-  if (!own.has(anchorId)) return null;
-  const neighbours = new Map([...own].map((id) => [id, []]));
-  const exits = new Set();
-  for (const edge of graph.edges) {
-    const from = own.has(edge.from),
-      to = own.has(edge.to);
-    if (from && to) {
-      neighbours.get(edge.from).push(edge.to);
-      neighbours.get(edge.to).push(edge.from);
-    } else if (from) exits.add(edge.from);
-    else if (to) exits.add(edge.to);
-  }
-  const visited = new Set([anchorId]);
-  const pending = [anchorId];
-  while (pending.length) {
-    const id = pending.pop();
-    if (exits.has(id)) return null;
-    for (const next of neighbours.get(id))
-      if (!visited.has(next)) {
-        visited.add(next);
-        pending.push(next);
+function isolatedRoomComponentSize(graph, index, roomId, anchorIndex) {
+  if (graph.nodes[anchorIndex].areaId !== roomId) return null;
+  if (!index.isolated) {
+    const count = graph.nodes.length;
+    const components = Int32Array.from({ length: count }, (_, i) => i);
+    const hasExit = new Uint8Array(count);
+    for (const edge of graph.edges) {
+      const from = index.indices.get(edge.from),
+        to = index.indices.get(edge.to);
+      if (
+        from != null &&
+        to != null &&
+        graph.nodes[from].areaId === graph.nodes[to].areaId
+      )
+        components[rootOf(components, from)] = rootOf(components, to);
+      else {
+        if (from != null) hasExit[from] = 1;
+        if (to != null) hasExit[to] = 1;
       }
+    }
+    const sizes = new Uint32Array(count);
+    for (let i = 0; i < count; i++) {
+      const root = rootOf(components, i);
+      components[i] = root;
+      sizes[root]++;
+      hasExit[root] |= hasExit[i];
+    }
+    index.isolated = Uint32Array.from(components, (root) =>
+      hasExit[root] ? 0 : sizes[root],
+    );
   }
-  return visited.size;
+  return index.isolated[anchorIndex] || null;
 }
 
 class MinHeap {
@@ -211,35 +309,19 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
       "graph-unavailable",
       "Для этой площадки нет исходного графа проходов. Можно посмотреть помещение на карте.",
     );
-  for (const endpoint of [fromRoom, toRoom]) {
-    const candidates = stairEndpointCandidates(graph, endpoint);
-    if (!candidates?.length) continue;
-    if (roomKey(fromRoom) === roomKey(toRoom))
-      return failure("same-place", "Начало и конец совпадают.");
-    let best = null;
-    for (const candidate of candidates) {
-      const attached = {
-        ...graph,
-        rooms: { ...graph.rooms, [roomKey(endpoint)]: candidate },
-      };
-      const result = findRoute(attached, fromRoom, toRoom, options);
-      if (
-        result.ok &&
-        (!best?.ok ||
-          result.diagnostics.routingCost < best.diagnostics.routingCost)
-      )
-        best = result;
-      else if (!best) best = result;
-    }
-    return best;
-  }
   for (const [key, endpoint] of [
     ["from", fromRoom],
     ["to", toRoom],
   ]) {
     if (endpoint?.kind !== "user-location") continue;
     const floor = options.floors?.find((item) => item.id === endpoint.floorId);
-    const attached = attachCurrentRouteEndpoint(graph, endpoint, floor, key);
+    const attached = attachCurrentRouteEndpoint(
+      graph,
+      endpoint,
+      floor,
+      key,
+      options.blockedEdgeIds,
+    );
     if (!attached.ok) return attached;
     graph = attached.graph;
     if (key === "from") fromRoom = attached.endpoint;
@@ -247,68 +329,116 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
   }
   const fromId = roomKey(fromRoom);
   const toId = roomKey(toRoom);
-  const from = graph.rooms[fromId];
-  const to = graph.rooms[toId];
-  if (!from || !to)
+  const origins = graph.rooms[fromId]
+    ? [graph.rooms[fromId]]
+    : stairEndpointCandidates(graph, fromRoom);
+  const destinations = graph.rooms[toId]
+    ? [graph.rooms[toId]]
+    : stairEndpointCandidates(graph, toRoom);
+  if (!origins?.length || !destinations?.length)
     return failure(
       "endpoint-unavailable",
       "У выбранного объекта нет подтверждённой точки в графе проходов. Выберите другую аудиторию.",
     );
-  if (fromId === toId)
+  if (
+    fromId === toId ||
+    origins.some((from) => destinations.some((to) => from.nodeId === to.nodeId))
+  )
     return failure("same-place", "Начало и конец совпадают.");
+  let best = null;
+  for (const from of origins) {
+    for (const to of destinations) {
+      const route = routeBetweenAnchors(graph, fromId, from, toId, to, options);
+      if (
+        !best ||
+        (route.ok &&
+          (!best.ok ||
+            route.diagnostics.routingCost < best.diagnostics.routingCost))
+      )
+        best = route;
+    }
+  }
+  return best;
+}
+
+function routeBetweenAnchors(graph, fromId, from, toId, to, options) {
+  const index = prepare(graph);
   const {
     nodes,
+    indices,
     adjacency,
+    restrictedArea,
+    costs,
+    seen,
+    previous,
+    previousEdges,
     surveyBlockedEdgeIds,
     stairPartitionBlockedEdgeIds,
-  } = prepare(graph);
-  if (!nodes.has(from.nodeId) || !nodes.has(to.nodeId))
+    stairOpeningBlockedEdgeIds,
+  } = index;
+  const startIndexInGraph = indices.get(from.nodeId);
+  const targetIndex = indices.get(to.nodeId);
+  if (startIndexInGraph == null || targetIndex == null)
     return failure(
       "endpoint-unavailable",
       "Точка отсутствует в графе проходов.",
     );
-  const permittedRooms = new Set(
-    [fromId, toId, from.originAreaId, to.originAreaId].filter(Boolean),
-  );
-  const costs = new Map([[from.nodeId, 0]]);
   const blockedEdgeIds = new Set(options.blockedEdgeIds || []);
-  const previous = new Map();
+  const hasClosures = blockedEdgeIds.size > 0;
+  const preferStairs = options.preferStaircase !== false;
+  if (index.generation === 0xffffffff) {
+    seen.fill(0);
+    index.generation = 0;
+  }
+  const generation = ++index.generation;
   const heap = new MinHeap();
-  heap.push(from.nodeId, 0);
+  if (
+    canReachEndpoint(index, startIndexInGraph, targetIndex, [
+      fromId,
+      toId,
+      from.originAreaId,
+      to.originAreaId,
+    ])
+  )
+    heap.push(startIndexInGraph, 0);
+  seen[startIndexInGraph] = generation;
+  costs[startIndexInGraph] = 0;
   let visited = 0;
   while (heap.data.length) {
     const current = heap.pop();
-    if (current.cost !== costs.get(current.id)) continue;
+    if (current.cost !== costs[current.id]) continue;
     visited++;
-    if (current.id === to.nodeId) break;
-    for (const next of adjacency.get(current.id)) {
-      if (blockedEdgeIds.has(next.edge.id)) continue;
-      const target = nodes.get(next.to);
-      // Do not silently use an unrelated classroom/toilet as a shortcut.
+    if (current.id === targetIndex) break;
+    for (const next of adjacency[current.id]) {
+      if (hasClosures && blockedEdgeIds.has(next.edge.id)) continue;
+      // Only the endpoints' own rooms may act as private walking areas.
+      const area = restrictedArea[next.to];
       if (
-        graph.rooms[target.areaId] &&
-        !permittedRooms.has(target.areaId) &&
-        !["entrance", "circulation", "corridor", "hall"].includes(
-          graph.rooms[target.areaId].kind,
-        )
+        area != null &&
+        area !== fromId &&
+        area !== toId &&
+        area !== from.originAreaId &&
+        area !== to.originAreaId
       )
         continue;
       const cost =
-        current.cost +
-        next.edge.cost +
-        staircasePreferencePenalty(
-          graph,
-          next.edge,
-          options.preferStaircase !== false,
-        );
-      if (cost >= (costs.get(next.to) ?? Infinity)) continue;
-      costs.set(next.to, cost);
-      previous.set(next.to, { node: current.id, edge: next.edge });
+        current.cost + next.edge.cost + (preferStairs ? next.penalty : 0);
+      if (cost >= (seen[next.to] === generation ? costs[next.to] : Infinity))
+        continue;
+      seen[next.to] = generation;
+      costs[next.to] = cost;
+      previous[next.to] = current.id;
+      previousEdges[next.to] = next.edge;
       heap.push(next.to, cost);
     }
   }
-  if (!previous.has(to.nodeId)) {
-    const isolatedNodeCount = isolatedRoomComponentSize(graph, toId, to.nodeId);
+  if (startIndexInGraph === targetIndex || seen[targetIndex] !== generation) {
+    const isolatedNodeCount = isolatedRoomComponentSize(
+      graph,
+      index,
+      toId,
+      targetIndex,
+    );
     if (isolatedNodeCount != null)
       return {
         ...failure(
@@ -330,12 +460,10 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
   }
   const graphNodes = [];
   const edges = [];
-  for (let id = to.nodeId; ; ) {
-    graphNodes.push(nodes.get(id));
-    if (id === from.nodeId) break;
-    const link = previous.get(id);
-    edges.push(link.edge);
-    id = link.node;
+  for (let i = targetIndex; ; i = previous[i]) {
+    graphNodes.push(graph.nodes[i]);
+    if (i === startIndexInGraph) break;
+    edges.push(previousEdges[i]);
   }
   graphNodes.reverse();
   edges.reverse();
@@ -366,9 +494,21 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
           ...graphNodes.slice(startIndex, endIndex + 1),
           ...(endDoor ? [endDoor] : []),
         ];
+  // Adjacent rooms use the opposite sides of one physical door. Keep the
+  // actual short crossing and its direction. Neighbour-room directions also
+  // need the source edge to establish that each endpoint really is a door.
+  if (startDoor && endDoor && startIndex === endIndex + 1) {
+    for (const [i, door] of [startDoor, endDoor].entries()) {
+      routeNodes[i] = {
+        ...routeNodes[i],
+        kind: "door",
+        sourceNodeIds: door.sourceNodeIds,
+        sourceDoorEdgeId: edges[endIndex].id,
+      };
+    }
+  }
   const segments = [];
   const transitions = [];
-  let horizontalDistance = 0;
   for (let i = 0; i < routeNodes.length; i++) {
     const node = routeNodes[i];
     const previousNode = routeNodes[i - 1];
@@ -411,12 +551,33 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
           sourceEdgeId: transitionEdge?.id,
         });
       }
-    } else {
-      horizontalDistance += pointDistance(previousNode.position, node.position);
     }
     segments.at(-1).points.push(node.position);
     segments.at(-1).nodes.push(node);
   }
+  if (options.walkingFloors?.length) {
+    const blockedAreaIds = new Set();
+    if (blockedEdgeIds.size) {
+      for (const id of blockedEdgeIds) {
+        const edge = index.edgesById.get(id);
+        if (!edge) continue;
+        blockedAreaIds.add(nodes.get(edge.from)?.areaId);
+        blockedAreaIds.add(nodes.get(edge.to)?.areaId);
+      }
+    }
+    for (const [index, segment] of segments.entries()) {
+      const floor = options.walkingFloors.find(
+        (plan) => plan.id === segment.floorId,
+      );
+      segments[index] = simplifyWalkingSegment(
+        segment,
+        { campusId: graph.campusId, edges },
+        floor,
+        { blockedAreaIds },
+      );
+    }
+  }
+  let horizontalDistance = 0;
   const steps = [
     {
       kind: "start",
@@ -426,6 +587,11 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
     },
   ];
   for (const segment of segments) {
+    for (let i = 1; i < segment.points.length; i++)
+      horizontalDistance += pointDistance(
+        segment.points[i - 1],
+        segment.points[i],
+      );
     const segmentSteps = [];
     if (segment.points.length > 1)
       segmentSteps.push({
@@ -474,7 +640,7 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
       endpointKind: to.endpointKind || "place",
       label: to.label,
     },
-    nodes: routeNodes,
+    nodes: segments.flatMap((segment) => segment.nodes),
     graphNodes,
     edges,
     segments,
@@ -498,7 +664,7 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
     navigationMode: "manual",
     diagnostics: {
       visitedNodes: visited,
-      routingCost: costs.get(to.nodeId),
+      routingCost: costs[targetIndex],
       stairPreferencePenalty: edges.reduce(
         (sum, edge) =>
           sum +
@@ -517,6 +683,7 @@ export function findRoute(graph, fromRoom, toRoom, options = {}) {
         .map((edge) => edge.id),
       surveyBlockedEdgeIds,
       stairPartitionBlockedEdgeIds,
+      stairOpeningBlockedEdgeIds,
     },
   };
 }

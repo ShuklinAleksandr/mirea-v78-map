@@ -65,8 +65,7 @@ function openNativeLink(url) {
 /** Give launch links a bounded head start before loading the offline map. */
 export async function initMobileShell() {
   const platform = Capacitor.getPlatform();
-  document.documentElement.dataset.platform =
-    globalThis.window?.mireaDesktop?.platform || platform;
+  document.documentElement.dataset.platform = platform;
   if (!Capacitor.isNativePlatform()) return;
 
   if (!location.hash) {
@@ -174,8 +173,7 @@ export async function initMobileShell() {
 }
 
 export async function getBundledMapPackage() {
-  if (!Capacitor.isNativePlatform() && !globalThis.window?.mireaDesktop)
-    return null;
+  if (!Capacitor.isNativePlatform()) return null;
   const response = await fetch(resolveAssetUrl("/mobile-package.json"));
   return response.ok ? response.json() : null;
 }

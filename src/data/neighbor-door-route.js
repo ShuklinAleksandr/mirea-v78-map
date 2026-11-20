@@ -1,5 +1,5 @@
 import { getSurveyBlockedEdges } from "./survey-routing.js";
-import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
+import { getStairBlockedEdges } from "./stair-partition-routing.js";
 
 const publicKinds = new Set(["entrance", "circulation", "corridor", "hall"]);
 
@@ -15,7 +15,7 @@ export function atNeighborDoor(graph, roomId, options = {}) {
   if (!anchor || anchor.areaId !== roomId) return null;
   const blocked = new Set([
     ...getSurveyBlockedEdges(graph),
-    ...getStairPartitionBlockedEdges(graph),
+    ...getStairBlockedEdges(graph),
     ...(options.blockedEdgeIds || []),
   ]);
   const own = new Map(

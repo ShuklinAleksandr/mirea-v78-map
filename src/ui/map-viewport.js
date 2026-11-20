@@ -1,8 +1,25 @@
 import { $ } from "./dom.js";
 
-// Keep these limits aligned with the compact landscape media query.
-export function isCompactLandscape(width, height) {
-  return width >= 520 && width <= 1100 && height <= 520 && width > height;
+// Tab zoom can produce fractional CSS dimensions while innerWidth and
+// innerHeight report rounded integers. Use the same live queries as the CSS.
+export function viewportLayout(view = globalThis.window) {
+  if (view.matchMedia) {
+    // During WebKit's resize event an existing MediaQueryList can still
+    // report the old layout until its change event. Query the current view.
+    if (
+      view.matchMedia(
+        "(min-width: 520px) and (max-width: 1100px) and (max-height: 520px) and (orientation: landscape)",
+      ).matches
+    )
+      return "landscape";
+    return view.matchMedia("(max-width: 700px)").matches
+      ? "portrait"
+      : "desktop";
+  }
+  const { innerWidth: width, innerHeight: height } = view;
+  if (width >= 520 && width <= 1100 && height <= 520 && width > height)
+    return "landscape";
+  return width <= 700 ? "portrait" : "desktop";
 }
 
 export function measuredLandscapePadding(width, height, rectangles) {
@@ -22,8 +39,6 @@ export function measuredLandscapePadding(width, height, rectangles) {
   };
 }
 
-/** The compact floor button only obstructs the right edge, not another full
- * horizontal row. Account for actual safe-area offsets on the top controls. */
 export function measuredPortraitPadding(width, height, rectangles) {
   const visible = (name) => {
     const rect = rectangles[name];
@@ -36,20 +51,60 @@ export function measuredPortraitPadding(width, height, rectangles) {
       ? rect
       : null;
   };
-  const top = ["top", "back", "settings"].map(visible).filter(Boolean);
-  const right = ["floorPicker", "tools"].map(visible).filter(Boolean);
+  const firstRow = ["top", "back", "settings"].map(visible).filter(Boolean);
+  const tools = visible("tools");
+  const floorPicker = visible("floorPicker");
+  const toolsOnLeft = tools && tools.left < width / 2;
+  // In route mode the tools move from the right rail to a row at the upper
+  // left. The floor picker beside that row already fits within its padding.
+  const top = toolsOnLeft ? [...firstRow, tools] : firstRow;
+  const topPadding = Math.max(64, ...top.map((rect) => rect.bottom + 12));
+  const right = [floorPicker, tools].filter(
+    (rect) => rect && rect.bottom + 12 > topPadding,
+  );
   const bottom = ["sidebar", "dock", "location", "route"]
     .map(visible)
     .filter(Boolean);
-  return {
+  const padding = {
     left: 16,
-    top: Math.max(64, ...top.map((rect) => rect.bottom + 12)),
+    top: topPadding,
     right: Math.min(
       84,
       Math.max(16, ...right.map((rect) => width - rect.left + 12)),
     ),
     bottom: Math.max(16, ...bottom.map((rect) => height - rect.top + 12)),
   };
+  if (toolsOnLeft && visible("dock")) {
+    // At high zoom in a low window the dock can reach the second row. Fit
+    // between the left and right controls if that leaves more visible map.
+    const controls = [...top, floorPicker].filter(Boolean);
+    const left = Math.max(
+      16,
+      ...controls
+        .filter((rect) => rect.left < width / 2)
+        .map((rect) => rect.right + 12),
+    );
+    const right = Math.max(
+      16,
+      ...controls
+        .filter((rect) => rect.left >= width / 2)
+        .map((rect) => width - rect.left + 12),
+    );
+    const inset = Math.max(
+      16,
+      Math.min(...firstRow.map((rect) => rect.top + 8), padding.top),
+    );
+    const gapWidth = width - left - right;
+    const area = (w, top) =>
+      Math.max(0, w) * Math.max(0, height - padding.bottom - top);
+    if (
+      gapWidth >= width / 4 &&
+      area(gapWidth, inset) >
+        area(width - padding.left - padding.right, padding.top)
+    )
+      return { ...padding, left, right, top: inset };
+  }
+  return padding;
 }
 
 function visibleMapRectangles(selectors) {

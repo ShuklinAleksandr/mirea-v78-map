@@ -1,5 +1,5 @@
 import { getSurveyBlockedEdges } from "./survey-routing.js";
-import { getStairPartitionBlockedEdges } from "./stair-partition-routing.js";
+import { getStairBlockedEdges } from "./stair-partition-routing.js";
 import { isCurrentUserLocation } from "./user-location.js";
 import { placeLocation } from "./place-location.js";
 import {
@@ -83,7 +83,7 @@ function prepare(graph, baseGraph = null) {
   const adjacency = new Map(graph.nodes.map((node) => [node.id, []]));
   const blocked = new Set([
     ...getSurveyBlockedEdges(graph),
-    ...getStairPartitionBlockedEdges(graph),
+    ...getStairBlockedEdges(graph),
   ]);
   for (const edge of graph.edges) {
     if (

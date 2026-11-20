@@ -179,13 +179,17 @@ export function bindLocation({
       String(tracking.enabled && tracking.following),
     );
   }
-  function publish(location, status = tracking.status) {
+  function publish(
+    location,
+    status = tracking.status,
+    providerInterrupted = false,
+  ) {
     state.userLocation = location
       ? {
           ...location,
           point: location.point?.slice(),
           ...(tracking.enabled || location.trackingStatus
-            ? { trackingStatus: status }
+            ? { trackingStatus: status, providerInterrupted }
             : {}),
         }
       : null;
@@ -360,8 +364,12 @@ export function bindLocation({
         tracking.reason = error?.message || "Уточните место на карте.";
         if (!state.userLocation && !dialog.open) dialog.showModal();
       }
-      if (state.userLocation) publish(state.userLocation, tracking.status);
-      else refresh();
+      publish(
+        state.userLocation,
+        tracking.status,
+        tracking.enabled &&
+          ["2", "3", "OS-PLUG-GLOC-0010"].includes(String(error?.code)),
+      );
     };
     try {
       const stop = await startWatching({
@@ -382,7 +390,7 @@ export function bindLocation({
         releaseHeading();
         tracking.status = "error";
         tracking.reason = error.message;
-        refresh();
+        publish(state.userLocation, tracking.status);
         if (!dialog.open) dialog.showModal();
       }
     }

@@ -81,7 +81,7 @@ const UP_AXIS = new THREE.Vector3(0, 1, 0);
 const HEADING_DEADBAND = (2 * Math.PI) / 180;
 const ROUTE_CAMERA_POLAR_ANGLE = (55 * Math.PI) / 180;
 const LABEL_OBSTACLES =
-  ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit,#next-floor-open,#route-open";
+  ".sidebar,.topbar > button,.map-top > *,.map-title,.map-tools,.floor-rail,.focus-floor-status,.route-guidance-dock,.location-pick-banner,#clean-map-exit,#next-floor-open,#route-open,#desktop-help-open";
 const shapes = (polygon) => {
   if (!polygon.points || polygon.points.length < 3) return null;
   const s = new THREE.Shape(
@@ -799,7 +799,11 @@ export class AtlasScene {
         )
       : null;
     const routePosition = path
-      ? nearestRouteLinePosition(path.points, match.point)
+      ? nearestRouteLinePosition(
+          path.points,
+          match.point,
+          match.matchedDistance,
+        )
       : null;
     if (!routePosition) {
       if (this.routeLocationFix && this.callbacks.shouldFollowRouteCamera?.()) {
@@ -2291,9 +2295,11 @@ export class AtlasScene {
       : hallFloor.footprints;
     // A shared connected component has identical source contours for every
     // selected wing it contains. Cache that common display once, not per label.
-    const scopeKey = preserveSharedComponents
-      ? `components:${components.map(({ footprint }) => sourceFootprints.indexOf(footprint)).join(",")}`
-      : scopedBuilding;
+    const approach = scopedBuilding === "А" && getMainEntranceApproach(floor);
+    const scopeKey =
+      preserveSharedComponents && !approach
+        ? `components:${components.map(({ footprint }) => sourceFootprints.indexOf(footprint)).join(",")}`
+        : scopedBuilding;
     const cache = (this.floorDisplayCache ??= []);
     const index = cache.findIndex(
       (entry) => entry.floor === floor && entry.scopeKey === scopeKey,
@@ -2329,7 +2335,6 @@ export class AtlasScene {
     const slabs = (renderFloor.footprints || []).map(cut);
     // The building cutaway omits the campus sidewalks. Keep only the
     // documented approach directly attached to the main entrance.
-    const approach = scopedBuilding === "А" && getMainEntranceApproach(floor);
     if (approach) slabs.push(cut(approach));
     const rooms = (renderFloor.polygons || []).map(cut);
     const display = getIndoorDisplayGeometry(renderFloor);

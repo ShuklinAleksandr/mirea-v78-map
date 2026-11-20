@@ -4,12 +4,20 @@
 
 ## Повторяемые проверки
 
+Для проверки интерфейса веб-карты на телефонах, планшетах и компьютерах выполните следующие команды из корня проекта после `npm ci`.
+
+```sh
+npx playwright-core install chromium firefox webkit
+npm run test:ui -- chromium firefox webkit
+```
+
+Команда запускает временную production-сборку и удаляет её после прогона. Без аргументов проверяется Chromium. Чтобы проверить уже запущенную карту, задайте `UI_TEST_URL`; для установленного Chrome можно указать путь к его исполняемому файлу через `CHROMIUM_EXECUTABLE`. В сценариях проверяются поиск и выбор точек касанием и клавиатурой, изменение размера окна при открытом маршруте, системные отступы экрана и доступность диалогов.
+
 ```sh
 npm ci
 npm run check
 npm audit
 node scripts/check-routing.mjs
-npm run mobile:build:ios
 npm run mobile:build:android
 npm run mobile:check
 ```

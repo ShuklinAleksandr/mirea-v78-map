@@ -175,7 +175,7 @@ test("native shell restores migrated legacy views but preserves an existing cano
 });
 
 test("background saves navigation and foreground resumes map rendering and system theme", async () => {
-  const h = shell({ platform: "ios", saved: "#campus=v-78&room=Б-209" });
+  const h = shell({ platform: "android", saved: "#campus=v-78&room=Б-209" });
   await h.initMobileShell();
   assert.equal(
     new URLSearchParams(h.location.hash.slice(1)).get("room"),
