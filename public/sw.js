@@ -12,7 +12,8 @@ const ASSETS_TO_CACHE = [
   '/data/campuses/v-78/v-78-floor1.json',
   '/data/campuses/v-78/v-78-floor2.json',
   '/data/campuses/v-78/v-78-floor3.json',
-  '/data/campuses/v-78/v-78-floor4.json'
+  '/data/campuses/v-78/v-78-floor4.json',
+  '/dist/assets/route-worker-DWiEbR59.js', 
   // ... и другие критичные файлы
 ];
 
