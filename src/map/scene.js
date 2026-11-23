@@ -63,6 +63,7 @@ import {
   createSchematicConnection,
   disposeRouteLayer,
   routeBounds,
+  updateRouteCues,
 } from "./route.js";
 
 const COLORS = {
@@ -1719,6 +1720,7 @@ export class AtlasScene {
       );
       element.style.pointerEvents = "none";
       element.setAttribute("aria-hidden", "true");
+      this.roomLabels.at(-1).offsetY = -24;
     }
     this.invalidate();
   }
@@ -1757,43 +1759,12 @@ export class AtlasScene {
     const layers = this.routeOverview
       ? this.routeLayers || []
       : [this.routeLayer].filter(Boolean);
-    if (!layers.length) return;
-    const width = this.host.clientWidth,
-      height = this.host.clientHeight;
-    for (const layer of layers) {
-      for (const material of layer.materials)
-        material.resolution.set(width, height);
-      const forward = this.camera.getWorldDirection(new THREE.Vector3());
-      const pixelScale = (position) =>
-        this.plan
-          ? (this.camera.top - this.camera.bottom) / (this.camera.zoom * height)
-          : (2 *
-              Math.max(
-                0.1,
-                position.clone().sub(this.camera.position).dot(forward),
-              ) *
-              Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) /
-            height;
-      for (const marker of layer.markers)
-        marker.scale.setScalar(
-          pixelScale(marker.getWorldPosition(new THREE.Vector3())) * 10,
-        );
-      const placed = [];
-      for (const arrow of layer.arrows) {
-        const worldPosition = arrow.getWorldPosition(new THREE.Vector3());
-        const p = worldPosition.clone().project(this.camera);
-        const screen = [(p.x * width) / 2, (p.y * height) / 2];
-        arrow.visible =
-          !arrow.userData.routePassed &&
-          p.z > -1 &&
-          p.z < 1 &&
-          !placed.some(
-            (q) => Math.hypot(screen[0] - q[0], screen[1] - q[1]) < 55,
-          );
-        if (arrow.visible) placed.push(screen);
-        arrow.scale.setScalar(pixelScale(worldPosition) * 5);
-      }
-    }
+    updateRouteCues(
+      layers,
+      this.camera,
+      this.host.clientWidth,
+      this.host.clientHeight,
+    );
   }
   setRouteOverview(
     enabled,

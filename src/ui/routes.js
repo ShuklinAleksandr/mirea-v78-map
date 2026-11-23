@@ -260,7 +260,7 @@ export function bindRoutes({
     } else if (onLocate) {
       pendingCurrentOrigin = { open, quiet };
       status("Получаем геопозицию для начала маршрута…");
-      onLocate();
+      if (onLocate() === false) locationChanged();
     } else {
       status(result.message, true);
       if (!quiet) toast(result.message);
@@ -743,7 +743,7 @@ export function bindRoutes({
     guiding = true;
     guideSection = guideDistance = 0;
     focusStep(index);
-    onLocate?.();
+    onLocate?.({ passive: true });
     updateLiveGuidance();
   }
   function clear({ open = false, completed = false } = {}) {
@@ -786,7 +786,8 @@ export function bindRoutes({
         building: target?.building,
         physicalLevel: target?.physicalLevel,
       });
-      if (!keepCamera) onLocate?.();
+      if (!keepCamera && state.locationTracking?.enabled)
+        onLocate?.({ passive: true });
       updateLiveGuidance();
     }
   }
@@ -869,7 +870,7 @@ export function bindRoutes({
         </div>`
       : "";
     dock.innerHTML = `
-      ${nextInterface ? '<button type="button" id="route-dock-open" class="route-dock-open" aria-label="Открыть маршрут и поиск" aria-controls="sheet-content">Маршрут и поиск</button>' : ""}
+      ${nextInterface ? `<button type="button" id="route-dock-open" class="route-dock-open" aria-label="Открыть маршрут и поиск" aria-controls="sheet-content">${icon("down", 18)}<span>Маршрут и поиск</span></button>` : ""}
       <div class="route-dock-header"><small class="route-dock-meta" id="route-dock-meta"></small><button type="button" class="route-dock-close icon-button" id="route-dock-close" aria-label="Закрыть маршрут">${icon("close", 18)}</button></div>
       ${nextInterface ? '<span class="next-route-symbol" id="route-dock-symbol" aria-hidden="true"></span>' : ""}
       <strong class="route-dock-instruction" id="route-dock-instruction" aria-live="polite"></strong>
@@ -877,12 +878,12 @@ export function bindRoutes({
       <small class="route-dock-note" id="route-dock-note">Путь по карте · расстояние и время приблизительные</small>
       ${nextInterface ? '<button type="button" id="route-dock-context" class="route-dock-context primary-button" hidden></button>' : ""}
       <div class="route-dock-controls" role="group" aria-label="Шаги маршрута">
-        <button type="button" class="route-dock-previous" id="route-dock-previous" aria-label="Предыдущий шаг">Назад</button>
+        <button type="button" class="route-dock-previous" id="route-dock-previous" aria-label="Предыдущий шаг" title="Предыдущий шаг">${nextInterface ? icon("arrow", 18) : ""}<span>Назад</span></button>
         <button type="button" class="route-dock-next primary-button" id="route-dock-next"></button>
       </div>
       <div class="route-dock-secondary" role="group" aria-label="Управление маршрутом">
         <button type="button" id="route-dock-recenter" class="route-dock-recenter" aria-label="Вернуться к текущему шагу" title="Вернуться к текущему шагу">${icon("route", 20)}<span>К шагу</span></button>
-        <button type="button" id="route-dock-details" class="route-dock-details">${icon("route", 16)}${guiding ? "Весь маршрут" : "Изменить"}</button>
+        <button type="button" id="route-dock-details" class="route-dock-details" aria-label="${guiding ? "Весь маршрут" : "Изменить"}" title="${guiding ? "Весь маршрут" : "Изменить"}">${icon("route", 16)}<span>${guiding ? "Весь маршрут" : "Изменить"}</span></button>
       </div>`;
     if (nextInterface) {
       const open = () => {
@@ -1004,6 +1005,10 @@ export function bindRoutes({
         : partial?.summary ||
           `${from?.label || "Начало"} → ${to?.label || "Назначение"}`;
     const note = $("#route-dock-note");
+    const locationUnavailable =
+      state.locationTracking?.enabled === false &&
+      (["error", "stopped"].includes(state.locationTracking.status) ||
+        state.userLocation?.source === "manual");
     if (note && guiding) {
       const notes = {
         waiting: "Ждём GPS. Пока можно переключать шаги вручную.",
@@ -1023,9 +1028,11 @@ export function bindRoutes({
         arrived: "Вы у назначения по данным GPS. Проверьте указатель на месте.",
       };
       note.textContent = automatic
-        ? routeDisplay.read(Date.now())?.held
-          ? "Уточняем положение · показана последняя подтверждённая точка"
-          : notes[liveProgress?.status] || notes.waiting
+        ? locationUnavailable
+          ? "Геопозиция недоступна · следуйте по шагам"
+          : routeDisplay.read(Date.now())?.held
+            ? "Уточняем положение · показана последняя подтверждённая точка"
+            : notes[liveProgress?.status] || notes.waiting
         : previewing
           ? "Демонстрация маршрута · это не ваше движение"
           : "Переключайте шаги, когда дойдёте до указанного места";
@@ -1076,6 +1083,7 @@ export function bindRoutes({
         following: state.locationTracking?.following,
         snapToRoute: state.routeSnapEnabled,
         locationHeld: Boolean(routeDisplay.read(Date.now())?.held),
+        locationUnavailable,
         transitionLevel,
         guide,
         acceptedProgress,
@@ -1101,13 +1109,16 @@ export function bindRoutes({
           from?.kind !== "user-location"
             ? "Посмотреть шаги"
             : view.nextLabel;
-        next.innerHTML = `${escape(label)}${icon("arrow", 17)}`;
+        next.innerHTML = `<span>${escape(label)}</span>${icon("arrow", 17)}`;
         next.classList.toggle("primary-button", !view.contextAction);
       }
       if (recenter) recenter.hidden = !view.showRecenter;
       const progress = $("#route-dock-progress");
       if (progress) {
         progress.hidden = !view.progress;
+        progress.dataset.measured = String(
+          Boolean(acceptedProgress) || previewing,
+        );
         if (view.progress) {
           const bar = $("#route-dock-progress-bar");
           bar.value = view.progress.percent;

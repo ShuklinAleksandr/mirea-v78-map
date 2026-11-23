@@ -98,6 +98,7 @@ test("native watch accepts coarse permission and uses Capacitor callback/clear s
       },
       async watchPosition(options, receive) {
         assert.equal(options.minimumUpdateInterval, 2000);
+        assert.equal(options.enableHighAccuracy, false);
         callback = receive;
         return "native-watch";
       },
@@ -327,6 +328,116 @@ test("watch never requests permission on a hidden page or an already canceled st
   options.documentTarget.hidden = true;
   await assert.rejects(watchGpsLocation(options), { name: "AbortError" });
   assert.equal(calls, 0);
+});
+
+test("a permanent native permission denial does not issue another system prompt", async () => {
+  await assert.rejects(
+    watchGpsLocation({
+      ...surfaces(),
+      native: true,
+      onPosition() {},
+      plugin: {
+        async checkPermissions() {
+          return { location: "denied", coarseLocation: "denied" };
+        },
+        async requestPermissions() {
+          assert.fail("permanently denied permissions were requested again");
+        },
+        async watchPosition() {
+          assert.fail("a watch requires location permission");
+        },
+      },
+    }),
+    { code: 1 },
+  );
+});
+
+test("dismissing the Android permission sheet never starts a sensor watch", async () => {
+  const { lifecycleTarget, documentTarget } = surfaces();
+  let requests = 0;
+  await assert.rejects(
+    watchGpsLocation({
+      lifecycleTarget,
+      documentTarget,
+      native: true,
+      onPosition() {},
+      plugin: {
+        async checkPermissions() {
+          return { location: "prompt", coarseLocation: "prompt" };
+        },
+        async requestPermissions() {
+          requests++;
+          appState(lifecycleTarget, false);
+          await tick();
+          appState(lifecycleTarget, true);
+          return { location: "prompt", coarseLocation: "prompt" };
+        },
+        async watchPosition() {
+          assert.fail("dismissing the permission sheet cannot start GPS");
+        },
+      },
+    }),
+    { code: 1 },
+  );
+  assert.equal(requests, 1);
+});
+
+test("declining to enable Android location services ends its watch", async () => {
+  let fail;
+  const cleared = [];
+  const errors = [];
+  await watchGpsLocation({
+    ...surfaces(),
+    native: true,
+    onPosition: () => assert.fail("a disabled device cannot publish GPS"),
+    onError: (error) => errors.push(error),
+    plugin: {
+      async checkPermissions() {
+        return { location: "granted", coarseLocation: "granted" };
+      },
+      async watchPosition(_options, callback) {
+        fail = callback;
+        return "native-disabled";
+      },
+      async clearWatch(options) {
+        cleared.push(options.id);
+      },
+    },
+  });
+  fail(null, { code: "OS-PLUG-GLOC-0009" });
+  await tick();
+  assert.deepEqual(cleared, ["native-disabled"]);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0].message, /выключена на устройстве/);
+});
+
+test("a provider that never replies releases its first-fix watch and ignores late positions", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let emit;
+  const cleared = [];
+  const errors = [];
+  await watchGpsLocation({
+    ...surfaces(),
+    native: false,
+    now: () => now,
+    onPosition: () => assert.fail("received a position from the ended watch"),
+    onError: (error) => errors.push(error),
+    browser: {
+      geolocation: {
+        watchPosition(success) {
+          emit = success;
+          return 7;
+        },
+        clearWatch: (id) => cleared.push(id),
+      },
+    },
+  });
+  t.mock.timers.tick(30_000);
+  await tick();
+  assert.deepEqual(cleared, [7]);
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].code, "GPS_FIRST_FIX_TIMEOUT");
+  emit(position());
 });
 
 test("a slow native permission decision does not consume the watch registration timeout", async (t) => {

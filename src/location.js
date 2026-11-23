@@ -3,6 +3,12 @@ import registration from "./data/gps-registration.json" with { type: "json" };
 
 export const GPS_MAX_AGE_MS = 60_000;
 const GPS_TIMEOUT_MS = 15_000;
+const permissionErrors = new Set(["1", "OS-PLUG-GLOC-0003"]);
+const serviceDisabledErrors = new Set([
+  "OS-PLUG-GLOC-0007",
+  "OS-PLUG-GLOC-0009",
+  "OS-PLUG-GLOC-0017",
+]);
 const finitePoint = (point) =>
   Array.isArray(point) &&
   point.length >= 2 &&
@@ -135,15 +141,56 @@ export function gpsErrorMessage(error) {
   const code = String(error?.code || "");
   if (error?.name === "AbortError")
     return "Определение местоположения отменено.";
-  if (code === "1" || code === "OS-PLUG-GLOC-0003")
+  if (permissionErrors.has(code))
     return "Доступ к местоположению запрещён. Разрешите его в настройках или укажите точку вручную.";
+  if (code === "GPS_FIRST_FIX_TIMEOUT")
+    return "Геопозиция не получена. Попробуйте ещё раз или укажите точку вручную.";
   if (code === "3" || code === "OS-PLUG-GLOC-0010")
     return "GPS не ответил вовремя. Попробуйте у окна или укажите точку вручную.";
-  if (code === "OS-PLUG-GLOC-0007")
+  if (serviceDisabledErrors.has(code))
     return "Геолокация выключена на устройстве. Включите её или укажите точку вручную.";
+  if (code === "2" || code === "OS-PLUG-GLOC-0002")
+    return "Сигнал геолокации недоступен. Попробуйте у окна или укажите точку вручную.";
   return (
     error?.message ||
     "Не удалось определить местоположение. Укажите точку вручную."
+  );
+}
+
+export function isTerminalGpsError(error) {
+  const code = String(error?.code);
+  return (
+    permissionErrors.has(code) ||
+    serviceDisabledErrors.has(code) ||
+    code === "GPS_FIRST_FIX_TIMEOUT"
+  );
+}
+
+export function isGpsSignalInterruption(error) {
+  return ["2", "3", "OS-PLUG-GLOC-0002", "OS-PLUG-GLOC-0010"].includes(
+    String(error?.code),
+  );
+}
+
+function hasLocationPermission(permissions) {
+  return (
+    permissions.location === "granted" ||
+    permissions.coarseLocation === "granted"
+  );
+}
+
+function requireLocationPermission(permissions) {
+  if (!hasLocationPermission(permissions))
+    throw Object.assign(new Error("Доступ к местоположению запрещён."), {
+      code: 1,
+    });
+}
+
+function canRequestLocationPermission(permissions) {
+  return (
+    !hasLocationPermission(permissions) &&
+    (permissions.location !== "denied" ||
+      permissions.coarseLocation !== "denied")
   );
 }
 
@@ -225,38 +272,28 @@ export async function requestGpsLocation({
       const api =
         plugin || (await import("@capacitor/geolocation")).Geolocation;
       checkActive();
-      const permissions = await api.checkPermissions();
-      if (
-        permissions.location !== "granted" &&
-        permissions.coarseLocation !== "granted"
-      ) {
+      let permissions = await api.checkPermissions();
+      if (canRequestLocationPermission(permissions)) {
         checkActive();
-        let result;
         requestingPermission = true;
         // A person deciding in Android's permission sheet is not a stalled GPS
         // request. Keep cancellation active, then give the sensor its own budget.
         clearTimeout(timer);
         try {
-          result = await api.requestPermissions({
+          permissions = await api.requestPermissions({
             permissions: ["location"],
           });
         } finally {
           requestingPermission = false;
           armTimeout();
         }
-        if (
-          result.location !== "granted" &&
-          result.coarseLocation !== "granted"
-        )
-          throw Object.assign(
-            new Error(
-              "Доступ к местоположению запрещён. Укажите точку вручную.",
-            ),
-            { code: 1 },
-          );
       }
       checkActive();
-      return api.getCurrentPosition(options);
+      requireLocationPermission(permissions);
+      return api.getCurrentPosition({
+        ...options,
+        enableHighAccuracy: permissions.location === "granted",
+      });
     }
     if (!browser?.geolocation)
       throw new Error(
@@ -316,6 +353,7 @@ export async function watchGpsLocation({
     cleared = false,
     lastTimestamp = -Infinity,
     startupTimer,
+    firstFixTimer,
     rejectStartup;
   let clearing = Promise.resolve();
   const startupCanceled = new Promise((_, reject) => {
@@ -348,6 +386,7 @@ export async function watchGpsLocation({
     if (!stopped) {
       stopped = true;
       clearTimeout(startupTimer);
+      clearTimeout(firstFixTimer);
       signal?.removeEventListener("abort", cancel);
       documentTarget?.removeEventListener("visibilitychange", background);
       lifecycleTarget?.removeEventListener("atlas:app-state", background);
@@ -382,12 +421,7 @@ export async function watchGpsLocation({
     if (stopped) return;
     if (error) {
       const normalized = asError(error);
-      if (
-        ["1", "OS-PLUG-GLOC-0003", "OS-PLUG-GLOC-0007"].includes(
-          String(error.code),
-        )
-      )
-        terminate(normalized);
+      if (isTerminalGpsError(error)) terminate(normalized);
       else onError(normalized);
       return;
     }
@@ -402,6 +436,7 @@ export async function watchGpsLocation({
     // update cannot pull the point back or refresh a last-known timestamp.
     if (location.timestamp <= lastTimestamp) return;
     lastTimestamp = location.timestamp;
+    clearTimeout(firstFixTimer);
     onPosition(location);
   };
   signal?.addEventListener("abort", cancel, { once: true });
@@ -435,32 +470,31 @@ export async function watchGpsLocation({
     if (native) {
       api = plugin || (await import("@capacitor/geolocation")).Geolocation;
       if (stopped) throw aborted();
-      const permissions = await api.checkPermissions();
+      let permissions = await api.checkPermissions();
       if (stopped) throw aborted();
-      if (
-        permissions.location !== "granted" &&
-        permissions.coarseLocation !== "granted"
-      ) {
+      if (canRequestLocationPermission(permissions)) {
         requestingPermission = true;
-        let result;
         clearTimeout(startupTimer);
         try {
-          result = await api.requestPermissions({ permissions: ["location"] });
+          permissions = await api.requestPermissions({
+            permissions: ["location"],
+          });
         } finally {
           requestingPermission = false;
           armStartupTimeout();
         }
-        if (stopped) throw aborted();
-        if (
-          result.location !== "granted" &&
-          result.coarseLocation !== "granted"
-        )
-          throw Object.assign(new Error("Доступ к местоположению запрещён."), {
-            code: 1,
-          });
       }
       if (stopped) throw aborted();
-      watchId = await api.watchPosition(options, receive);
+      requireLocationPermission(permissions);
+      watchId = await api.watchPosition(
+        {
+          ...options,
+          // On Android a high-accuracy request can reopen the fine-permission
+          // sheet unless we respect an existing approximate-only grant here.
+          enableHighAccuracy: permissions.location === "granted",
+        },
+        receive,
+      );
     } else {
       api = browser?.geolocation;
       if (!api?.watchPosition || !api?.clearWatch)
@@ -481,6 +515,11 @@ export async function watchGpsLocation({
     }
     ready = true;
     clearTimeout(startupTimer);
+    if (lastTimestamp === -Infinity)
+      firstFixTimer = setTimeout(
+        () => terminate(asError({ code: "GPS_FIRST_FIX_TIMEOUT" })),
+        GPS_TIMEOUT_MS * 2,
+      );
     return stop;
   };
   try {

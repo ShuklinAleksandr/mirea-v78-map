@@ -168,7 +168,7 @@ if (scene) {
     saveView,
     updateUI,
     getUserOrigin: () => userPosition?.routeOrigin(),
-    onLocate: () => userPosition?.locate(),
+    onLocate: (options) => userPosition?.locate(options),
     onPauseFollowing: () => userPosition?.pauseFollowing(),
     getLiveFloorContext: (location) =>
       state.mode === "floor" && state.campus?.id === location?.campusId

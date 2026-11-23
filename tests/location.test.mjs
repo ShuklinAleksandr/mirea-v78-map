@@ -290,7 +290,8 @@ test("native approximate permission is respected and never escalated to backgrou
       async requestPermissions() {
         assert.fail("existing approximate permission must be respected");
       },
-      async getCurrentPosition() {
+      async getCurrentPosition(options) {
+        assert.equal(options.enableHighAccuracy, false);
         calls++;
         return position({ accuracy: 1200 });
       },

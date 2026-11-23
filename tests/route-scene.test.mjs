@@ -7,6 +7,7 @@ import {
   disposeRouteLayer,
   routeArrowAnchors,
   routeBounds,
+  updateRouteCues,
   visibleRouteSegments,
 } from "../src/map/route.js";
 import { AtlasScene } from "../src/map/scene.js";
@@ -156,6 +157,7 @@ test("GPS progress colors only the traveled polyline and keeps repeated floor vi
     assert.equal(marker("turn").userData.routeProgress, "passed");
     assert.equal(marker("transition").userData.routeProgress, "next");
     assert.equal(marker("end").userData.routeProgress, "remaining");
+    assert.ok(layer.arrows.some((arrow) => arrow.passed));
 
     layer.setProgress({
       sourceSegmentIndex: 2,
@@ -172,7 +174,7 @@ test("GPS progress colors only the traveled polyline and keeps repeated floor vi
     layer.setProgress(null);
     assert.equal(activeTraveled(), undefined);
     assert.equal(marker("turn").userData.routeProgress, "remaining");
-    assert.ok(layer.arrows.every((arrow) => !arrow.userData.routePassed));
+    assert.ok(layer.arrows.every((arrow) => !arrow.passed));
   } finally {
     disposeRouteLayer(layer);
   }
@@ -376,6 +378,130 @@ test("direction arrows follow each actual source leg, including sharp corners", 
       (z === 0 && x >= 0 && x <= 12) || (x === 12 && z >= 0 && z <= 15),
     );
     assert.ok(arrow.angle === 0 || Math.abs(arrow.angle + Math.PI / 2) < 1e-8);
+  }
+  assert.deepEqual(
+    routeArrowAnchors([
+      [0, 0],
+      [0.5, 0],
+      [2, 0],
+    ]).map(({ point }) => point),
+    [[1, 0]],
+    "short paths keep a centered direction marker across source vertices",
+  );
+});
+
+test("mobile direction markers stay readable and spaced across zoom, rotation, and tilt", () => {
+  const width = 390;
+  const height = 844;
+  const layer = createRouteLayer(
+    {
+      segments: [
+        {
+          floorId: "f1",
+          points: [
+            [0, 0],
+            [90, 0],
+          ],
+        },
+      ],
+      start: { floorId: "f1", point: [0, 0] },
+      end: { floorId: "f1", point: [90, 0] },
+    },
+    "f1",
+    { dark: true },
+  );
+  const camera = new THREE.OrthographicCamera(
+    -60,
+    60,
+    (60 * height) / width,
+    (-60 * height) / width,
+    0.1,
+    500,
+  );
+  camera.position.set(45, 100, 0);
+  const project = (point, view = camera) => {
+    point.project(view);
+    return new THREE.Vector2(
+      ((point.x + 1) * width) / 2,
+      ((point.y + 1) * height) / 2,
+    );
+  };
+  const layouts = (view = camera) => {
+    updateRouteCues([layer], view, width, height);
+    return Array.from({ length: layer.arrowMesh.count }, (_, index) => {
+      const matrix = new THREE.Matrix4();
+      layer.arrowMesh.getMatrixAt(index, matrix);
+      const world = new THREE.Vector3().setFromMatrixPosition(matrix);
+      return {
+        center: project(world.clone(), view),
+        edge: project(new THREE.Vector3(0.5, 0, 0).applyMatrix4(matrix), view),
+        world,
+        floorClearance:
+          world.y - 0.5 * Math.hypot(matrix.elements[1], matrix.elements[5]),
+      };
+    });
+  };
+  try {
+    camera.up.set(0, 0, -1);
+    camera.lookAt(45, 0, 0);
+    const full = layouts();
+    assert.ok(full.length >= 5 && full.length <= 7);
+    const endpoints = layer.markers.map(({ position }) =>
+      project(position.clone()),
+    );
+    for (const [i, { center, edge }] of full.entries()) {
+      assert.ok(Math.abs(edge.x - center.x - 8) < 0.001);
+      assert.ok(Math.abs(edge.y - center.y) < 0.001);
+      if (i) assert.ok(center.distanceTo(full[i - 1].center) >= 43.99);
+      assert.ok(
+        endpoints.every((endpoint) => endpoint.distanceTo(center) >= 23),
+      );
+    }
+
+    camera.zoom = 2.2;
+    camera.up.set(1, 0, 0);
+    camera.lookAt(45, 0, 0);
+    camera.updateProjectionMatrix();
+    const closer = layouts();
+    assert.ok(closer.length >= 7 && closer.length <= 14);
+    for (const [i, { center, edge }] of closer.entries()) {
+      assert.ok(Math.abs(edge.y - center.y - 8) < 0.001);
+      assert.ok(Math.abs(edge.x - center.x) < 0.001);
+      if (i) assert.ok(center.distanceTo(closer[i - 1].center) >= 43.99);
+    }
+
+    layer.setProgress({
+      sourceSegmentIndex: 0,
+      position: [60, 0],
+      distance: 60,
+      length: 90,
+    });
+    const remaining = layouts();
+    assert.ok(remaining.length > 0 && remaining.length < closer.length);
+    assert.ok(remaining.every(({ world }) => world.x > 60));
+
+    const tilted = new THREE.PerspectiveCamera(38, width / height, 0.1, 500);
+    tilted.position.set(49, 18, 24);
+    tilted.lookAt(70, 0, 0);
+    const perspective = layouts(tilted);
+    assert.ok(perspective.length >= 2);
+    const actualRouteCenters = layer.arrows
+      .filter(({ passed }) => !passed)
+      .map(({ point: [x, z] }) =>
+        project(new THREE.Vector3(x, 0.37, z), tilted),
+      );
+    for (const { center, edge, world, floorClearance } of perspective) {
+      assert.ok(floorClearance >= 0.1799);
+      assert.ok(
+        actualRouteCenters.some((anchor) => center.distanceTo(anchor) < 0.001),
+      );
+      const arrow = edge.sub(center);
+      const path = project(world.setX(world.x + 1), tilted).sub(center);
+      assert.ok(Math.abs(arrow.length() - 8) < 0.001);
+      assert.ok(arrow.normalize().dot(path.normalize()) > 0.999);
+    }
+  } finally {
+    disposeRouteLayer(layer);
   }
 });
 

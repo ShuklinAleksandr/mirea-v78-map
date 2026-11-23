@@ -85,6 +85,7 @@ export function nextRouteReadout({
   following = false,
   snapToRoute = false,
   locationHeld = false,
+  locationUnavailable = false,
   transitionLevel,
   guide,
   acceptedProgress,
@@ -98,10 +99,15 @@ export function nextRouteReadout({
   );
   const manualOnly = manualEntry && route.steps.length === 1;
   const transition = Boolean(step?.targetFloorId);
-  const status = automatic ? liveProgress?.status || "waiting" : "manual";
+  const status = automatic
+    ? locationUnavailable
+      ? "unavailable"
+      : liveProgress?.status || "waiting"
+    : "manual";
   const tracking = guiding && automatic && status === "tracking";
   const notes = {
     waiting: "Нет геопозиции · пока можно идти по шагам",
+    unavailable: "Геопозиция недоступна · следуйте по шагам",
     acquiring: "Уточняем положение…",
     uncertain: "Уточняем положение. Продолжайте по линии маршрута.",
     tracking: "Шаги меняются автоматически",

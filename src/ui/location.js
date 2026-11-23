@@ -1,7 +1,11 @@
 import { $ } from "./dom.js";
 import { Capacitor } from "@capacitor/core";
 import { bindGpsSurvey, gpsSurveyAvailable } from "./gps-survey.js";
-import { watchGpsLocation } from "../location.js";
+import {
+  isGpsSignalInterruption,
+  isTerminalGpsError,
+  watchGpsLocation,
+} from "../location.js";
 import { watchHeading } from "../heading.js";
 import {
   manualPlaceLocation,
@@ -40,6 +44,10 @@ export function bindLocation({
   surveyStorage,
 }) {
   const dialog = $("#location-dialog");
+  const headingButton = $("#location-enable-heading");
+  const needsHeadingPermission =
+    !Capacitor.isNativePlatform() &&
+    typeof window.DeviceOrientationEvent?.requestPermission === "function";
   const nativeSurvey = gpsSurveyAvailable({
     native: Capacitor.isNativePlatform(),
     platform: Capacitor.getPlatform(),
@@ -63,10 +71,12 @@ export function bindLocation({
     headingController = null,
     stopHeading = null,
     headingGeneration = 0,
+    headingPermissionGranted = false,
     pickCompletion = null,
     pickCanceled = null,
     pickPurpose = "manual",
-    closeOnFix = false;
+    closeOnFix = false,
+    showGpsFailure = false;
   state.headingStatus = "off";
   let refinementSurvey = null,
     refinementError = "",
@@ -163,6 +173,11 @@ export function bindLocation({
         : state.headingStatus === "unavailable"
           ? "Направление телефона недоступно на этом устройстве."
           : "";
+    headingButton.hidden =
+      !needsHeadingPermission ||
+      tracking.status !== "live" ||
+      headingPermissionGranted;
+    headingButton.disabled = Boolean(headingController);
     $("#locate-open").classList.toggle(
       "active",
       tracking.enabled && tracking.following,
@@ -172,7 +187,9 @@ export function bindLocation({
       "aria-label",
       tracking.enabled
         ? "К моему местоположению — включить следование"
-        : "Показать моё местоположение",
+        : state.userLocation?.source === "manual"
+          ? "К моей точке на карте"
+          : "Показать моё местоположение",
     );
     $("#locate-open").setAttribute(
       "aria-pressed",
@@ -240,13 +257,23 @@ export function bindLocation({
     scene.setUserHeading?.(null);
     state.headingStatus = "off";
   }
-  async function beginHeading() {
-    if (!tracking.enabled || headingController || document.hidden) return;
+  async function beginHeading({ requestPermission = false } = {}) {
+    if (
+      !tracking.enabled ||
+      headingController ||
+      document.hidden ||
+      (needsHeadingPermission &&
+        !headingPermissionGranted &&
+        !requestPermission)
+    )
+      return;
     const token = ++headingGeneration;
     headingController = new AbortController();
+    refresh();
     try {
       const stop = await startHeading({
         signal: headingController.signal,
+        requestPermission,
         onHeading: (heading) => {
           if (token !== headingGeneration || !tracking.enabled) return;
           state.headingStatus = "live";
@@ -262,7 +289,11 @@ export function bindLocation({
         },
       });
       if (token !== headingGeneration || !tracking.enabled) await stop();
-      else stopHeading = stop;
+      else {
+        stopHeading = stop;
+        if (requestPermission) headingPermissionGranted = true;
+        refresh();
+      }
     } catch (error) {
       if (token !== headingGeneration) return;
       headingController = null;
@@ -282,15 +313,16 @@ export function bindLocation({
   }
   function stopTracking() {
     tracking.enabled = false;
+    showGpsFailure = false;
     releaseWatch();
     releaseHeading();
     tracking.status = "stopped";
     tracking.reason =
       "Последняя точка сохранена. Новые координаты не запрашиваются.";
-    if (state.userLocation) publish(state.userLocation, "stopped");
-    else refresh();
+    publish(state.userLocation, "stopped");
   }
   function applyFix(fix, { center = true, reapply = false } = {}) {
+    showGpsFailure = false;
     rawFix = fix;
     if (holdManual) {
       tracking.status = "needs-refinement";
@@ -343,32 +375,38 @@ export function bindLocation({
     tracking.status = "acquiring";
     tracking.reason = "";
     refresh();
-    const fail = (error) => {
+    const fail = (error, startupFailed = false) => {
       if (token !== generation || !tracking.enabled) return;
       if (error?.name === "AbortError") {
         releaseWatch();
         releaseHeading();
         tracking.status = "paused";
         tracking.reason = "Обновление продолжится при возврате в приложение.";
-      } else {
+      } else if (startupFailed || isTerminalGpsError(error)) {
+        tracking.enabled = false;
+        releaseWatch();
+        releaseHeading();
+        tracking.status = "error";
+        tracking.reason = error?.message || "Уточните место на карте.";
         if (
-          ["1", "OS-PLUG-GLOC-0003", "OS-PLUG-GLOC-0007"].includes(
-            String(error?.code || ""),
+          showGpsFailure &&
+          !dialog.open &&
+          !scene.locationPicking &&
+          !document.hidden &&
+          !document.activeElement?.matches?.(
+            "input, textarea, [contenteditable]",
           )
-        ) {
-          tracking.enabled = false;
-          releaseWatch();
-          releaseHeading();
-        }
+        )
+          dialog.showModal();
+        showGpsFailure = false;
+      } else {
         tracking.status = "signal-lost";
         tracking.reason = error?.message || "Уточните место на карте.";
-        if (!state.userLocation && !dialog.open) dialog.showModal();
       }
       publish(
         state.userLocation,
         tracking.status,
-        tracking.enabled &&
-          ["2", "3", "OS-PLUG-GLOC-0010"].includes(String(error?.code)),
+        tracking.enabled && isGpsSignalInterruption(error),
       );
     };
     try {
@@ -382,27 +420,17 @@ export function bindLocation({
       if (token !== generation || !tracking.enabled) await stop();
       else stopWatch = stop;
     } catch (error) {
-      if (token !== generation) return;
-      if (error?.name === "AbortError") fail(error);
-      else {
-        tracking.enabled = false;
-        releaseWatch();
-        releaseHeading();
-        tracking.status = "error";
-        tracking.reason = error.message;
-        publish(state.userLocation, tracking.status);
-        if (!dialog.open) dialog.showModal();
-      }
+      fail(error, true);
     }
   }
-  function startTracking() {
+  function startTracking({ passive = false, revealFailure = false } = {}) {
     if (tracking.enabled) return;
     calibration = null;
     holdManual = false;
     tracking.enabled = true;
     tracking.following = true;
-    closeOnFix = true;
-    // Called by the explicit button so browser orientation permission keeps its gesture.
+    closeOnFix = !passive;
+    showGpsFailure = revealFailure;
     beginHeading();
     beginWatch();
   }
@@ -423,16 +451,29 @@ export function bindLocation({
     refresh();
     if (!dialog.open) dialog.showModal();
   }
-  function locate() {
-    stopPicking();
-    closeRoom();
-    if (dialog.open) dialog.close();
-    experience.minimize();
+  function locate({ passive = false, retry = false } = {}) {
+    const manual = !tracking.enabled && state.userLocation?.source === "manual";
+    if (
+      !tracking.enabled &&
+      ((tracking.status === "error" && !retry && !manual) ||
+        (passive && (tracking.status === "stopped" || manual)))
+    ) {
+      if (!passive) open();
+      return false;
+    }
+    if (!passive) {
+      stopPicking();
+      closeRoom();
+      if (dialog.open && !retry) dialog.close();
+      experience.minimize();
+    }
     tracking.following = true;
-    if (!tracking.enabled) startTracking();
-    else beginHeading();
-    if (state.userLocation?.point) scene.focusUserLocation();
+    if (tracking.enabled) beginHeading();
+    else if (!manual || retry)
+      startTracking({ passive, revealFailure: !passive && !dialog.open });
+    if (!passive && state.userLocation?.point) scene.focusUserLocation();
     refresh();
+    return true;
   }
   function assignManual(location, { record = false } = {}) {
     // A room-card action uses a catalogue centre. Only an explicitly confirmed
@@ -461,8 +502,10 @@ export function bindLocation({
         toast(error.message + recordNote);
       }
     } else {
-      tracking.status = "off";
-      tracking.reason = "Точка указана вручную.";
+      if (tracking.status !== "error" && tracking.status !== "stopped") {
+        tracking.status = "off";
+        tracking.reason = "Точка указана вручную.";
+      }
       publish(location);
     }
     return true;
@@ -575,11 +618,17 @@ export function bindLocation({
     open();
   };
   $("#location-close").onclick = () => dialog.close();
+  dialog.addEventListener("close", () => {
+    showGpsFailure = false;
+  });
   dialog.addEventListener("click", (e) => {
     if (e.target === dialog) dialog.close();
   });
   $("#location-gps").onclick = () =>
-    tracking.enabled ? stopTracking() : locate();
+    tracking.enabled ? stopTracking() : locate({ retry: true });
+  headingButton.onclick = () => {
+    if (tracking.status === "live") beginHeading({ requestPermission: true });
+  };
   $("#location-map").onclick = () => beginPicking();
   $("#location-pick-cancel").onclick = () => stopPicking({ notify: true });
   $("#location-pick-confirm").onclick = () => {
@@ -672,6 +721,7 @@ export function bindLocation({
     }
   });
   const suspend = () => {
+    showGpsFailure = false;
     releaseHeading();
     if (!tracking.enabled) return;
     releaseWatch();

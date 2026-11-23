@@ -9,7 +9,14 @@ import {
   checkChromiumZoomBreakpoints,
   checkDesktopLayout,
 } from "./lib/audit-desktop-layout.mjs";
-import { checkPhoneLayout } from "./lib/audit-phone-layout.mjs";
+import {
+  checkHingedRouteDock,
+  checkPhoneLayout,
+} from "./lib/audit-phone-layout.mjs";
+import {
+  checkGuidanceFlow,
+  prepareDeniedLocation,
+} from "./lib/audit-guidance-flow.mjs";
 
 const engines = { chromium, firefox, webkit };
 const selected = process.argv.length > 2 ? process.argv.slice(2) : ["chromium"];
@@ -227,8 +234,18 @@ async function run(engine, url) {
       : {}),
   });
   try {
-    if (engine === "chromium") await checkCutouts(browser, url);
+    if (engine === "chromium") {
+      await checkCutouts(browser, url);
+      await checkHingedRouteDock(browser, url);
+    }
     const cases = [
+      {
+        name: "manual guidance after location denial",
+        size: [402, 675],
+        touch: true,
+        check: checkGuidanceFlow,
+        setup: prepareDeniedLocation,
+      },
       {
         name: "resize, keyboard, links and accessibility",
         size: [720, 720],
@@ -259,12 +276,16 @@ async function run(engine, url) {
       size: [width, height],
       check,
       touch = false,
+      setup,
     } of cases) {
       const context = await browser.newContext({
         viewport: { width, height },
         hasTouch: touch,
-        ...(name === "phone" && engine !== "firefox" ? { isMobile: true } : {}),
+        ...((name === "phone" || setup) && engine !== "firefox"
+          ? { isMobile: true }
+          : {}),
         reducedMotion: "reduce",
+        ...(setup ? { colorScheme: "dark" } : {}),
       });
       const uncaught = [];
       context.on("page", (p) =>
@@ -273,9 +294,14 @@ async function run(engine, url) {
       const page = await context.newPage();
       try {
         page.setDefaultTimeout(12000);
-        if (check !== checkPhoneLayout && check !== checkDesktopLayout)
+        if (setup) await setup(page);
+        if (
+          !setup &&
+          check !== checkPhoneLayout &&
+          check !== checkDesktopLayout
+        )
           await page.addInitScript({ path: axePath });
-        await page.goto(url);
+        await page.goto(setup ? url + "#projection=2d" : url);
         await page.waitForFunction(
           () => window.__atlas?.state.floorData.length,
         );

@@ -4,7 +4,11 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { escape } from "../src/ui/dom.js";
 import { gpsSurveyAvailable } from "../src/ui/gps-survey.js";
-import { projectGpsToMap } from "../src/location.js";
+import {
+  isGpsSignalInterruption,
+  isTerminalGpsError,
+  projectGpsToMap,
+} from "../src/location.js";
 import {
   GPS_CALIBRATION_SURVEY_STORAGE_KEY,
   createGpsCalibrationRecord,
@@ -97,6 +101,7 @@ function harness({
   now = Date.now,
   surveyStorage,
   native = true,
+  headingPermission = false,
   onChange = () => {},
 } = {}) {
   const saved = new Map();
@@ -152,6 +157,8 @@ function harness({
     building: "Г",
   };
   const window = events();
+  if (headingPermission)
+    window.DeviceOrientationEvent = { requestPermission() {} };
   const document = events({
     hidden: false,
     body: { dataset: {} },
@@ -232,6 +239,8 @@ function harness({
       }
     },
     watchGpsLocation: startWatching,
+    isGpsSignalInterruption,
+    isTerminalGpsError,
     manualPlaceLocation,
     manualMapLocation,
     describeUserLocation,
@@ -275,8 +284,14 @@ function harness({
     scene,
     surveyStorage: storage,
     startWatching,
-    startHeading: async ({ signal, onHeading, onError }) => {
-      const watch = { signal, emit: onHeading, fail: onError, stops: 0 };
+    startHeading: async ({ signal, onHeading, onError, requestPermission }) => {
+      const watch = {
+        signal,
+        emit: onHeading,
+        fail: onError,
+        requestPermission,
+        stops: 0,
+      };
       headingWatches.push(watch);
       return async () => {
         watch.stops++;
@@ -717,6 +732,59 @@ test("permission denial and outside GPS preserve a useful manual point", async (
     message: "За пределами карты",
   });
   assert.deepEqual(h.state.userLocation.point, room.center);
+});
+
+test("refusing GPS leaves manual routing available and only the explicit retry restarts the watch", async () => {
+  const h = harness({ native: false, headingPermission: true });
+  h.$("#locate-open").onclick();
+  await turn();
+  assert.equal(h.headingWatches.length, 0);
+  h.watches[0].fail({ code: 1, message: "Доступ к местоположению запрещён." });
+  assert.equal(h.state.locationTracking.status, "error");
+  assert.equal(h.$("#location-dialog").open, true);
+  assert.equal(h.$("#location-enable-heading").hidden, true);
+  h.$("#location-close").onclick();
+  h.controller.setPlace(room);
+  assert.deepEqual(h.controller.routeOrigin().point, room.center);
+
+  assert.equal(h.controller.locate({ passive: true }), false);
+  h.window.dispatch("atlas:app-state", { detail: { isActive: true } });
+  assert.equal(h.$("#location-dialog").open, false);
+  assert.equal(h.watches.length, 1);
+  h.$("#locate-open").onclick();
+  assert.equal(h.$("#location-dialog").open, false);
+  assert.equal(h.focuses, 1);
+  assert.equal(h.watches.length, 1);
+  h.$("#location-options").onclick();
+  assert.equal(h.$("#location-dialog").open, true);
+  assert.equal(h.watches.length, 1);
+  h.$("#location-gps").onclick();
+  assert.equal(h.watches.length, 2);
+  h.$("#location-close").onclick();
+  h.watches[1].fail({ code: 1, message: "Доступ к местоположению запрещён." });
+  assert.equal(h.$("#location-dialog").open, false);
+  assert.deepEqual(h.controller.routeOrigin().point, room.center);
+  assert.equal(h.headingWatches.length, 0);
+});
+
+test("a browser compass prompt is available as a separate action after a GPS fix", async () => {
+  const h = harness({ native: false, headingPermission: true });
+  h.controller.locate();
+  await turn();
+  assert.equal(h.$("#location-enable-heading").hidden, true);
+  h.watches[0].emit(fix());
+  assert.equal(h.headingWatches.length, 0);
+  assert.equal(h.$("#location-enable-heading").hidden, false);
+  h.$("#location-enable-heading").onclick();
+  await turn();
+  assert.equal(h.headingWatches[0].requestPermission, true);
+  assert.equal(h.$("#location-enable-heading").hidden, true);
+  h.document.hidden = true;
+  h.document.dispatch("visibilitychange");
+  h.document.hidden = false;
+  h.document.dispatch("visibilitychange");
+  await turn();
+  assert.equal(h.headingWatches[1].requestPermission, false);
 });
 
 test("resetting a correction restores the raw point without fabricating a new observation", async () => {

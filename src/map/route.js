@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createRouteGuidance } from "./route-guidance.js";
 import { roundWalkingRoute } from "./route-rounding.js";
 
@@ -119,32 +120,71 @@ export function routeBounds(route, floorId, margin = 3) {
   ];
 }
 
-export function routeArrowAnchors(points, spacing = 6) {
-  const result = [];
-  let next = spacing / 2;
-  let travelled = 0;
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1],
-      b = points[i];
-    const dx = b[0] - a[0],
-      dz = b[1] - a[1];
-    const length = Math.hypot(dx, dz);
-    if (length < 1e-6) continue;
-    while (next < travelled + length) {
-      const t = (next - travelled) / length;
-      // Avoid placing a directional chevron exactly on a turn.
-      if (t > 0.1 && t < 0.9) {
-        result.push({
-          point: [a[0] + t * dx, a[1] + t * dz],
-          angle: -Math.atan2(dz, dx),
-          distance: next,
-        });
-      }
-      next += spacing;
-    }
-    travelled += length;
+export function routeArrowAnchors(points, spacing = 3) {
+  const distances = lineDistances(points);
+  const length = distances.at(-1);
+  if (length < 1e-6 || !Number.isFinite(spacing) || spacing <= 0) return [];
+  const count = Math.max(1, Math.round(length / spacing));
+  let segmentEnd = 1;
+  return Array.from({ length: count }, (_, index) => {
+    const distance = ((index + 0.5) * length) / count;
+    while (distances[segmentEnd] <= distance) segmentEnd++;
+    const [x, z] = points[segmentEnd - 1];
+    const [endX, endZ] = points[segmentEnd];
+    const dx = endX - x;
+    const dz = endZ - z;
+    const t =
+      (distance - distances[segmentEnd - 1]) /
+      (distances[segmentEnd] - distances[segmentEnd - 1]);
+    return {
+      point: [x + t * dx, z + t * dz],
+      angle: -Math.atan2(dz, dx),
+      distance,
+    };
+  });
+}
+
+const ROUTE_ARROW_SIZE = 16;
+const ROUTE_ARROW_SPACING = 44;
+const ROUTE_WAYPOINT_SPACING = 23;
+const ROUTE_ARROW_HEIGHT = 0.37;
+const ROUTE_WAYPOINT_HEIGHT = 0.38;
+const ROUTE_CUE_FLOOR_CLEARANCE = 0.18;
+
+function createRouteArrows(count, visibility, dark) {
+  const chevron = new THREE.Shape()
+    .moveTo(-0.2, -0.19)
+    .lineTo(-0.05, -0.19)
+    .lineTo(0.2, 0)
+    .lineTo(-0.05, 0.19)
+    .lineTo(-0.2, 0.19)
+    .lineTo(0.05, 0)
+    .closePath();
+  const shapes = [
+    [new THREE.RingGeometry(0.39, 0.5, 24), 0xffffff],
+    [new THREE.CircleGeometry(0.39, 24), dark ? 0x234c94 : 0x174998],
+    [new THREE.ShapeGeometry(chevron).translate(0, 0, 0.01), 0xffffff],
+  ];
+  for (const [geometry, hex] of shapes) {
+    const color = new THREE.Color(hex);
+    const colors = new Float32Array(geometry.attributes.position.count * 3);
+    for (let i = 0; i < colors.length; i += 3) color.toArray(colors, i);
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   }
-  return result;
+  const geometry = mergeGeometries(shapes.map(([shape]) => shape));
+  for (const [shape] of shapes) shape.dispose();
+  const material = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    toneMapped: false,
+    ...visibility,
+  });
+  const mesh = new THREE.InstancedMesh(geometry, material, count);
+  mesh.name = "Route direction markers";
+  mesh.count = 0;
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 10;
+  return mesh;
 }
 
 export function createRouteLayer(
@@ -231,40 +271,16 @@ export function createRouteLayer(
       points: segment.points,
       distances: lineDistances(segment.points),
       stroke,
-      arrows: [],
+      arrows: routeArrowAnchors(segment.points),
       traveledDistance: 0,
     };
     legs.set(segment.sourceSegmentIndex, leg);
-    for (const anchor of routeArrowAnchors(segment.points)) {
-      const geometry = new THREE.BufferGeometry();
-      // Chevron points along +X; all vertices stay in the floor plane.
-      geometry.setAttribute(
-        "position",
-        new THREE.Float32BufferAttribute(
-          [
-            -0.6, 0, -0.65, 0.6, 0, 0, -0.6, 0, 0.65, -0.6, 0, -0.65, -0.1, 0,
-            0, -0.6, 0, 0.65,
-          ],
-          3,
-        ),
-      );
-      const arrow = new THREE.Mesh(
-        geometry,
-        new THREE.MeshBasicMaterial({
-          color: 0xffffff,
-          side: THREE.DoubleSide,
-          ...visibility,
-          toneMapped: false,
-        }),
-      );
-      arrow.position.set(anchor.point[0], 0.35, anchor.point[1]);
-      arrow.rotation.y = anchor.angle;
-      arrow.renderOrder = 10;
-      leg.arrows.push({ arrow, distance: anchor.distance });
-      arrows.push(arrow);
-      group.add(arrow);
-    }
+    arrows.push(...leg.arrows);
   }
+  const arrowMesh = arrows.length
+    ? createRouteArrows(arrows.length, visibility, dark)
+    : null;
+  if (arrowMesh) group.add(arrowMesh);
   for (const path of stairPaths) {
     for (const [color, linewidth, order] of [
       [dark ? 0x182a49 : 0xffffff, 11, 11],
@@ -316,10 +332,10 @@ export function createRouteLayer(
   function marker(point, type, label, checkpoint) {
     if (!isPoint(point)) return;
     const object = new THREE.Group();
-    object.position.set(point[0], 0.38, point[1]);
+    object.position.set(point[0], ROUTE_WAYPOINT_HEIGHT, point[1]);
     const turn = type === "turn";
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(turn ? 0.3 : 0.65, turn ? 0.5 : 1, 24),
+      new THREE.RingGeometry(turn ? 0.35 : 0.7, turn ? 0.6 : 1, 24),
       new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -327,10 +343,9 @@ export function createRouteLayer(
         ...visibility,
       }),
     );
-    ring.rotation.x = -Math.PI / 2;
     ring.renderOrder = 13;
     const dot = new THREE.Mesh(
-      new THREE.CircleGeometry(turn ? 0.33 : 0.7, 24),
+      new THREE.CircleGeometry(turn ? 0.36 : 0.71, 24),
       new THREE.MeshBasicMaterial({
         color: type === "start" ? 0x172b4d : blue,
         side: THREE.DoubleSide,
@@ -338,11 +353,11 @@ export function createRouteLayer(
         ...visibility,
       }),
     );
-    dot.rotation.x = -Math.PI / 2;
     dot.renderOrder = 14;
-    dot.position.y = 0.005;
+    dot.position.z = 0.005;
     object.add(ring, dot);
     object.userData.routeMarker = type;
+    object.userData.routePoint = point;
     group.add(object);
     markers.push(object);
     if (label) labels.push({ point, text: label, type });
@@ -432,8 +447,7 @@ export function createRouteLayer(
     leg.stroke.geometry.dispose();
     leg.stroke.geometry = lineGeometry(remaining, 0.31);
     if (leg.traveledStroke) leg.traveledStroke.visible = distance > 0 && !full;
-    for (const { arrow, distance: at } of leg.arrows)
-      arrow.userData.routePassed = at <= distance;
+    for (const arrow of leg.arrows) arrow.passed = arrow.distance <= distance;
     return true;
   }
 
@@ -491,11 +505,166 @@ export function createRouteLayer(
     }
     return changed;
   }
-  return { group, materials, markers, arrows, labels, paths, setProgress };
+  return {
+    group,
+    materials,
+    markers,
+    arrows,
+    arrowMesh,
+    labels,
+    paths,
+    setProgress,
+  };
+}
+
+export function updateRouteCues(layers, camera, width, height) {
+  if (!width || !height || !layers.length) return;
+  const cameraRotation = camera.getWorldQuaternion(new THREE.Quaternion());
+  const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
+  const forward = camera.getWorldDirection(new THREE.Vector3());
+  const cameraPlaneVertical = camera.isOrthographicCamera
+    ? 0
+    : Math.hypot(
+        camera.matrixWorld.elements[1],
+        camera.matrixWorld.elements[5],
+      );
+  const relative = new THREE.Vector3();
+  const unitsPerPixel = (point) =>
+    camera.isOrthographicCamera
+      ? (camera.top - camera.bottom) / (camera.zoom * height)
+      : (2 *
+          Math.max(0.1, relative.copy(point).sub(cameraPosition).dot(forward)) *
+          Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) /
+        (camera.zoom * height);
+  const worldPosition = new THREE.Vector3();
+  const position = new THREE.Vector3();
+  const floorClearScale = (units, radius, toLocal) => {
+    const extentBelowCenter = units * radius * cameraPlaneVertical;
+    const lift = ROUTE_CUE_FLOOR_CLEARANCE + extentBelowCenter - position.y;
+    if (lift <= 0 || cameraPosition.y <= worldPosition.y) return units;
+    // Move the billboard along its sightline and shrink it proportionally.
+    // Its bottom clears the floor while its projected center stays on the path.
+    const fraction = Math.min(
+      0.025,
+      lift / (cameraPosition.y - worldPosition.y + extentBelowCenter),
+    );
+    position
+      .copy(worldPosition)
+      .lerp(cameraPosition, fraction)
+      .applyMatrix4(toLocal);
+    return units * (1 - fraction);
+  };
+  const projected = new THREE.Vector3();
+  const screen = new THREE.Vector2();
+  const project = (point) => {
+    projected.copy(point).project(camera);
+    screen.set(
+      ((projected.x + 1) * width) / 2,
+      ((projected.y + 1) * height) / 2,
+    );
+  };
+  const inViewport = (margin) =>
+    Math.abs(projected.z) < 1 &&
+    screen.x >= margin &&
+    screen.y >= margin &&
+    screen.x <= width - margin &&
+    screen.y <= height - margin;
+  const near = (placed, spacing) =>
+    placed.some((point) => point.distanceToSquared(screen) < spacing ** 2);
+
+  const placements = layers.map((layer) => {
+    const facingCamera = layer.group
+      .getWorldQuaternion(new THREE.Quaternion())
+      .invert()
+      .multiply(cameraRotation);
+    return {
+      layer,
+      facingCamera,
+      toLocal: new THREE.Matrix4().copy(layer.group.matrixWorld).invert(),
+    };
+  });
+  const waypoints = [];
+  const turns = [];
+  for (const { layer, facingCamera, toLocal } of placements) {
+    for (const material of layer.materials)
+      material.resolution.set(width, height);
+    for (const marker of layer.markers) {
+      const [x, z] = marker.userData.routePoint;
+      const turn = marker.userData.routeMarker === "turn";
+      const next = marker.userData.routeProgress === "next";
+      position.set(x, ROUTE_WAYPOINT_HEIGHT, z);
+      worldPosition.copy(position).applyMatrix4(layer.group.matrixWorld);
+      const radius = (turn ? 6 : 10) * (next ? 1.2 : 1);
+      marker.quaternion.copy(facingCamera);
+      marker.scale.setScalar(
+        floorClearScale(unitsPerPixel(worldPosition), radius, toLocal) * 10,
+      );
+      marker.position.copy(position);
+      project(worldPosition);
+      const ordinaryTurn = turn && !next;
+      const onScreen = inViewport(0);
+      marker.visible = !ordinaryTurn;
+      if (!onScreen) continue;
+      if (ordinaryTurn) turns.push({ marker, point: screen.clone() });
+      else waypoints.push(screen.clone());
+    }
+  }
+  for (const { marker, point } of turns) {
+    screen.copy(point);
+    if (near(waypoints, ROUTE_WAYPOINT_SPACING)) continue;
+    marker.visible = true;
+    waypoints.push(point);
+  }
+
+  const placed = [];
+  const direction = new THREE.Vector3();
+  const axis = new THREE.Vector3(0, 0, 1);
+  const rotation = new THREE.Quaternion();
+  const matrix = new THREE.Matrix4();
+  const scale = new THREE.Vector3();
+  for (const { layer, facingCamera, toLocal } of placements) {
+    const { arrowMesh, arrows, group } = layer;
+    if (!arrowMesh) continue;
+    let count = 0;
+    for (const arrow of arrows) {
+      if (arrow.passed) continue;
+      position.set(arrow.point[0], ROUTE_ARROW_HEIGHT, arrow.point[1]);
+      worldPosition.copy(position).applyMatrix4(group.matrixWorld);
+      project(worldPosition);
+      if (
+        !inViewport(ROUTE_ARROW_SIZE / 2) ||
+        near(waypoints, ROUTE_WAYPOINT_SPACING) ||
+        near(placed, ROUTE_ARROW_SPACING)
+      )
+        continue;
+      const units = unitsPerPixel(worldPosition);
+      direction
+        .set(Math.cos(arrow.angle), 0, -Math.sin(arrow.angle))
+        .transformDirection(group.matrixWorld)
+        .multiplyScalar(units * 8)
+        .add(worldPosition)
+        .project(camera);
+      const dx = (direction.x - projected.x) * width;
+      const dy = (direction.y - projected.y) * height;
+      if (Math.hypot(dx, dy) < 1) continue;
+      rotation
+        .setFromAxisAngle(axis, Math.atan2(dy, dx))
+        .premultiply(facingCamera);
+      scale.setScalar(
+        floorClearScale(units, ROUTE_ARROW_SIZE / 2, toLocal) *
+          ROUTE_ARROW_SIZE,
+      );
+      arrowMesh.setMatrixAt(count++, matrix.compose(position, rotation, scale));
+      placed.push(screen.clone());
+    }
+    arrowMesh.count = count;
+    if (count) arrowMesh.instanceMatrix.needsUpdate = true;
+  }
 }
 
 export function disposeRouteLayer(layer) {
   if (!layer) return;
+  layer.arrowMesh?.dispose();
   layer.group.traverse((object) => {
     object.geometry?.dispose();
     for (const material of [].concat(object.material || [])) material.dispose();

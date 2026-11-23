@@ -75,6 +75,7 @@ export async function watchHeading({
   onHeading,
   onError,
   signal,
+  requestPermission = true,
   native = Capacitor.isNativePlatform(),
   plugin = Heading,
   windowTarget = globalThis.window,
@@ -203,8 +204,10 @@ export async function watchHeading({
           "HEADING_UNAVAILABLE",
           true,
         );
-      // This is reached directly from the location button gesture on iOS web.
-      if (typeof Orientation.requestPermission === "function") {
+      if (
+        requestPermission &&
+        typeof Orientation.requestPermission === "function"
+      ) {
         const permission = await Orientation.requestPermission();
         if (permission !== "granted")
           throw failure(
