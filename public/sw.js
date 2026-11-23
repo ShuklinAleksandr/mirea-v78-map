@@ -7,6 +7,12 @@ const ASSETS_TO_CACHE = [
   // а также к данным карты. Пример:
   '/data/buildings.json',
   '/data/rooms.json',
+  '/data/campuses/v-78/v-78.json',
+  '/data/campuses/v-78/v-78-floor0.json',
+  '/data/campuses/v-78/v-78-floor1.json',
+  '/data/campuses/v-78/v-78-floor2.json',
+  '/data/campuses/v-78/v-78-floor3.json',
+  '/data/campuses/v-78/v-78-floor4.json'
   // ... и другие критичные файлы
 ];
 
