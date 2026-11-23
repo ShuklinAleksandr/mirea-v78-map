@@ -1,6 +1,6 @@
 {
   "version": "0.5.25",
-  "sourceCommit": "efb9f17ffaf2fba5ace6a6b5e6a18c06f6175423",
+  "sourceCommit": "c892a9e8c650df095a1a90b586aea9612fd97f2c",
   "base": "/mirea-v78-map/",
-  "scope": "V78 public bugfixes; no private GPS experiments"
+  "scope": "V78 web map; responsive guidance, route direction markers and manual navigation after location denial"
 }
