@@ -9,8 +9,8 @@ window.addEventListener("hashchange", () => {
   // Или просто ничего не делайте, если приложение само следит за хэшем
 });
 initMobileShell().catch(console.warn).finally(startApp);
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(console.error);
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(console.error);
   });
 }
